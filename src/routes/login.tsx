@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ESTIMATOR_APP_URL, SITE } from "@/lib/site";
+import { goToEstimatorApp } from "@/lib/auth/go-to-estimator";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -58,14 +59,17 @@ function LoginForm() {
     }
 
     setRedirecting(true);
-    window.location.replace(ESTIMATOR_APP_URL);
+    goToEstimatorApp();
   }
 
   if (redirecting) {
     return (
-      <p className="mx-auto max-w-md px-4 py-20 text-center text-muted">
-        Opening the estimator…
-      </p>
+      <div className="mx-auto max-w-md px-4 py-20 pb-32 text-center sm:pb-20">
+        <p className="text-muted">You're signed in. Opening the estimator…</p>
+        <Button asChild size="lg" className="mt-6 w-full">
+          <a href={ESTIMATOR_APP_URL}>Open estimator</a>
+        </Button>
+      </div>
     );
   }
 
@@ -77,7 +81,7 @@ function LoginForm() {
 
       <form
         onSubmit={onSubmit}
-        className="mx-auto max-w-md space-y-5 px-4 pb-20"
+        className="mx-auto max-w-md space-y-5 px-4 pb-32 sm:pb-20"
       >
         <div className="space-y-2">
           <Label htmlFor="login-email">Email</Label>

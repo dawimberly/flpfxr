@@ -1,16 +1,21 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
 
+const HIDE_MOBILE_CALL_BAR = new Set(["/login", "/estimator"]);
+
 export function SiteShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const showMobileCallBar = !HIDE_MOBILE_CALL_BAR.has(pathname);
+
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
       <SiteHeader />
       <main className="flex-1 pb-24 sm:pb-0">{children}</main>
       <SiteFooter />
-      <MobileCallBar />
+      {showMobileCallBar ? <MobileCallBar /> : null}
     </div>
   );
 }
