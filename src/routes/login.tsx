@@ -1,15 +1,13 @@
-import { useState, type FormEvent } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { authClient, authEnabled } from "@/lib/auth/client";
-import { RedirectToEstimatorApp } from "@/lib/auth/redirect-estimator";
 import { SignedIn } from "@/lib/auth/gates";
 import { PageIntro } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ESTIMATOR_APP_URL, SITE } from "@/lib/site";
-import { goToEstimatorApp } from "@/lib/auth/go-to-estimator";
+import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -18,15 +16,35 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
+function goToEstimator() {
+  if (typeof window === "undefined") return;
+  window.location.assign("/estimator");
+}
+
+function GoToEstimator() {
+  useEffect(() => {
+    goToEstimator();
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-md px-4 py-20 text-center">
+      <p className="text-muted">You're signed in. Opening the estimator…</p>
+      <Button asChild size="lg" className="mt-6 w-full">
+        <Link to="/estimator">Open estimator</Link>
+      </Button>
+    </div>
+  );
+}
+
 function LoginPage() {
   if (!authEnabled) {
-    return <RedirectToEstimatorApp />;
+    return <GoToEstimator />;
   }
 
   return (
     <>
       <SignedIn>
-        <RedirectToEstimatorApp />
+        <GoToEstimator />
       </SignedIn>
       <LoginForm />
     </>
@@ -59,18 +77,11 @@ function LoginForm() {
     }
 
     setRedirecting(true);
-    goToEstimatorApp();
+    goToEstimator();
   }
 
   if (redirecting) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-20 pb-32 text-center sm:pb-20">
-        <p className="text-muted">You're signed in. Opening the estimator…</p>
-        <Button asChild size="lg" className="mt-6 w-full">
-          <a href={ESTIMATOR_APP_URL}>Open estimator</a>
-        </Button>
-      </div>
-    );
+    return <GoToEstimator />;
   }
 
   return (

@@ -4,11 +4,17 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
 
+const CREW_PATHS = new Set(["/estimator"]);
 const HIDE_MOBILE_CALL_BAR = new Set(["/login", "/estimator"]);
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const crew = CREW_PATHS.has(pathname);
   const showMobileCallBar = !HIDE_MOBILE_CALL_BAR.has(pathname);
+
+  if (crew) {
+    return <div className="min-h-dvh bg-bg text-fg">{children}</div>;
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
