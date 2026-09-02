@@ -53,7 +53,7 @@ export function SiteFooter() {
           </div>
         </div>
       </div>
-      <div className="border-t border-border py-6 text-center text-xs text-subtle">
+      <div className="border-t border-border py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center text-xs text-subtle sm:pb-6">
         <p>
           © {year} {SITE.legalName}. All rights reserved.
         </p>

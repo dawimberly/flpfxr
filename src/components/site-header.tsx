@@ -125,6 +125,14 @@ export function SiteHeader() {
                     Call {SITE.phoneDisplay}
                   </CallLink>
                 </Button>
+                <SheetClose asChild>
+                  <Link
+                    to="/login"
+                    className="py-3 text-center text-sm text-muted hover:text-primary"
+                  >
+                    Employee login
+                  </Link>
+                </SheetClose>
               </div>
             </SheetContent>
           </Sheet>
