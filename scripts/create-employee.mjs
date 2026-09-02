@@ -2,16 +2,37 @@
 /**
  * Create the one employee login (run once after auth DB is set up).
  *
- * Usage:
- *   EMPLOYEE_EMAIL=jon@theflipfixer.com \
- *   EMPLOYEE_PASSWORD='your-secure-password' \
- *   EMPLOYEE_NAME='Jon' \
- *   BETTER_AUTH_URL=https://theflipfixer.com \
- *   node scripts/create-employee.mjs
- *
- * For local dev with auth on:
- *   BETTER_AUTH_URL=http://localhost:8080 node scripts/create-employee.mjs
+ * Reads `flpfxr/.env` when present (EMPLOYEE_* and BETTER_AUTH_URL).
+ * Or set env vars manually before running: npm run create-employee
  */
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+
+function loadDotEnv() {
+  const path = join(root, ".env");
+  if (!existsSync(path)) return;
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+loadDotEnv();
+
 const email = process.env.EMPLOYEE_EMAIL?.trim();
 const password = process.env.EMPLOYEE_PASSWORD;
 const name = process.env.EMPLOYEE_NAME?.trim() || "Employee";
