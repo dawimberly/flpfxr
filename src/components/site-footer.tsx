@@ -54,7 +54,14 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-border py-6 text-center text-xs text-subtle">
-        © {year} {SITE.legalName}. All rights reserved.
+        <p>
+          © {year} {SITE.legalName}. All rights reserved.
+        </p>
+        <p className="mt-2">
+          <Link to="/login" className="text-muted hover:text-primary">
+            Employee login
+          </Link>
+        </p>
       </div>
     </footer>
   );

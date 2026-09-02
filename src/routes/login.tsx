@@ -1,0 +1,101 @@
+import { useState, type FormEvent } from "react";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { authClient, authEnabled } from "@/lib/auth/client";
+import { SignedIn } from "@/lib/auth/gates";
+import { PageIntro } from "@/components/site-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SITE } from "@/lib/site";
+
+export const Route = createFileRoute("/login")({
+  component: LoginPage,
+  head: () => ({
+    meta: [{ title: `Employee login | ${SITE.legalName}` }],
+  }),
+});
+
+function LoginPage() {
+  if (!authEnabled) {
+    return <Navigate to="/estimator" />;
+  }
+
+  return (
+    <>
+      <SignedIn>
+        <Navigate to="/estimator" />
+      </SignedIn>
+      <LoginForm />
+    </>
+  );
+}
+
+function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+
+    const { error: signInError } = await authClient.signIn.email({
+      email,
+      password,
+      callbackURL: "/estimator",
+    });
+
+    setPending(false);
+    if (signInError) {
+      setError(signInError.message ?? "Sign-in failed. Check email and password.");
+    }
+  }
+
+  return (
+    <div>
+      <PageIntro eyebrow="Employees" title="Sign in">
+        <p>For Flip Fixer crew only.</p>
+      </PageIntro>
+
+      <form
+        onSubmit={onSubmit}
+        className="mx-auto max-w-md space-y-5 px-4 pb-20"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="login-email">Email</Label>
+          <Input
+            id="login-email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="login-password">Password</Label>
+          <Input
+            id="login-password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {error ? (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <Button type="submit" size="lg" className="w-full" disabled={pending}>
+          {pending ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+    </div>
+  );
+}
