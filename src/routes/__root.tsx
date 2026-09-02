@@ -1,4 +1,4 @@
-import { createRootRoute, HeadContent, Outlet, Scripts, useRouterState } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { SiteShell } from "@/components/site-shell";
@@ -34,35 +34,24 @@ export const Route = createRootRoute({
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap",
       },
     ],
   }),
-  component: RootLayout,
-});
-
-function RootLayout() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const bareLayout = pathname === "/estimator";
-
-  return (
+  component: () => (
     <html lang="en" className="antialiased" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body className={bareLayout ? undefined : "bg-bg text-fg"}>
+      <body className="bg-bg text-fg">
         <PreviewHostBridge />
         <AuthProvider>
-          {bareLayout ? (
+          <SiteShell>
             <Outlet />
-          ) : (
-            <SiteShell>
-              <Outlet />
-            </SiteShell>
-          )}
+          </SiteShell>
         </AuthProvider>
         <Scripts />
       </body>
     </html>
-  );
-}
+  ),
+});

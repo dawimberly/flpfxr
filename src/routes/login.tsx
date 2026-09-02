@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { authClient, authEnabled } from "@/lib/auth/client";
+import { RedirectToEstimatorApp } from "@/lib/auth/redirect-estimator";
 import { SignedIn } from "@/lib/auth/gates";
 import { PageIntro } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SITE } from "@/lib/site";
+import { ESTIMATOR_APP_URL, SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -18,13 +19,13 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   if (!authEnabled) {
-    return <Navigate to="/estimator" />;
+    return <RedirectToEstimatorApp />;
   }
 
   return (
     <>
       <SignedIn>
-        <Navigate to="/estimator" />
+        <RedirectToEstimatorApp />
       </SignedIn>
       <LoginForm />
     </>
@@ -32,7 +33,6 @@ function LoginPage() {
 }
 
 function LoginForm() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +47,7 @@ function LoginForm() {
     const { error: signInError } = await authClient.signIn.email({
       email,
       password,
-      callbackURL: "/estimator",
+      callbackURL: ESTIMATOR_APP_URL,
     });
 
     setPending(false);
@@ -62,7 +62,7 @@ function LoginForm() {
       /* session store will recover on next fetch */
     }
 
-    void navigate({ to: "/estimator" });
+    window.location.assign(ESTIMATOR_APP_URL);
   }
 
   return (
