@@ -45,7 +45,10 @@ if (!email || !password) {
 
 const res = await fetch(`${base}/api/auth/sign-up/email`, {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    Origin: base,
+  },
   body: JSON.stringify({ email, password, name }),
 });
 
