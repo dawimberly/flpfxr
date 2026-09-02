@@ -47,6 +47,15 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+function DialogHeader({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("space-y-1 px-5 pt-5 pr-14 pb-3 sm:px-6", className)} {...props} />
+  );
+}
+
 function DialogTitle({
   className,
   ...props
@@ -75,6 +84,7 @@ export {
   Dialog,
   DialogTrigger,
   DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogClose,

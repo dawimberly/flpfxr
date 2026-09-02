@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { authClient, authEnabled } from "@/lib/auth/client";
 import { SignedIn } from "@/lib/auth/gates";
@@ -32,6 +32,7 @@ function LoginPage() {
 }
 
 function LoginForm() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -52,7 +53,16 @@ function LoginForm() {
     setPending(false);
     if (signInError) {
       setError(signInError.message ?? "Sign-in failed. Check email and password.");
+      return;
     }
+
+    try {
+      await authClient.getSession();
+    } catch {
+      /* session store will recover on next fetch */
+    }
+
+    void navigate({ to: "/estimator" });
   }
 
   return (

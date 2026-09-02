@@ -1,0 +1,677 @@
+{
+  "flooring": {
+    "display_name": "Flooring",
+    "options": [
+      {
+        "name": "Luxury vinyl plank — installed",
+        "unit": "sq ft",
+        "cost_per_unit": 7.15
+      },
+      {
+        "name": "Snaplock laminate — installed",
+        "unit": "sq ft",
+        "cost_per_unit": 8.7
+      },
+      {
+        "name": "Engineered wood flooring — floating",
+        "unit": "sq ft",
+        "cost_per_unit": 12.01
+      },
+      {
+        "name": "Engineered wood flooring",
+        "unit": "sq ft",
+        "cost_per_unit": 11.7
+      },
+      {
+        "name": "Engineered wood flooring — standard grade",
+        "unit": "sq ft",
+        "cost_per_unit": 8.44
+      },
+      {
+        "name": "Vinyl tile — standard grade",
+        "unit": "sq ft",
+        "cost_per_unit": 3.37
+      },
+      {
+        "name": "Tile floor covering — 2x2",
+        "unit": "sq ft",
+        "cost_per_unit": 21.73
+      },
+      {
+        "name": "Underlayment — 1/4 in cement board",
+        "unit": "sq ft",
+        "cost_per_unit": 4.01
+      },
+      {
+        "name": "Grout sealer",
+        "unit": "sq ft",
+        "cost_per_unit": 1.19
+      }
+    ]
+  },
+  "drywall": {
+    "display_name": "Drywall",
+    "options": [
+      {
+        "name": "1/2 in drywall — hung, taped, ready for texture",
+        "unit": "sq ft",
+        "cost_per_unit": 2.89
+      },
+      {
+        "name": "5/8 in drywall — hung, taped, ready for texture",
+        "unit": "sq ft",
+        "cost_per_unit": 3.27
+      },
+      {
+        "name": "Texture drywall — smooth / skim coat",
+        "unit": "sq ft",
+        "cost_per_unit": 1.91
+      },
+      {
+        "name": "Texture drywall — medium hand texture",
+        "unit": "sq ft",
+        "cost_per_unit": 1.71
+      },
+      {
+        "name": "Texture drywall — orange peel",
+        "unit": "sq ft",
+        "cost_per_unit": 0.51
+      },
+      {
+        "name": "Texture drywall — heavy hand texture",
+        "unit": "sq ft",
+        "cost_per_unit": 3.61
+      }
+    ]
+  },
+  "walls": {
+    "display_name": "Walls",
+    "options": [
+      {
+        "name": "1/2 in drywall — hung, taped, ready for texture",
+        "unit": "sq ft",
+        "cost_per_unit": 2.89
+      },
+      {
+        "name": "Texture drywall — smooth / skim coat",
+        "unit": "sq ft",
+        "cost_per_unit": 1.91
+      },
+      {
+        "name": "Paneling",
+        "unit": "sq ft",
+        "cost_per_unit": 3.6
+      },
+      {
+        "name": "Pegboard",
+        "unit": "sq ft",
+        "cost_per_unit": 3.21
+      }
+    ]
+  },
+  "walls/paint": {
+    "display_name": "Paint",
+    "options": [
+      {
+        "name": "Prime (1 coat) then paint (2 coats) drywall",
+        "unit": "sq ft",
+        "cost_per_unit": 1.69
+      },
+      {
+        "name": "Paint drywall — one coat",
+        "unit": "sq ft",
+        "cost_per_unit": 0.87
+      }
+    ]
+  },
+  "ceiling": {
+    "display_name": "Ceiling",
+    "options": [
+      {
+        "name": "5/8 in drywall — hung, taped, ready for texture",
+        "unit": "sq ft",
+        "cost_per_unit": 3.27
+      },
+      {
+        "name": "Texture drywall — medium hand texture",
+        "unit": "sq ft",
+        "cost_per_unit": 1.71
+      },
+      {
+        "name": "Prime (1 coat) then paint (2 coats) drywall",
+        "unit": "sq ft",
+        "cost_per_unit": 1.69
+      },
+      {
+        "name": "Blown-in insulation — 10 in R26",
+        "unit": "sq ft",
+        "cost_per_unit": 1.52
+      }
+    ]
+  },
+  "insulation": {
+    "display_name": "Insulation",
+    "options": [
+      {
+        "name": "Batt insulation — 4 in R13 paper/foil faced",
+        "unit": "sq ft",
+        "cost_per_unit": 1.7
+      },
+      {
+        "name": "Blown-in insulation — 10 in R26",
+        "unit": "sq ft",
+        "cost_per_unit": 1.52
+      }
+    ]
+  },
+  "trim/baseboards": {
+    "display_name": "Trim / Baseboards",
+    "options": [
+      {
+        "name": "Baseboard — 3 1/4 in",
+        "unit": "linear ft",
+        "cost_per_unit": 4.5
+      },
+      {
+        "name": "Baseboard — 3 1/4 in stain grade",
+        "unit": "linear ft",
+        "cost_per_unit": 5.0
+      },
+      {
+        "name": "Seal (1 coat) & paint (2 coats) baseboard",
+        "unit": "linear ft",
+        "cost_per_unit": 2.83
+      },
+      {
+        "name": "Casing — 3 1/4 in",
+        "unit": "linear ft",
+        "cost_per_unit": 4.22
+      },
+      {
+        "name": "Quarter round — 3/4 in",
+        "unit": "linear ft",
+        "cost_per_unit": 2.25
+      },
+      {
+        "name": "Crown molding — 4 1/4 in",
+        "unit": "linear ft",
+        "cost_per_unit": 6.24
+      },
+      {
+        "name": "Chair rail — 3 1/4 in",
+        "unit": "linear ft",
+        "cost_per_unit": 5.78
+      },
+      {
+        "name": "Window trim set (casing & stop)",
+        "unit": "linear ft",
+        "cost_per_unit": 7.35
+      }
+    ]
+  },
+  "doors": {
+    "display_name": "Doors",
+    "options": [
+      {
+        "name": "Interior door unit — standard grade",
+        "unit": "each",
+        "cost_per_unit": 337.96
+      },
+      {
+        "name": "Entry door — pre-hung flush",
+        "unit": "each",
+        "cost_per_unit": 760.74
+      },
+      {
+        "name": "Bifold door — solid core half louvered",
+        "unit": "each",
+        "cost_per_unit": 318.59
+      },
+      {
+        "name": "Overhead door 9x7 — premium grade",
+        "unit": "each",
+        "cost_per_unit": 3028.97
+      },
+      {
+        "name": "Garage door opener — premium grade",
+        "unit": "each",
+        "cost_per_unit": 873.5
+      },
+      {
+        "name": "Seal & paint door slab (per side)",
+        "unit": "each",
+        "cost_per_unit": 49.54
+      },
+      {
+        "name": "Door lockset & deadbolt — exterior standard",
+        "unit": "each",
+        "cost_per_unit": 69.62
+      }
+    ]
+  },
+  "cabinets": {
+    "display_name": "Cabinets",
+    "options": [
+      {
+        "name": "Stock cabinets — base units",
+        "unit": "linear ft",
+        "cost_per_unit": 185.0
+      },
+      {
+        "name": "Semi-custom cabinets — base units",
+        "unit": "linear ft",
+        "cost_per_unit": 245.0
+      },
+      {
+        "name": "Custom cabinets — base units",
+        "unit": "linear ft",
+        "cost_per_unit": 304.81
+      },
+      {
+        "name": "Custom cabinets — wall units 30 in",
+        "unit": "linear ft",
+        "cost_per_unit": 213.79
+      },
+      {
+        "name": "Custom cabinets — wall units up to 24 in",
+        "unit": "linear ft",
+        "cost_per_unit": 199.47
+      },
+      {
+        "name": "Laminate upper (wall) units — high grade",
+        "unit": "linear ft",
+        "cost_per_unit": 212.94
+      },
+      {
+        "name": "Cabinet knob or pull",
+        "unit": "each",
+        "cost_per_unit": 14.25
+      }
+    ]
+  },
+  "cabinets/storage": {
+    "display_name": "Cabinets / Storage",
+    "options": [
+      {
+        "name": "Laminate upper (wall) units — high grade",
+        "unit": "linear ft",
+        "cost_per_unit": 212.94
+      },
+      {
+        "name": "Custom cabinets — base units",
+        "unit": "linear ft",
+        "cost_per_unit": 304.81
+      }
+    ]
+  },
+  "vanity/cabinets": {
+    "display_name": "Vanity / Cabinets",
+    "options": [
+      {
+        "name": "Vanity",
+        "unit": "linear ft",
+        "cost_per_unit": 268.96
+      },
+      {
+        "name": "Medicine cabinet",
+        "unit": "each",
+        "cost_per_unit": 217.02
+      },
+      {
+        "name": "Bathroom sink — porcelain",
+        "unit": "each",
+        "cost_per_unit": 374.73
+      }
+    ]
+  },
+  "countertops": {
+    "display_name": "Countertops / Backsplash",
+    "options": [
+      {
+        "name": "Granite countertop — installed",
+        "unit": "sq ft",
+        "cost_per_unit": 70.0
+      },
+      {
+        "name": "Quartz countertop — installed",
+        "unit": "sq ft",
+        "cost_per_unit": 85.0
+      },
+      {
+        "name": "Granite or marble backsplash",
+        "unit": "sq ft",
+        "cost_per_unit": 77.31
+      },
+      {
+        "name": "Solid-surface backsplash",
+        "unit": "linear ft",
+        "cost_per_unit": 32.56
+      }
+    ]
+  },
+  "backsplash": {
+    "display_name": "Backsplash",
+    "options": [
+      {
+        "name": "Granite or marble backsplash",
+        "unit": "sq ft",
+        "cost_per_unit": 77.31
+      },
+      {
+        "name": "Solid-surface backsplash",
+        "unit": "linear ft",
+        "cost_per_unit": 32.56
+      }
+    ]
+  },
+  "tile/shower surround": {
+    "display_name": "Tile / Shower",
+    "options": [
+      {
+        "name": "Tile floor covering — 2x2",
+        "unit": "sq ft",
+        "cost_per_unit": 21.73
+      },
+      {
+        "name": "Tile base — 6x6 high grade",
+        "unit": "linear ft",
+        "cost_per_unit": 19.23
+      },
+      {
+        "name": "Shower curb — site-built ceramic/porcelain",
+        "unit": "linear ft",
+        "cost_per_unit": 89.02
+      },
+      {
+        "name": "Shower faucet — standard grade",
+        "unit": "each",
+        "cost_per_unit": 166.78
+      },
+      {
+        "name": "Shower head faucet — standard grade",
+        "unit": "each",
+        "cost_per_unit": 233.24
+      },
+      {
+        "name": "Mixing valve — brass 3/4 in",
+        "unit": "each",
+        "cost_per_unit": 221.03
+      },
+      {
+        "name": "Shower doors — bypassing",
+        "unit": "each",
+        "cost_per_unit": 489.36
+      }
+    ]
+  },
+  "plumbing": {
+    "display_name": "Plumbing",
+    "options": [
+      {
+        "name": "Toilet",
+        "unit": "each",
+        "cost_per_unit": 628.15
+      },
+      {
+        "name": "Bathroom sink — porcelain",
+        "unit": "each",
+        "cost_per_unit": 374.73
+      },
+      {
+        "name": "Garbage disposal",
+        "unit": "each",
+        "cost_per_unit": 309.47
+      },
+      {
+        "name": "Undermount sink — detach & reset",
+        "unit": "each",
+        "cost_per_unit": 326.41
+      },
+      {
+        "name": "Water heater — 50 gallon gas",
+        "unit": "each",
+        "cost_per_unit": 1695.0
+      },
+      {
+        "name": "Water shutoff valve",
+        "unit": "each",
+        "cost_per_unit": 79.38
+      }
+    ]
+  },
+  "electrical": {
+    "display_name": "Electrical",
+    "options": [
+      {
+        "name": "Outlet",
+        "unit": "each",
+        "cost_per_unit": 21.88
+      },
+      {
+        "name": "Switch",
+        "unit": "each",
+        "cost_per_unit": 22.64
+      },
+      {
+        "name": "Switch — double",
+        "unit": "each",
+        "cost_per_unit": 114.54
+      },
+      {
+        "name": "GFCI receptacle — 15 amp",
+        "unit": "each",
+        "cost_per_unit": 127.36
+      },
+      {
+        "name": "GFCI receptacle — 20 amp",
+        "unit": "each",
+        "cost_per_unit": 128.78
+      },
+      {
+        "name": "110 volt wiring 12/2 with ground",
+        "unit": "linear ft",
+        "cost_per_unit": 2.03
+      }
+    ]
+  },
+  "lighting": {
+    "display_name": "Lighting",
+    "options": [
+      {
+        "name": "Light fixture — ceiling",
+        "unit": "each",
+        "cost_per_unit": 88.97
+      },
+      {
+        "name": "Recessed light fixture",
+        "unit": "each",
+        "cost_per_unit": 156.9
+      },
+      {
+        "name": "Vanity light strip — stainless",
+        "unit": "each",
+        "cost_per_unit": 274.82
+      },
+      {
+        "name": "Ceiling fan & light",
+        "unit": "each",
+        "cost_per_unit": 453.6
+      },
+      {
+        "name": "Bathroom ventilation fan",
+        "unit": "each",
+        "cost_per_unit": 147.2
+      }
+    ]
+  },
+  "closet/storage": {
+    "display_name": "Closet / Storage",
+    "options": [
+      {
+        "name": "Closet shelving & rod",
+        "unit": "linear ft",
+        "cost_per_unit": 33.84
+      },
+      {
+        "name": "Shelving — 12 in",
+        "unit": "linear ft",
+        "cost_per_unit": 13.32
+      }
+    ]
+  },
+  "storage/shelving": {
+    "display_name": "Storage / Shelving",
+    "options": [
+      {
+        "name": "Shelving — 12 in",
+        "unit": "linear ft",
+        "cost_per_unit": 13.32
+      },
+      {
+        "name": "Pegboard",
+        "unit": "sq ft",
+        "cost_per_unit": 3.21
+      }
+    ]
+  },
+  "built-ins/storage": {
+    "display_name": "Built-ins / Storage",
+    "options": [
+      {
+        "name": "Shelving — 12 in",
+        "unit": "linear ft",
+        "cost_per_unit": 13.32
+      },
+      {
+        "name": "Closet shelving & rod",
+        "unit": "linear ft",
+        "cost_per_unit": 33.84
+      }
+    ]
+  },
+  "fireplace surround": {
+    "display_name": "Fireplace Surround",
+    "options": [
+      {
+        "name": "Tile base — 6x6 high grade",
+        "unit": "linear ft",
+        "cost_per_unit": 19.23
+      },
+      {
+        "name": "Granite or marble backsplash",
+        "unit": "sq ft",
+        "cost_per_unit": 77.31
+      }
+    ]
+  },
+  "window treatments": {
+    "display_name": "Window Treatments",
+    "options": [
+      {
+        "name": "Window blind — PVC 1 in (14–20 SF)",
+        "unit": "each",
+        "cost_per_unit": 81.41
+      },
+      {
+        "name": "Window blind — PVC 1 in (20–32 SF)",
+        "unit": "each",
+        "cost_per_unit": 118.53
+      }
+    ]
+  },
+  "cleanup": {
+    "display_name": "Cleanup / Protection",
+    "options": [
+      {
+        "name": "Clean final",
+        "unit": "sq ft",
+        "cost_per_unit": 0.49
+      },
+      {
+        "name": "Mask wall — plastic, paper, tape",
+        "unit": "linear ft",
+        "cost_per_unit": 1.83
+      }
+    ]
+  },
+  "siding": {
+    "display_name": "Siding",
+    "options": [
+      {
+        "name": "Vinyl siding",
+        "unit": "sq ft",
+        "cost_per_unit": 5.32
+      },
+      {
+        "name": "Vinyl soffit",
+        "unit": "sq ft",
+        "cost_per_unit": 6.89
+      },
+      {
+        "name": "House wrap (air/moisture barrier)",
+        "unit": "sq ft",
+        "cost_per_unit": 0.43
+      }
+    ]
+  },
+  "roofing": {
+    "display_name": "Roofing",
+    "options": [
+      {
+        "name": "Laminated composition shingles",
+        "unit": "square",
+        "cost_per_unit": 286.73
+      },
+      {
+        "name": "Roofing felt — 15 lb",
+        "unit": "square",
+        "cost_per_unit": 38.16
+      },
+      {
+        "name": "Hip / ridge cap — composition",
+        "unit": "linear ft",
+        "cost_per_unit": 6.54
+      },
+      {
+        "name": "Drip edge / gutter apron",
+        "unit": "linear ft",
+        "cost_per_unit": 3.36
+      }
+    ]
+  },
+  "decking/patio": {
+    "display_name": "Gutters / Exterior trim",
+    "options": [
+      {
+        "name": "Gutter — aluminum up to 5 in",
+        "unit": "linear ft",
+        "cost_per_unit": 9.47
+      },
+      {
+        "name": "Downspout — aluminum 2x3",
+        "unit": "linear ft",
+        "cost_per_unit": 9.47
+      },
+      {
+        "name": "Fascia — metal 8 in",
+        "unit": "linear ft",
+        "cost_per_unit": 8.15
+      }
+    ]
+  },
+  "exterior paint": {
+    "display_name": "Exterior Paint",
+    "options": [
+      {
+        "name": "Seal & paint single garage door opening & trim",
+        "unit": "each",
+        "cost_per_unit": 132.27
+      },
+      {
+        "name": "Paint door/window trim & jamb — 2 coats (per side)",
+        "unit": "each",
+        "cost_per_unit": 41.28
+      }
+    ]
+  }
+}

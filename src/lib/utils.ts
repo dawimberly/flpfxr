@@ -31,3 +31,17 @@ export function formatUsdRange(min: number, max: number) {
       : `$${n.toLocaleString("en-US")}`;
   return `${fmt(min)} – ${fmt(max)}`;
 }
+
+export function money(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
+
+export function qtyLabel(value: number, unit: string) {
+  const formatted = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(value);
+  return `${formatted} ${unit}`;
+}

@@ -20,9 +20,16 @@
   --color-background: #121416;
   --color-foreground: #f3efe8;
   --color-destructive: #e05d4d;
+  --color-wash: #e8efef;
+  --color-fg-subtle: #7b8b8f;
+  --color-ink: #12343b;
+  --color-ink-foreground: #f4f1ec;
+  --color-paper-alt: #efe8df;
+  --color-primary-foreground: #fff7f0;
 
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.75rem;
@@ -33,6 +40,39 @@
 
   --shadow-border: 0 0 0 1px rgb(243 239 232 / 0.08);
   --shadow-border-hover: 0 0 0 1px rgb(243 239 232 / 0.14);
+}
+
+.estimator-shell {
+  --color-bg: #f4f1ec;
+  --color-background: #f4f1ec;
+  --color-fg: #12343b;
+  --color-foreground: #12343b;
+  --color-surface: #fbf8f3;
+  --color-card: #fffdf9;
+  --color-muted: #5b6e73;
+  --color-subtle: #7b8b8f;
+  --color-fg-subtle: #7b8b8f;
+  --color-primary: #c45c26;
+  --color-primary-hover: #a84d1f;
+  --color-primary-fg: #fff7f0;
+  --color-primary-foreground: #fff7f0;
+  --color-border: #d5dddf;
+  --color-ring: #c45c26;
+  --color-wash: #e8efef;
+  --color-ink: #12343b;
+  --color-ink-foreground: #f4f1ec;
+  --color-paper-alt: #efe8df;
+  --shadow-border: 0 0 0 1px rgba(18, 52, 59, 0.08), 0 1px 2px -1px rgba(18, 52, 59, 0.06),
+    0 2px 4px 0 rgba(18, 52, 59, 0.04);
+  --shadow-border-hover: 0 0 0 1px rgba(18, 52, 59, 0.12), 0 1px 2px -1px rgba(18, 52, 59, 0.08),
+    0 2px 6px 0 rgba(18, 52, 59, 0.06);
+
+  min-height: 100dvh;
+  background:
+    radial-gradient(1200px 500px at 10% -10%, color-mix(in oklab, var(--color-primary) 8%, transparent), transparent 55%),
+    radial-gradient(900px 400px at 110% 0%, color-mix(in oklab, var(--color-ink) 6%, transparent), transparent 50%),
+    var(--color-bg);
+  color: var(--color-fg);
 }
 
 @layer base {

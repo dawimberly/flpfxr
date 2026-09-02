@@ -1,0 +1,137 @@
+[
+  {
+    "room_id": "kitchen",
+    "display_name": "Kitchen",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "cabinets",
+      "countertops",
+      "trim/baseboards",
+      "lighting",
+      "plumbing"
+    ]
+  },
+  {
+    "room_id": "bathroom",
+    "display_name": "Bathroom",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "vanity/cabinets",
+      "tile/shower surround",
+      "plumbing",
+      "lighting",
+      "trim/baseboards"
+    ]
+  },
+  {
+    "room_id": "bedroom",
+    "display_name": "Bedroom",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "trim/baseboards",
+      "lighting",
+      "closet/storage",
+      "doors"
+    ]
+  },
+  {
+    "room_id": "living_room",
+    "display_name": "Living Room",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "trim/baseboards",
+      "lighting",
+      "fireplace surround"
+    ]
+  },
+  {
+    "room_id": "dining_room",
+    "display_name": "Dining Room",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "trim/baseboards",
+      "lighting"
+    ]
+  },
+  {
+    "room_id": "laundry_room",
+    "display_name": "Laundry Room",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "cabinets/storage",
+      "trim/baseboards",
+      "electrical",
+      "doors"
+    ]
+  },
+  {
+    "room_id": "hallway_entryway",
+    "display_name": "Hallway / Entryway",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "trim/baseboards",
+      "lighting"
+    ]
+  },
+  {
+    "room_id": "home_office",
+    "display_name": "Home Office",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "trim/baseboards",
+      "lighting",
+      "built-ins/storage"
+    ]
+  },
+  {
+    "room_id": "garage",
+    "display_name": "Garage",
+    "typical_categories": [
+      "drywall",
+      "walls/paint",
+      "insulation",
+      "ceiling",
+      "doors",
+      "electrical",
+      "storage/shelving"
+    ]
+  },
+  {
+    "room_id": "basement",
+    "display_name": "Basement",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "ceiling",
+      "lighting",
+      "trim/baseboards"
+    ]
+  },
+  {
+    "room_id": "attic",
+    "display_name": "Attic",
+    "typical_categories": ["insulation", "ceiling", "lighting"]
+  },
+  {
+    "room_id": "exterior_outdoor",
+    "display_name": "Exterior / Outdoor",
+    "typical_categories": ["siding", "roofing", "decking/patio", "exterior paint"]
+  }
+]
