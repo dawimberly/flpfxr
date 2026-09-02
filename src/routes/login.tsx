@@ -49,7 +49,7 @@ function LoginForm() {
     const { error: signInError } = await authClient.signIn.email({
       email,
       password,
-      callbackURL: ESTIMATOR_APP_URL,
+      callbackURL: "/estimator",
     });
 
     if (signInError) {
