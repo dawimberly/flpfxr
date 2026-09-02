@@ -71,10 +71,10 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild size="icon" className="sm:hidden" aria-label="Contact">
-            <Link to="/contact">
+          <Button asChild size="icon" className="sm:hidden" aria-label={`Call ${SITE.phoneDisplay}`}>
+            <CallLink>
               <Phone className="size-5" />
-            </Link>
+            </CallLink>
           </Button>
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <CallLink>
