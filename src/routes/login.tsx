@@ -38,6 +38,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,19 +51,22 @@ function LoginForm() {
       callbackURL: ESTIMATOR_APP_URL,
     });
 
-    setPending(false);
     if (signInError) {
+      setPending(false);
       setError(signInError.message ?? "Sign-in failed. Check email and password.");
       return;
     }
 
-    try {
-      await authClient.getSession();
-    } catch {
-      /* session store will recover on next fetch */
-    }
+    setRedirecting(true);
+    window.location.replace(ESTIMATOR_APP_URL);
+  }
 
-    window.location.assign(ESTIMATOR_APP_URL);
+  if (redirecting) {
+    return (
+      <p className="mx-auto max-w-md px-4 py-20 text-center text-muted">
+        Opening the estimator…
+      </p>
+    );
   }
 
   return (

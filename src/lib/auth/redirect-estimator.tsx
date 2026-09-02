@@ -4,7 +4,7 @@ import { ESTIMATOR_APP_URL } from "@/lib/site";
 /** Send authenticated employees to the live estimator app on Vercel. */
 export function RedirectToEstimatorApp() {
   useEffect(() => {
-    window.location.assign(ESTIMATOR_APP_URL);
+    window.location.replace(ESTIMATOR_APP_URL);
   }, []);
 
   return (
