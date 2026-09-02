@@ -94,47 +94,13 @@ function ContactPage() {
         <p>{SITE.phoneDisplay}. Or send pictures of the job.</p>
       </PageIntro>
 
-      <section className="mx-auto grid max-w-6xl gap-8 px-4 pb-20 lg:grid-cols-2 lg:items-start">
-        <QuoteEstimator
-          initialService={estimateService}
-          hideCta
-          onServiceChange={(id) => setService(id)}
-        />
-
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-surface p-8 shadow-[var(--shadow-border)]">
-            <h2 className="font-display text-2xl text-fg">Call or write</h2>
-            <ul className="mt-6 space-y-5">
-              <li className="flex gap-3">
-                <Phone className="mt-0.5 size-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium text-fg">Phone</p>
-                  <CallLink className="text-muted hover:text-primary">
-                    {SITE.phoneDisplay}
-                  </CallLink>
-                </div>
-              </li>
-              <li className="flex gap-3">
-                <Mail className="mt-0.5 size-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium text-fg">Email</p>
-                  <a
-                    href={`mailto:${SITE.email}`}
-                    className="text-muted hover:text-primary"
-                  >
-                    {SITE.email}
-                  </a>
-                </div>
-              </li>
-              <li className="flex gap-3">
-                <MapPin className="mt-0.5 size-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium text-fg">Service area</p>
-                  <p className="text-muted">{SERVICE_AREAS.join(" · ")}</p>
-                </div>
-              </li>
-            </ul>
-          </div>
+      <section className="mx-auto max-w-6xl space-y-8 px-4 pb-20">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+          <QuoteEstimator
+            initialService={estimateService}
+            hideCta
+            onServiceChange={(id) => setService(id)}
+          />
 
           <div className="rounded-2xl bg-surface p-8 shadow-[var(--shadow-border)]">
           {sent ? (
@@ -247,8 +213,44 @@ function ContactPage() {
               </p>
             </form>
           )}
+          </div>
         </div>
-        </div>
+
+        <aside className="mx-auto w-full max-w-md rounded-2xl bg-surface px-6 py-6 text-center shadow-[var(--shadow-border)] lg:max-w-none lg:px-10 lg:py-5">
+          <h2 className="font-display text-2xl text-fg lg:text-xl">
+            Call or write
+          </h2>
+          <ul className="mt-4 space-y-4 lg:mt-3 lg:flex lg:flex-row lg:flex-wrap lg:items-start lg:justify-center lg:gap-x-12 lg:gap-y-3 lg:space-y-0 lg:text-left">
+            <li className="flex flex-col items-center gap-1 lg:flex-row lg:items-start lg:gap-3">
+              <Phone className="size-5 shrink-0 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-fg">Phone</p>
+                <CallLink className="text-muted hover:text-primary">
+                  {SITE.phoneDisplay}
+                </CallLink>
+              </div>
+            </li>
+            <li className="flex flex-col items-center gap-1 lg:flex-row lg:items-start lg:gap-3">
+              <Mail className="size-5 shrink-0 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-fg">Email</p>
+                <a
+                  href={`mailto:${SITE.email}`}
+                  className="text-muted hover:text-primary"
+                >
+                  {SITE.email}
+                </a>
+              </div>
+            </li>
+            <li className="flex flex-col items-center gap-1 lg:flex-row lg:items-start lg:gap-3 lg:max-w-xl">
+              <MapPin className="size-5 shrink-0 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-fg">Service area</p>
+                <p className="text-muted">{SERVICE_AREAS.join(" · ")}</p>
+              </div>
+            </li>
+          </ul>
+        </aside>
       </section>
     </div>
   );
