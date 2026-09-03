@@ -103,33 +103,41 @@ const LOCAL_DEV_ORIGINS: string[] = [
   "http://127.0.0.1:8080",
   "http://[::1]:8080",
 ];
-const baseURL = explicitBaseURL ?? {
-  // Include loopback hosts so dynamic baseURL resolves for local email/password
-  // (not only the preview wildcard).
-  allowedHosts: [...previewAllowedHosts, "localhost", "127.0.0.1", "[::1]"],
-  // `auto` → trust both http:// and https:// expansions of allowedHosts
-  // (preview is https; local dev is http).
+
+/** Live site hosts — login works on both apex and www. */
+const PRODUCTION_HOSTS = ["theflipfixer.com", "www.theflipfixer.com"];
+const PRODUCTION_ORIGINS = PRODUCTION_HOSTS.map((host) => `https://${host}`);
+
+// Always use dynamic baseURL so Better Auth trusts both apex and www. A string
+// BETTER_AUTH_URL alone only trusts that one origin and breaks the other host.
+const baseURL = {
+  allowedHosts: [
+    ...PRODUCTION_HOSTS,
+    ...previewAllowedHosts.filter((host) => !host.includes("://")),
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
+  ],
   protocol: "auto" as const,
-  fallback: "http://localhost:8080",
+  fallback: (() => {
+    try {
+      if (explicitBaseURL) return new URL(explicitBaseURL).origin;
+    } catch {
+      /* ignore bad env */
+    }
+    return "https://www.theflipfixer.com";
+  })(),
 };
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
-// Missing entries here surface as FORBIDDEN "Invalid origin".
-const PRODUCTION_ORIGINS = [
-  "https://theflipfixer.com",
-  "https://www.theflipfixer.com",
+// Function form is re-resolved per request so plugin init cannot drop www.
+const trustedOrigins = async () => [
+  ...PRODUCTION_ORIGINS,
+  ...LOCAL_DEV_ORIGINS,
+  ...previewAllowedHosts.flatMap((host) =>
+    host.includes("://") ? [host] : [`https://${host}`, `http://${host}`],
+  ),
 ];
-
-const trustedOrigins: string[] = explicitBaseURL
-  ? [...new Set([explicitBaseURL, ...PRODUCTION_ORIGINS, ...LOCAL_DEV_ORIGINS])]
-  : [
-      // Host wildcards (matched against Origin's host)
-      ...previewAllowedHosts,
-      // Full-origin wildcards (matched against Origin)
-      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-      ...PRODUCTION_ORIGINS,
-      ...LOCAL_DEV_ORIGINS,
-    ];
 
 const databaseUrl = env("DATABASE_URL");
 
