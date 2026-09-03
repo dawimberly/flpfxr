@@ -26,7 +26,13 @@ import {
   type SelectionValue,
 } from "@/lib/estimator";
 import { defaultFinishId } from "@/lib/cabinets";
-import { deleteJobFromCloud, pushJobToCloud, syncJobsFromCloud } from "@/lib/job-sync";
+import {
+  deleteJobFromCloud,
+  pushDraftToCloud,
+  pushJobToCloud,
+  syncDraftFromCloud,
+  syncJobsFromCloud,
+} from "@/lib/job-sync";
 import { DEFAULT_OP_PERCENT, effectiveOpPercent, rememberOpPercent } from "@/lib/op";
 import { normalizeRooms, selectionList } from "@/lib/selections";
 
@@ -121,11 +127,46 @@ function bindDraftPersist() {
     if (!state.hydrated) return;
     if (persistTimer) clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
-      saveDraft({
+      const draft = {
         ...jobSlice(state),
         currentSavedId: state.currentSavedId,
-      });
-    }, 250);
+        updatedAt: new Date().toISOString(),
+      };
+      saveDraft(draft);
+      // Debounced cloud push so phone work shows up on the laptop.
+      void pushDraftToCloud(draft);
+    }, 700);
+  });
+}
+
+function applyDraftState(
+  set: (partial: Partial<EstimatorState>) => void,
+  get: () => EstimatorState,
+  draft: {
+    rooms: JobRoom[];
+    activeRoomId: string;
+    laborRate: number;
+    opEnabled?: boolean;
+    lastOpPercent?: number;
+    client: ClientInfo;
+    currentSavedId: string | null;
+  },
+  log: SavedEstimate[],
+) {
+  const normalized = withOpDefaults(withNormalizedRooms(draft));
+  const activeRoomId = normalized.rooms.some((room) => room.id === draft.activeRoomId)
+    ? draft.activeRoomId
+    : (normalized.rooms[0]?.id ?? get().activeRoomId);
+  set({
+    rooms: normalized.rooms,
+    activeRoomId,
+    laborRate: normalized.laborRate,
+    opEnabled: normalized.opEnabled,
+    lastOpPercent: normalized.lastOpPercent,
+    client: draft.client,
+    currentSavedId: draft.currentSavedId,
+    lastSavedAt: log.find((item) => item.id === draft.currentSavedId)?.savedAt ?? null,
+    log,
   });
 }
 
@@ -378,29 +419,23 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
     bindDraftPersist();
     const log = seedSampleEstimateIfEmpty();
     const draft = loadDraft();
+    const startedWithUpdatedAt = draft?.updatedAt ?? "";
     if (draft) {
-      const normalized = withOpDefaults(withNormalizedRooms(draft));
-      const activeRoomId = normalized.rooms.some((room) => room.id === draft.activeRoomId)
-        ? draft.activeRoomId
-        : (normalized.rooms[0]?.id ?? get().activeRoomId);
-      set({
-        rooms: normalized.rooms,
-        activeRoomId,
-        laborRate: normalized.laborRate,
-        opEnabled: normalized.opEnabled,
-        lastOpPercent: normalized.lastOpPercent,
-        client: draft.client,
-        currentSavedId: draft.currentSavedId,
-        lastSavedAt: log.find((item) => item.id === draft.currentSavedId)?.savedAt ?? null,
-        log,
-        hydrated: true,
-      });
+      applyDraftState(set, get, draft, log);
+      set({ hydrated: true });
     } else {
       set({ rooms: normalizeRooms(get().rooms), log, hydrated: true });
     }
-    void syncJobsFromCloud().then((nextLog) => {
+    void (async () => {
+      const [nextLog, cloudDraft] = await Promise.all([syncJobsFromCloud(), syncDraftFromCloud()]);
       if (nextLog) set({ log: nextLog });
-    });
+      if (!cloudDraft) return;
+      const winAt = cloudDraft.updatedAt ?? "";
+      // Apply account draft when it beat what this device had open (other device wins).
+      if (!startedWithUpdatedAt || winAt > startedWithUpdatedAt) {
+        applyDraftState(set, get, cloudDraft, nextLog ?? get().log);
+      }
+    })();
   },
   refreshLog: () => {
     set({ log: loadEstimateLog() });

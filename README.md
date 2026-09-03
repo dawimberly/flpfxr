@@ -1,16 +1,16 @@
-# Flip Fixer — marketing site
+# Flip Fixer — marketing site + estimator
 
-Public website for **The Flip Fixer** (kitchen/bath remodels, flooring, paint, make-ready). Built with React, TanStack Start, and Vite. Deploys to Vercel.
+Public website for **The Flip Fixer** (kitchen/bath remodels, flooring, paint, make-ready), plus the employee room-by-room estimator. Built with React, TanStack Start, and Vite. Deploys to Vercel.
 
-**Live site:** https://theflipfixer.com  
+**Live site:** https://theflipfixer.com / https://www.theflipfixer.com  
 **Repo:** https://github.com/dawimberly/flpfxr  
-**Vercel project:** Dirty INK → `flpfxr`
+**Vercel project:** Dirty INK → `flpfxr` (sole deploy for the custom domains)
 
 ---
 
 ## Employee login → estimator
 
-Crew sign in on the marketing site, then use the room-by-room estimator on the **same domain**.
+Crew sign in on the marketing site, then use the estimator on the **same domain**.
 
 | Step | URL |
 |------|-----|
@@ -19,7 +19,25 @@ Crew sign in on the marketing site, then use the room-by-room estimator on the *
 
 Public pages (home, services, gallery, contact) stay open. No customer login.
 
-The estimator UI ships in this repo (`src/components/estimator-app.tsx` and related libs). PDFs include **By trade** and **Cost per item** for contractor and customer downloads.
+### Cross-device jobs (phone ↔ laptop)
+
+Signed-in estimates sync to Neon under the employee account — not a git file.
+
+- **In-progress draft** auto-saves to the cloud after you pause typing (~0.7s). Start on the phone in the truck; open the laptop later with the same login and continue.
+- **Save to log** writes a permanent job to the Estimate log and pushes it to the account. Open it from any device.
+- Newer `updatedAt` / `savedAt` wins when phone and laptop both changed the same draft or job.
+
+Requires `DATABASE_URL` and migration `migrations/0002_estimator_jobs.sql` (`saved_jobs`, `job_drafts`). Auth tables are `migrations/0001_auth.sql`. Both run on Vercel build (and via `npm run db:migrate` when `DATABASE_URL` is set).
+
+### Estimate PDFs
+
+Contractor and customer PDFs share this order:
+
+1. Each room (including elevations, roof, etc.) with a **room total**
+2. **Grand total** (Installed + O&P on contractor)
+3. **By trade**, then **Cost per item**
+
+UI lives in `src/components/estimator-app.tsx` and related libs under `src/lib/`.
 
 ---
 
@@ -44,7 +62,7 @@ npm run lint
 
 ## Environment variables
 
-Copy `.env.example` to `.env` (gitignored). Required for employee login:
+Copy `.env.example` to `.env` (gitignored). Required for employee login and cloud sync:
 
 | Variable | Local | Production (Vercel) |
 |----------|-------|---------------------|
@@ -56,7 +74,7 @@ Copy `.env.example` to `.env` (gitignored). Required for employee login:
 | `EMPLOYEE_PASSWORD` | crew password | (scripts only) |
 | `EMPLOYEE_NAME` | display name | (scripts only) |
 
-Auth uses **Better Auth** with email/password. The auth schema migration is `migrations/0001_auth.sql` (copied from `migrations/auth/` when sign-in is enabled). It runs on every Vercel build when `DATABASE_URL` is set.
+Auth uses **Better Auth** with email/password. Migrations under `migrations/` apply on every Vercel build when `DATABASE_URL` is set.
 
 ---
 
@@ -79,6 +97,9 @@ npm run reset-employee-password
 **Run migrations locally** against Neon:
 
 ```bash
+# loads DATABASE_URL from .env if your shell helper is set up
+npm run db:migrate
+# or
 node scripts/migrate-with-env.mjs
 ```
 
@@ -91,7 +112,14 @@ node scripts/migrate-with-env.mjs
 3. Domains: `theflipfixer.com`, `www.theflipfixer.com` → **Production**.
 4. Push to `main` — Vercel redeploys automatically.
 
-This one project serves marketing **and** `/estimator`. Do not attach `theflipfixer.com` to the old `the-flip-fixer-estimator` Vercel project.
+**Custom domain note:** `vercel --prod` often only aliases `flpfxr-dirty-ink.vercel.app`. After a CLI deploy or promote, point the live domains explicitly if needed:
+
+```bash
+npx vercel alias set <deployment-host> theflipfixer.com
+npx vercel alias set <deployment-host> www.theflipfixer.com
+```
+
+This one project serves marketing **and** `/estimator`. Do not attach `theflipfixer.com` to the old `the-flip-fixer` / `the-flip-fixer-estimator` Vercel projects.
 
 ---
 

@@ -95,7 +95,10 @@ export function SaveEstimateButton({
         </button>
       ) : null}
       <p className="text-center text-xs text-ink-foreground/55">
-        {flash ?? (lastSavedAt ? `Last saved ${formatSavedAt(lastSavedAt)}` : "Save keeps the job in your log")}
+        {flash ??
+          (lastSavedAt
+            ? `Last saved ${formatSavedAt(lastSavedAt)} · syncs across devices`
+            : "Save puts the job in your account log (phone + laptop)")}
       </p>
     </div>
   );
@@ -123,7 +126,7 @@ function EstimateLogDialog({
           <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">The file</p>
           <DialogTitle>Estimate log</DialogTitle>
           <DialogDescription id="estimate-log-copy">
-            Pull up last week's number before you walk back in.
+            Same login on phone or laptop — saved jobs sync to your account.
           </DialogDescription>
         </DialogHeader>
         <div className="px-5 pb-5 sm:px-6">
@@ -141,7 +144,7 @@ function EstimateLogDialog({
             {matches.length === 0 ? (
               <p className="rounded-lg bg-wash px-4 py-6 text-sm text-muted">
                 {log.length === 0
-                  ? "Save a job to the log and it will be waiting when you come back."
+                  ? "Save a job while signed in — it will be waiting on any device."
                   : "Nothing matches that search."}
               </p>
             ) : (

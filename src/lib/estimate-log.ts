@@ -1,4 +1,4 @@
-import { estimateJob, sampleJob, type ClientInfo, type JobRoom } from "@/lib/estimator";
+import { estimateJob, sampleJob, sampleShadySpringsJob, type ClientInfo, type JobRoom } from "@/lib/estimator";
 import { effectiveOpPercent } from "@/lib/op";
 import { normalizeRooms } from "@/lib/selections";
 
@@ -30,6 +30,8 @@ export type SavedEstimate = {
 export type EstimateDraft = EstimateSnapshot & {
   activeRoomId: string;
   currentSavedId: string | null;
+  /** ISO timestamp — used to pick phone vs laptop draft when both exist. */
+  updatedAt?: string;
 };
 
 function canUseStorage() {
@@ -121,7 +123,14 @@ export function loadDraft(): EstimateDraft | null {
 }
 
 export function saveDraft(draft: EstimateDraft) {
-  writeJson(DRAFT_KEY, cloneJson({ ...draft, rooms: normalizeRooms(draft.rooms) }));
+  writeJson(
+    DRAFT_KEY,
+    cloneJson({
+      ...draft,
+      rooms: normalizeRooms(draft.rooms),
+      updatedAt: draft.updatedAt ?? new Date().toISOString(),
+    }),
+  );
 }
 
 export function snapshotFromJob(input: EstimateSnapshot): EstimateSnapshot {
@@ -169,8 +178,32 @@ export function searchEstimateLog(query: string, list = loadEstimateLog()) {
   });
 }
 
+/** Stable id so Mendez syncs across phone/laptop under the same log entry. */
+export const MENDEZ_BUILTIN_ID = "builtin-mendez-shady-springs";
+
+function ensureBuiltinMendezJob(list: SavedEstimate[]): SavedEstimate[] {
+  if (list.some((item) => item.id === MENDEZ_BUILTIN_ID)) return list;
+  const shady = sampleShadySpringsJob();
+  const snapshot = snapshotFromJob({
+    rooms: shady.rooms,
+    laborRate: shady.laborRate,
+    opEnabled: true,
+    lastOpPercent: shady.laborRate,
+    client: shady.client,
+  });
+  const record: SavedEstimate = {
+    id: MENDEZ_BUILTIN_ID,
+    savedAt: new Date().toISOString(),
+    snapshot,
+    summary: summarizeSnapshot(snapshot),
+  };
+  writeEstimateLog([record, ...list]);
+  return loadEstimateLog();
+}
+
 export function seedSampleEstimateIfEmpty() {
-  if (loadEstimateLog().length > 0) return loadEstimateLog();
+  const withBuiltin = ensureBuiltinMendezJob(loadEstimateLog());
+  if (withBuiltin.length > 0) return withBuiltin;
   const sample = sampleJob();
   upsertSavedEstimate({
     rooms: sample.rooms,

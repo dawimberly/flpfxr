@@ -23,6 +23,13 @@ function mergeJobs(local: SavedEstimate[], remote: SavedEstimate[]) {
   return [...map.values()].sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
 
+function draftTime(draft: EstimateDraft | null | undefined, fallbackIso?: string | null): number {
+  const raw = draft?.updatedAt ?? fallbackIso ?? "";
+  const n = Date.parse(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Merge phone + laptop saved logs. Newer savedAt wins per job id. */
 export async function syncJobsFromCloud() {
   try {
     const result = await pullCloudJobs();
@@ -46,7 +53,7 @@ export async function pushJobToCloud(job: SavedEstimate) {
   try {
     await pushCloudJob({ data: { job } });
   } catch {
-    /* stay local until signed in */
+    /* stay local until signed in / tables ready */
   }
 }
 
@@ -58,13 +65,34 @@ export async function deleteJobFromCloud(id: string) {
   }
 }
 
+/**
+ * Cross-device in-progress work. Newer updatedAt wins so truck phone edits
+ * replace a stale laptop draft (and the other way around).
+ */
 export async function syncDraftFromCloud(): Promise<EstimateDraft | null> {
   const local = loadDraft();
   try {
     const result = await pullCloudDraft();
     if (!result.ok) return local;
-    if (!local) return result.draft;
+
     if (!result.draft) {
+      if (local) await pushCloudDraft({ data: { draft: local } }).catch(() => null);
+      return local;
+    }
+
+    if (!local) {
+      saveDraft(result.draft);
+      return result.draft;
+    }
+
+    const remoteMs = draftTime(result.draft, result.updatedAt);
+    const localMs = draftTime(local);
+
+    if (remoteMs > localMs) {
+      saveDraft(result.draft);
+      return result.draft;
+    }
+    if (localMs > remoteMs) {
       await pushCloudDraft({ data: { draft: local } }).catch(() => null);
       return local;
     }
@@ -75,9 +103,13 @@ export async function syncDraftFromCloud(): Promise<EstimateDraft | null> {
 }
 
 export async function pushDraftToCloud(draft: EstimateDraft) {
-  saveDraft(draft);
+  const stamped: EstimateDraft = {
+    ...draft,
+    updatedAt: draft.updatedAt ?? new Date().toISOString(),
+  };
+  saveDraft(stamped);
   try {
-    await pushCloudDraft({ data: { draft } });
+    await pushCloudDraft({ data: { draft: stamped } });
   } catch {
     /* stay local */
   }

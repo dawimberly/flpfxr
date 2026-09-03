@@ -438,6 +438,10 @@ function writeRoomMeasurements(pdf: PdfWriter, job: JobEstimate["rooms"][number]
   );
 }
 
+function writeRoomTotal(pdf: PdfWriter, amount: number) {
+  pdf.paragraph(`Room total  ${money(amount)}`, 10, INK);
+}
+
 function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfKind) {
   const trades = tradeTotals(job);
   const items = costPerItemRows(job.completeLineItems);
@@ -451,12 +455,7 @@ function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfK
         { key: "o", label: "O&P", width: 100, align: "right" },
         { key: "a", label: "Total", width: 146, align: "right" },
       ],
-      [
-        ...trades.map((row) => [row.trade, money(row.installed), money(row.op), money(row.total)]),
-        ["Installed", money(job.materialsSubtotal), "", ""],
-        ["Overhead & profit", money(job.laborSubtotal), "", ""],
-        ["Grand total", money(job.grandTotal), "", ""],
-      ],
+      trades.map((row) => [row.trade, money(row.installed), money(row.op), money(row.total)]),
     );
   } else {
     pdf.table(
@@ -464,12 +463,7 @@ function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfK
         { key: "t", label: "Trade", width: 280 },
         { key: "a", label: "Amount", width: 236, align: "right" },
       ],
-      [
-        ...trades.map((row) => [row.trade, money(row.total)]),
-        ["Installed", money(job.materialsSubtotal)],
-        ["Overhead & profit", money(job.laborSubtotal)],
-        ["Grand total", money(job.grandTotal)],
-      ],
+      trades.map((row) => [row.trade, money(row.total)]),
     );
   }
   pdf.paragraph(TRADE_NOTE, 8, MUTED);
@@ -519,12 +513,14 @@ function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfK
 export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
   const { pdf, doc } = await startPdf(job, client, "contractor");
 
+  // 1) Rooms (incl. elevations, roof, etc.) with a total under each
   for (const entry of job.rooms) {
     pdf.ensure(54);
     pdf.kicker(entry.room.label);
     writeRoomMeasurements(pdf, entry);
     if (entry.estimate.lineItems.length === 0) {
       pdf.paragraph("No finishes selected for this room.", 9, MUTED);
+      writeRoomTotal(pdf, entry.estimate.grandTotal);
       continue;
     }
     pdf.table(
@@ -545,50 +541,14 @@ export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
         money(line.lineTotal),
       ]),
     );
+    writeRoomTotal(pdf, entry.estimate.grandTotal);
   }
 
-  pdf.kicker("Complete list");
-  pdf.table(
-    [
-      { key: "n", label: "#", width: 28, align: "right" },
-      { key: "r", label: "Room", width: 90 },
-      { key: "d", label: "Description", width: 220 },
-      { key: "q", label: "Qty", width: 54, align: "right" },
-      { key: "u", label: "Unit", width: 54 },
-      { key: "a", label: "Amount", width: 70, align: "right" },
-    ],
-    job.completeLineItems.map((line, index) => [
-      String(index + 1),
-      line.roomLabel,
-      line.description,
-      line.quantity.toFixed(2),
-      line.unit,
-      money(line.lineTotal),
-    ]),
-  );
-
-  pdf.kicker("By room");
-  pdf.table(
-    [
-      { key: "room", label: "Room", width: 140 },
-      { key: "type", label: "Type", width: 100 },
-      { key: "floor", label: "Floor", width: 56, align: "right" },
-      { key: "installed", label: "Installed", width: 74, align: "right" },
-      { key: "op", label: "O&P", width: 64, align: "right" },
-      { key: "total", label: "Total", width: 82, align: "right" },
-    ],
-    job.rooms.map((entry) => [
-      entry.room.label,
-      entry.typeName,
-      `${entry.scan.floorArea.toFixed(0)} sf`,
-      money(entry.estimate.materialsSubtotal),
-      money(entry.estimate.laborSubtotal),
-      money(entry.estimate.grandTotal),
-    ]),
-  );
-
-  writeTradeSections(pdf, job, "contractor");
+  // 2) Grand total after the last room
   pdf.drawTotalBox(job, true);
+
+  // 3) Trade / cost-per-item breakdown after the job total
+  writeTradeSections(pdf, job, "contractor");
 
   pdf.paragraph(
     `This estimate uses ${PRICE_LIST} installed unit prices (${PRICE_AS_OF}) except cabinets. Cabinets use Northville Cabinetry MSRP (December 2023) plus $75 install per unit ($125 for pantries and refrigerator panels). Overhead and profit is applied to the job total. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
@@ -605,18 +565,20 @@ export async function buildCustomerPdf(job: JobEstimate, client: ClientInfo) {
   const { pdf, doc } = await startPdf(job, client, "customer");
 
   pdf.paragraph(
-    "Work and measurements by room. Line prices are omitted. Room totals and the job total are at the end of each section.",
+    "Work by room with a room total under each. Grand total follows the last room, then the trade breakdown.",
     9,
     MUTED,
   );
   pdf.y -= 6;
 
+  // 1) Rooms with totals
   for (const entry of job.rooms) {
     pdf.ensure(54);
     pdf.kicker(entry.room.label);
     writeRoomMeasurements(pdf, entry);
     if (entry.estimate.lineItems.length === 0) {
       pdf.paragraph("No finishes selected for this room.", 9, MUTED);
+      writeRoomTotal(pdf, entry.estimate.grandTotal);
       continue;
     }
     pdf.table(
@@ -633,29 +595,14 @@ export async function buildCustomerPdf(job: JobEstimate, client: ClientInfo) {
         line.unit,
       ]),
     );
-    pdf.paragraph(`Room total  ${money(entry.estimate.grandTotal)}`, 10, INK);
+    writeRoomTotal(pdf, entry.estimate.grandTotal);
   }
 
-  pdf.kicker("By room");
-  pdf.table(
-    [
-      { key: "room", label: "Room", width: 150 },
-      { key: "type", label: "Type", width: 110 },
-      { key: "floor", label: "Floor", width: 70, align: "right" },
-      { key: "walls", label: "Walls", width: 70, align: "right" },
-      { key: "total", label: "Total", width: 116, align: "right" },
-    ],
-    job.rooms.map((entry) => [
-      entry.room.label,
-      entry.typeName,
-      `${entry.scan.floorArea.toFixed(0)} sf`,
-      `${entry.scan.wallArea.toFixed(0)} sf`,
-      money(entry.estimate.grandTotal),
-    ]),
-  );
-
-  writeTradeSections(pdf, job, "customer");
+  // 2) Grand total after the last room
   pdf.drawTotalBox(job, false);
+
+  // 3) Trade breakdown after the job total
+  writeTradeSections(pdf, job, "customer");
   pdf.paragraph(
     `Job total includes installed work and overhead. Valid 30 days. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
     8,
