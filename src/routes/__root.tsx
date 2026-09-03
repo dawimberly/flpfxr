@@ -5,14 +5,12 @@ import { SiteShell } from "@/components/site-shell";
 import { SITE } from "@/lib/site";
 import appCss from "../styles.css?url";
 
-const APP_NAME = SITE.legalName;
-
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: APP_NAME },
+      { title: SITE.legalName },
       {
         name: "description",
         content:
