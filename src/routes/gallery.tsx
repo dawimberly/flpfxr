@@ -13,14 +13,16 @@ type Search = {
   service?: ServiceId;
 };
 
-const SERVICE_IDS = new Set(SERVICES.map((s) => s.id));
+function isServiceId(value: string): value is ServiceId {
+  return SERVICES.some((s) => s.id === value);
+}
 
 export const Route = createFileRoute("/gallery")({
   component: GalleryPage,
   validateSearch: (search: Record<string, unknown>): Search => ({
     service:
-      typeof search.service === "string" && SERVICE_IDS.has(search.service as ServiceId)
-        ? (search.service as ServiceId)
+      typeof search.service === "string" && isServiceId(search.service)
+        ? search.service
         : undefined,
   }),
   head: () => ({
