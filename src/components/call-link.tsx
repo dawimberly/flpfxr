@@ -2,13 +2,15 @@ import { forwardRef, type ComponentProps, type MouseEvent } from "react";
 import { SITE } from "@/lib/site";
 import { telHref } from "@/lib/utils";
 
-const HREF = telHref(SITE.phone);
+function dialHref() {
+  return telHref(SITE.phone);
+}
 
 function openDialer(e: MouseEvent<HTMLAnchorElement>) {
   try {
     if (window.top && window.top !== window.self) {
       e.preventDefault();
-      window.top.location.href = HREF;
+      window.top.location.href = dialHref();
     }
   } catch {
     // Cross-origin iframe: target="_top" on the anchor still works.
@@ -24,7 +26,7 @@ export const CallLink = forwardRef<HTMLAnchorElement, ComponentProps<"a">>(
       <a
         {...props}
         ref={ref}
-        href={HREF}
+        href={dialHref()}
         target="_top"
         className={className}
         onClick={(e) => {
