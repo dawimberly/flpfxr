@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
 import { authClient, authEnabled } from "@/lib/auth/client";
 import { SignedIn } from "@/lib/auth/gates";
@@ -16,15 +16,12 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-function goToEstimator() {
-  if (typeof window === "undefined") return;
-  window.location.assign("/estimator");
-}
-
 function GoToEstimator() {
+  const navigate = useNavigate();
+
   useEffect(() => {
-    goToEstimator();
-  }, []);
+    void navigate({ to: "/estimator" });
+  }, [navigate]);
 
   return (
     <div className="mx-auto max-w-md px-4 py-20 text-center">
@@ -52,12 +49,12 @@ function LoginPage() {
 }
 
 function LoginForm() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -76,12 +73,7 @@ function LoginForm() {
       return;
     }
 
-    setRedirecting(true);
-    goToEstimator();
-  }
-
-  if (redirecting) {
-    return <GoToEstimator />;
+    await navigate({ to: "/estimator" });
   }
 
   return (

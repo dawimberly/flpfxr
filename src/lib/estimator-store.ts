@@ -12,21 +12,30 @@ import {
 } from "@/lib/estimate-log";
 import {
   blankJob,
+  canInferQuantity,
   cloneRoom,
   createBlankRoom,
   getRoom,
+  lookupOption,
   sampleJob,
+  sampleShadySpringsJob,
   uniqueRoomLabel,
   type ClientInfo,
   type JobRoom,
   type Opening,
   type SelectionValue,
 } from "@/lib/estimator";
+import { defaultFinishId } from "@/lib/cabinets";
+import { deleteJobFromCloud, pushJobToCloud, syncJobsFromCloud } from "@/lib/job-sync";
+import { DEFAULT_OP_PERCENT, effectiveOpPercent, rememberOpPercent } from "@/lib/op";
+import { normalizeRooms, selectionList } from "@/lib/selections";
 
 type JobSlice = {
   rooms: JobRoom[];
   activeRoomId: string;
   laborRate: number;
+  opEnabled: boolean;
+  lastOpPercent: number;
   client: ClientInfo;
 };
 
@@ -43,10 +52,14 @@ type EstimatorState = JobSlice & {
   setRoomType: (roomTypeId: string) => void;
   setDimension: (key: "lengthFt" | "widthFt" | "heightFt", value: number) => void;
   setOpPercent: (value: number) => void;
+  setOpEnabled: (enabled: boolean) => void;
   setOpening: (kind: "doors" | "windows", id: string, patch: Partial<Opening>) => void;
   addOpening: (kind: "doors" | "windows") => void;
   removeOpening: (kind: "doors" | "windows", id: string) => void;
   setSelection: (category: string, patch: Partial<SelectionValue>) => void;
+  addSelection: (category: string, name: string) => void;
+  setSelectionQty: (category: string, name: string, quantity: number | null) => void;
+  removeSelection: (category: string, name: string) => void;
   clearSelection: (category: string) => void;
   addCategory: (category: string) => void;
   setCabinetFinish: (finishId: string) => void;
@@ -55,6 +68,7 @@ type EstimatorState = JobSlice & {
   removeCabinet: (id: string) => void;
   setClient: (patch: Partial<ClientInfo>) => void;
   loadSample: () => void;
+  loadShadySprings: () => void;
   startOver: () => void;
   hydrate: () => void;
   refreshLog: () => void;
@@ -74,7 +88,26 @@ function jobSlice(state: JobSlice): JobSlice {
     rooms: state.rooms,
     activeRoomId: state.activeRoomId,
     laborRate: state.laborRate,
+    opEnabled: state.opEnabled,
+    lastOpPercent: state.lastOpPercent,
     client: state.client,
+  };
+}
+
+function withNormalizedRooms<T extends { rooms: JobRoom[] }>(input: T): T {
+  return { ...input, rooms: normalizeRooms(input.rooms) };
+}
+
+function withOpDefaults<T extends { laborRate: number; opEnabled?: boolean; lastOpPercent?: number }>(
+  input: T,
+): T & { opEnabled: boolean; lastOpPercent: number } {
+  const lastOpPercent = rememberOpPercent(input.laborRate, input.lastOpPercent);
+  const opEnabled = input.opEnabled ?? true;
+  return {
+    ...input,
+    opEnabled,
+    lastOpPercent,
+    laborRate: opEnabled ? rememberOpPercent(input.laborRate, lastOpPercent) : input.laborRate,
   };
 }
 
@@ -96,8 +129,12 @@ function bindDraftPersist() {
   });
 }
 
+const sample = sampleJob();
+
 export const useEstimatorStore = create<EstimatorState>((set, get) => ({
-  ...sampleJob(),
+  ...sample,
+  opEnabled: true,
+  lastOpPercent: sample.laborRate || DEFAULT_OP_PERCENT,
   currentSavedId: null,
   lastSavedAt: null,
   log: [],
@@ -106,6 +143,7 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
   addRoom: (roomTypeId) =>
     set((state) => {
       const room = createBlankRoom(roomTypeId, state.rooms);
+      room.cabinetFinishId = defaultFinishId(roomTypeId);
       return { rooms: [...state.rooms, room], activeRoomId: room.id };
     }),
   duplicateRoom: (id) =>
@@ -139,14 +177,32 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       const others = state.rooms.filter((room) => room.id !== active.id);
       const shouldRename =
         active.label === previousType.display_name || active.label.startsWith(`${previousType.display_name} `);
+      const hasCabinets = (active.cabinets ?? []).length > 0;
       return patchActive(state, {
         roomTypeId: nextType.room_id,
         label: shouldRename ? uniqueRoomLabel(nextType.display_name, others) : active.label,
+        cabinetFinishId: hasCabinets ? active.cabinetFinishId : defaultFinishId(nextType.room_id),
       });
     }),
   setDimension: (key, value) =>
     set((state) => patchActive(state, { [key]: Number.isFinite(value) ? value : 0 })),
-  setOpPercent: (value) => set({ laborRate: Number.isFinite(value) ? value : 0 }),
+  setOpPercent: (value) =>
+    set((state) => {
+      const laborRate = Number.isFinite(value) ? value : 0;
+      return {
+        laborRate,
+        lastOpPercent: laborRate > 0 ? laborRate : state.lastOpPercent,
+        opEnabled: state.opEnabled || laborRate > 0,
+      };
+    }),
+  setOpEnabled: (enabled) =>
+    set((state) => {
+      const remembered = rememberOpPercent(state.laborRate, state.lastOpPercent);
+      if (enabled) {
+        return { opEnabled: true, laborRate: remembered, lastOpPercent: remembered };
+      }
+      return { opEnabled: false, lastOpPercent: remembered };
+    }),
   setOpening: (kind, id, patch) =>
     set((state) => {
       const active = state.rooms.find((room) => room.id === state.activeRoomId);
@@ -182,13 +238,71 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
     set((state) => {
       const active = state.rooms.find((room) => room.id === state.activeRoomId);
       if (!active) return state;
-      const current = active.selections[category] ?? { name: "", quantity: null };
+      const list = selectionList(active.selections[category]);
+      if (patch.name) {
+        const option = lookupOption(category, patch.name);
+        const needsQty = option ? !canInferQuantity(category, option.unit) : true;
+        const existing = list.find((item) => item.name === patch.name);
+        const next: SelectionValue = {
+          name: patch.name,
+          quantity: patch.quantity !== undefined ? patch.quantity : existing?.quantity ?? (needsQty ? 1 : null),
+        };
+        const others = list.filter((item) => item.name !== patch.name);
+        return patchActive(state, {
+          selections: { ...active.selections, [category]: [...others, next] },
+        });
+      }
+      if (list.length === 0) return state;
       return patchActive(state, {
         selections: {
           ...active.selections,
-          [category]: { ...current, ...patch },
+          [category]: list.map((item, index) => (index === 0 ? { ...item, ...patch } : item)),
         },
       });
+    }),
+  addSelection: (category, name) =>
+    set((state) => {
+      const active = state.rooms.find((room) => room.id === state.activeRoomId);
+      if (!active || !name) return state;
+      const list = selectionList(active.selections[category]);
+      if (list.some((item) => item.name === name)) return state;
+      const option = lookupOption(category, name);
+      const needsQty = option ? !canInferQuantity(category, option.unit) : true;
+      return patchActive(state, {
+        selections: {
+          ...active.selections,
+          [category]: [...list, { name, quantity: needsQty ? 1 : null }],
+        },
+      });
+    }),
+  setSelectionQty: (category, name, quantity) =>
+    set((state) => {
+      const active = state.rooms.find((room) => room.id === state.activeRoomId);
+      if (!active) return state;
+      const list = selectionList(active.selections[category]);
+      return patchActive(state, {
+        selections: {
+          ...active.selections,
+          [category]: list.map((item) =>
+            item.name === name
+              ? {
+                  ...item,
+                  quantity: quantity == null || Number.isFinite(quantity) ? quantity : item.quantity,
+                }
+              : item,
+          ),
+        },
+      });
+    }),
+  removeSelection: (category, name) =>
+    set((state) => {
+      const active = state.rooms.find((room) => room.id === state.activeRoomId);
+      if (!active) return state;
+      const list = selectionList(active.selections[category]).filter((item) => item.name !== name);
+      const selections = { ...active.selections };
+      if (list.length) selections[category] = list;
+      else delete selections[category];
+      return patchActive(state, { selections });
     }),
   clearSelection: (category) =>
     set((state) => {
@@ -247,32 +361,53 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       });
     }),
   setClient: (patch) => set((state) => ({ client: { ...state.client, ...patch } })),
-  loadSample: () => set({ ...sampleJob(), currentSavedId: null, lastSavedAt: null }),
-  startOver: () => set({ ...blankJob(), currentSavedId: null, lastSavedAt: null }),
+  loadSample: () => {
+    const next = withOpDefaults(withNormalizedRooms(sampleJob()));
+    set({ ...next, currentSavedId: null, lastSavedAt: null });
+  },
+  loadShadySprings: () => {
+    const next = withOpDefaults(withNormalizedRooms(sampleShadySpringsJob()));
+    set({ ...next, currentSavedId: null, lastSavedAt: null });
+  },
+  startOver: () => {
+    const next = withOpDefaults(blankJob());
+    set({ ...next, currentSavedId: null, lastSavedAt: null });
+  },
   hydrate: () => {
     if (get().hydrated) return;
     bindDraftPersist();
     const log = seedSampleEstimateIfEmpty();
     const draft = loadDraft();
     if (draft) {
-      const activeRoomId = draft.rooms.some((room) => room.id === draft.activeRoomId)
+      const normalized = withOpDefaults(withNormalizedRooms(draft));
+      const activeRoomId = normalized.rooms.some((room) => room.id === draft.activeRoomId)
         ? draft.activeRoomId
-        : (draft.rooms[0]?.id ?? get().activeRoomId);
+        : (normalized.rooms[0]?.id ?? get().activeRoomId);
       set({
-        rooms: draft.rooms,
+        rooms: normalized.rooms,
         activeRoomId,
-        laborRate: draft.laborRate,
+        laborRate: normalized.laborRate,
+        opEnabled: normalized.opEnabled,
+        lastOpPercent: normalized.lastOpPercent,
         client: draft.client,
         currentSavedId: draft.currentSavedId,
         lastSavedAt: log.find((item) => item.id === draft.currentSavedId)?.savedAt ?? null,
         log,
         hydrated: true,
       });
-      return;
+    } else {
+      set({ rooms: normalizeRooms(get().rooms), log, hydrated: true });
     }
-    set({ log, hydrated: true });
+    void syncJobsFromCloud().then((nextLog) => {
+      if (nextLog) set({ log: nextLog });
+    });
   },
-  refreshLog: () => set({ log: loadEstimateLog() }),
+  refreshLog: () => {
+    set({ log: loadEstimateLog() });
+    void syncJobsFromCloud().then((nextLog) => {
+      if (nextLog) set({ log: nextLog });
+    });
+  },
   saveToLog: (asNew = false) => {
     if (typeof window === "undefined") return null;
     const state = get();
@@ -280,6 +415,8 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       snapshotFromJob({
         rooms: state.rooms,
         laborRate: state.laborRate,
+        opEnabled: state.opEnabled,
+        lastOpPercent: state.lastOpPercent,
         client: state.client,
       }),
       asNew ? null : state.currentSavedId,
@@ -289,18 +426,21 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       lastSavedAt: record.savedAt,
       log: loadEstimateLog(),
     });
+    void pushJobToCloud(record);
     return record;
   },
   openSaved: (id) => {
     const record = getSavedEstimate(id);
     if (!record) return false;
-    const snapshot = snapshotFromJob(record.snapshot);
+    const snapshot = withOpDefaults(withNormalizedRooms(snapshotFromJob(record.snapshot)));
     const rooms = snapshot.rooms;
     const activeRoomId = rooms[0]?.id ?? get().activeRoomId;
     set({
       rooms,
       activeRoomId,
       laborRate: snapshot.laborRate,
+      opEnabled: snapshot.opEnabled,
+      lastOpPercent: snapshot.lastOpPercent,
       client: snapshot.client,
       currentSavedId: record.id,
       lastSavedAt: record.savedAt,
@@ -309,6 +449,7 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
   },
   deleteSaved: (id) => {
     deleteSavedEstimate(id);
+    void deleteJobFromCloud(id);
     const state = get();
     set({
       log: loadEstimateLog(),
@@ -320,4 +461,8 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
 
 export function useActiveRoom(): JobRoom | undefined {
   return useEstimatorStore((state) => state.rooms.find((room) => room.id === state.activeRoomId));
+}
+
+export function useEffectiveOpPercent() {
+  return useEstimatorStore((state) => effectiveOpPercent(state.laborRate, state.opEnabled));
 }

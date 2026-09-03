@@ -16,8 +16,11 @@ import {
   cabinetTotals,
   getCabinetItem,
   getFinish,
+  groupsForRoom,
+  isClosetRoom,
   itemsForFinish,
   northville,
+  preferredCabinetGroup,
 } from "@/lib/cabinets";
 import type { JobRoom } from "@/lib/estimator";
 import { useEstimatorStore } from "@/lib/estimator-store";
@@ -28,25 +31,29 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
   const addCabinet = useEstimatorStore((s) => s.addCabinet);
   const setCabinetQty = useEstimatorStore((s) => s.setCabinetQty);
   const removeCabinet = useEstimatorStore((s) => s.removeCabinet);
-  const preferred = room.roomTypeId === "bathroom" ? "vanity" : "base";
+  const closetRoom = isClosetRoom(room.roomTypeId);
+  const roomGroups = groupsForRoom(room.roomTypeId);
+  const preferred = preferredCabinetGroup(room.roomTypeId);
   const [group, setGroup] = useState(preferred);
   const [sku, setSku] = useState("");
 
+  const activeGroup = roomGroups.some((item) => item.id === group) ? group : preferred;
   const picks = room.cabinets ?? [];
-  const finishId = room.cabinetFinishId ?? "gs";
+  const finishId = room.cabinetFinishId ?? (closetRoom ? "cl" : "ess");
   const finish = getFinish(finishId);
-  const options = useMemo(() => itemsForFinish(finishId, group), [finishId, group]);
+  const options = useMemo(() => itemsForFinish(finishId, activeGroup), [finishId, activeGroup]);
   const totals = cabinetTotals(finishId, picks);
   const selected = options.find((item) => item.sku === sku) ?? null;
+  const heading = closetRoom ? "Closets" : "Cabinets";
 
   return (
     <div className="min-w-0 rounded-lg bg-surface p-3 sm:p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-fg">Cabinets</p>
+          <p className="text-sm font-medium text-fg">{heading}</p>
           <p className="text-xs text-muted">
             Northville MSRP {northville.asOf}. ${CABINET_LABOR} install each, ${CABINET_LABOR_OVERSIZED}{" "}
-            for pantry and fridge panels.
+            for pantries, fridge panels, and tall closet towers.
           </p>
         </div>
         <p className="shrink-0 font-mono text-sm tabular-nums text-fg">{money(totals.installed)}</p>
@@ -62,7 +69,7 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
               setSku("");
             }}
           >
-            <SelectTrigger aria-label="Cabinet finish">
+            <SelectTrigger aria-label={closetRoom ? "Closet finish" : "Cabinet finish"}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -77,17 +84,17 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
         <div className="space-y-1.5">
           <Label>Type</Label>
           <Select
-            value={group}
+            value={activeGroup}
             onValueChange={(value) => {
               setGroup(value);
               setSku("");
             }}
           >
-            <SelectTrigger aria-label="Cabinet type">
+            <SelectTrigger aria-label={closetRoom ? "Closet type" : "Cabinet type"}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {northville.groups.map((item) => (
+              {roomGroups.map((item) => (
                 <SelectItem key={item.id} value={item.id}>
                   {item.label}
                 </SelectItem>
@@ -99,7 +106,7 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <Select value={sku || undefined} onValueChange={setSku}>
-          <SelectTrigger aria-label="Cabinet SKU" className="sm:flex-1">
+          <SelectTrigger aria-label={closetRoom ? "Closet SKU" : "Cabinet SKU"} className="sm:flex-1">
             <SelectValue placeholder="Choose a SKU" />
           </SelectTrigger>
           <SelectContent>
@@ -136,7 +143,11 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
       ) : null}
 
       {picks.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">Add each box by SKU. Linear feet from Xactimate are not used here.</p>
+        <p className="mt-3 text-sm text-muted">
+          {closetRoom
+            ? "Add each closet tower, shelf, and drawer by SKU."
+            : "Add each box by SKU. Linear feet from Xactimate are not used here."}
+        </p>
       ) : (
         <ul className="mt-4 divide-y divide-border">
           {picks.map((pick) => {

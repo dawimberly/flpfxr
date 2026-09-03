@@ -6,6 +6,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "cabinets",
       "countertops",
       "trim/baseboards",
@@ -20,11 +21,26 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "vanity/cabinets",
       "tile/shower surround",
       "plumbing",
       "lighting",
       "trim/baseboards"
+    ]
+  },
+  {
+    "room_id": "closet",
+    "display_name": "Closet",
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "ceiling",
+      "closet/storage",
+      "lighting",
+      "trim/baseboards",
+      "doors"
     ]
   },
   {
@@ -34,6 +50,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "trim/baseboards",
       "lighting",
       "closet/storage",
@@ -47,6 +64,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "trim/baseboards",
       "lighting",
       "fireplace surround"
@@ -59,6 +77,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "trim/baseboards",
       "lighting"
     ]
@@ -70,6 +89,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "cabinets/storage",
       "trim/baseboards",
       "electrical",
@@ -83,6 +103,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "trim/baseboards",
       "lighting"
     ]
@@ -94,6 +115,7 @@
       "flooring",
       "drywall",
       "walls/paint",
+      "ceiling",
       "trim/baseboards",
       "lighting",
       "built-ins/storage"
@@ -103,10 +125,11 @@
     "room_id": "garage",
     "display_name": "Garage",
     "typical_categories": [
+      "flooring",
       "drywall",
       "walls/paint",
-      "insulation",
       "ceiling",
+      "insulation",
       "doors",
       "electrical",
       "storage/shelving"
@@ -127,7 +150,14 @@
   {
     "room_id": "attic",
     "display_name": "Attic",
-    "typical_categories": ["insulation", "ceiling", "lighting"]
+    "typical_categories": [
+      "flooring",
+      "drywall",
+      "walls/paint",
+      "ceiling",
+      "insulation",
+      "lighting"
+    ]
   },
   {
     "room_id": "exterior_outdoor",

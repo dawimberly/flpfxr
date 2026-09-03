@@ -6,6 +6,7 @@ import {
   type ClientInfo,
   type JobEstimate,
 } from "@/lib/estimator";
+import { TRADE_NOTE, costPerItemRows, tradeTotals } from "@/lib/trade-groups";
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -437,6 +438,84 @@ function writeRoomMeasurements(pdf: PdfWriter, job: JobEstimate["rooms"][number]
   );
 }
 
+function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfKind) {
+  const trades = tradeTotals(job);
+  const items = costPerItemRows(job.completeLineItems);
+
+  pdf.kicker("By trade");
+  if (kind === "contractor") {
+    pdf.table(
+      [
+        { key: "t", label: "Trade", width: 160 },
+        { key: "i", label: "Installed", width: 110, align: "right" },
+        { key: "o", label: "O&P", width: 100, align: "right" },
+        { key: "a", label: "Total", width: 146, align: "right" },
+      ],
+      [
+        ...trades.map((row) => [row.trade, money(row.installed), money(row.op), money(row.total)]),
+        ["Installed", money(job.materialsSubtotal), "", ""],
+        ["Overhead & profit", money(job.laborSubtotal), "", ""],
+        ["Grand total", money(job.grandTotal), "", ""],
+      ],
+    );
+  } else {
+    pdf.table(
+      [
+        { key: "t", label: "Trade", width: 280 },
+        { key: "a", label: "Amount", width: 236, align: "right" },
+      ],
+      [
+        ...trades.map((row) => [row.trade, money(row.total)]),
+        ["Installed", money(job.materialsSubtotal)],
+        ["Overhead & profit", money(job.laborSubtotal)],
+        ["Grand total", money(job.grandTotal)],
+      ],
+    );
+  }
+  pdf.paragraph(TRADE_NOTE, 8, MUTED);
+
+  pdf.kicker("Cost per item");
+  if (kind === "contractor") {
+    pdf.table(
+      [
+        { key: "t", label: "Trade", width: 70 },
+        { key: "d", label: "Work", width: 168 },
+        { key: "q", label: "Qty", width: 48, align: "right" },
+        { key: "u", label: "Unit", width: 44 },
+        { key: "c", label: "Cost", width: 54, align: "right" },
+        { key: "a", label: "Amount", width: 58, align: "right" },
+        { key: "s", label: "Source", width: 74 },
+      ],
+      items.map((row) => [
+        row.trade,
+        row.laborOnly ? `${row.description} (labor)` : row.description,
+        row.quantity.toFixed(2),
+        row.unit,
+        money(row.unitCost),
+        money(row.amount),
+        row.source,
+      ]),
+    );
+  } else {
+    pdf.table(
+      [
+        { key: "t", label: "Trade", width: 90 },
+        { key: "d", label: "Work", width: 250 },
+        { key: "q", label: "Qty", width: 60, align: "right" },
+        { key: "u", label: "Unit", width: 56 },
+        { key: "a", label: "Amount", width: 60, align: "right" },
+      ],
+      items.map((row) => [
+        row.trade,
+        row.description,
+        row.quantity.toFixed(2),
+        row.unit,
+        money(row.amount),
+      ]),
+    );
+  }
+}
+
 export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
   const { pdf, doc } = await startPdf(job, client, "contractor");
 
@@ -507,6 +586,8 @@ export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
       money(entry.estimate.grandTotal),
     ]),
   );
+
+  writeTradeSections(pdf, job, "contractor");
   pdf.drawTotalBox(job, true);
 
   pdf.paragraph(
@@ -573,6 +654,7 @@ export async function buildCustomerPdf(job: JobEstimate, client: ClientInfo) {
     ]),
   );
 
+  writeTradeSections(pdf, job, "customer");
   pdf.drawTotalBox(job, false);
   pdf.paragraph(
     `Job total includes installed work and overhead. Valid 30 days. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,

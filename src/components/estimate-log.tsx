@@ -95,7 +95,7 @@ export function SaveEstimateButton({
         </button>
       ) : null}
       <p className="text-center text-xs text-ink-foreground/55">
-        {flash ?? (lastSavedAt ? `Last saved ${formatSavedAt(lastSavedAt)}` : "Stays on this device")}
+        {flash ?? (lastSavedAt ? `Last saved ${formatSavedAt(lastSavedAt)}` : "Save keeps the job in your log")}
       </p>
     </div>
   );
@@ -123,7 +123,7 @@ function EstimateLogDialog({
           <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">The file</p>
           <DialogTitle>Estimate log</DialogTitle>
           <DialogDescription id="estimate-log-copy">
-            Pull up last week's number before you walk back in. Stored on this phone or computer.
+            Pull up last week's number before you walk back in.
           </DialogDescription>
         </DialogHeader>
         <div className="px-5 pb-5 sm:px-6">
@@ -209,10 +209,6 @@ function EstimateLogDialog({
               </ul>
             )}
           </div>
-          <p className="mt-4 text-xs text-muted">
-            This log lives in the browser on this device. Accounts come later if you want the same jobs on
-            every phone.
-          </p>
         </div>
       </DialogContent>
     </Dialog>

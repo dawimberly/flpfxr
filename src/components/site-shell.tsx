@@ -4,15 +4,14 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
 
-const CREW_PATHS = new Set(["/estimator"]);
-const HIDE_MOBILE_CALL_BAR = new Set(["/login", "/estimator"]);
+/** Full-bleed app surfaces — no marketing chrome. */
+const APP_PATHS = new Set(["/login", "/estimator"]);
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const crew = CREW_PATHS.has(pathname);
-  const showMobileCallBar = !HIDE_MOBILE_CALL_BAR.has(pathname);
+  const isAppSurface = APP_PATHS.has(pathname);
 
-  if (crew) {
+  if (isAppSurface) {
     return <div className="min-h-dvh bg-bg text-fg">{children}</div>;
   }
 
@@ -21,7 +20,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <SiteHeader />
       <main className="flex-1 pb-24 sm:pb-0">{children}</main>
       <SiteFooter />
-      {showMobileCallBar ? <MobileCallBar /> : null}
+      <MobileCallBar />
     </div>
   );
 }

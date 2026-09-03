@@ -10,8 +10,8 @@ export const SITE = {
   owner: "Jon",
 } as const;
 
-/** Live room-by-room estimator (separate Vercel app). */
-export const ESTIMATOR_APP_URL = "https://the-flip-fixer-estimator.vercel.app/";
+/** Same-origin employee estimator (gated at /login). */
+export const ESTIMATOR_APP_URL = "/estimator";
 
 export const NAV = [
   { to: "/", label: "Home" },

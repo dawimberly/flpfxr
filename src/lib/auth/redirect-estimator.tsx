@@ -1,19 +1,20 @@
 import { useEffect } from "react";
-import { ESTIMATOR_APP_URL } from "@/lib/site";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { goToEstimatorApp } from "@/lib/auth/go-to-estimator";
 
-/** Send authenticated employees to the live estimator app on Vercel. */
+/** Send authenticated employees to the in-site estimator. */
 export function RedirectToEstimatorApp() {
+  const navigate = useNavigate();
+
   useEffect(() => {
-    goToEstimatorApp();
-  }, []);
+    void navigate({ to: "/estimator" });
+  }, [navigate]);
 
   return (
     <div className="mx-auto max-w-md px-4 py-20 text-center">
       <p className="text-muted">Opening the estimator…</p>
       <Button asChild size="lg" className="mt-6 w-full">
-        <a href={ESTIMATOR_APP_URL}>Open estimator</a>
+        <a href="/estimator">Open estimator</a>
       </Button>
     </div>
   );

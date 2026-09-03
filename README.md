@@ -10,16 +10,16 @@ Public website for **The Flip Fixer** (kitchen/bath remodels, flooring, paint, m
 
 ## Employee login → estimator
 
-Crew sign in on the marketing site, then go straight to the room-by-room estimator app.
+Crew sign in on the marketing site, then use the room-by-room estimator on the **same domain**.
 
 | Step | URL |
 |------|-----|
-| Sign in | https://theflipfixer.com/login (footer link: **Employee login**) |
-| After sign-in | https://the-flip-fixer-estimator.vercel.app/ |
+| Sign in | https://theflipfixer.com/login (footer: **Employee login**) |
+| Estimator | https://www.theflipfixer.com/estimator |
 
 Public pages (home, services, gallery, contact) stay open. No customer login.
 
-The estimator lives in a **separate Vercel app** (`the-flip-fixer-estimator`). This repo only handles marketing + employee gate + redirect.
+The estimator UI ships in this repo (`src/components/estimator-app.tsx` and related libs). PDFs include **By trade** and **Cost per item** for contractor and customer downloads.
 
 ---
 
@@ -87,11 +87,11 @@ node scripts/migrate-with-env.mjs
 ## Deploy (Vercel)
 
 1. Connect repo `dawimberly/flpfxr` to project **flpfxr** (team **Dirty INK**).
-2. Set production env vars (table above).
+2. Set production env vars (table above). Prefer `BETTER_AUTH_URL=https://theflipfixer.com` (www is also trusted).
 3. Domains: `theflipfixer.com`, `www.theflipfixer.com` → **Production**.
 4. Push to `main` — Vercel redeploys automatically.
 
-Do **not** point `theflipfixer.com` at the estimator project. Marketing = `flpfxr`; estimator = `the-flip-fixer-estimator`.
+This one project serves marketing **and** `/estimator`. Do not attach `theflipfixer.com` to the old `the-flip-fixer-estimator` Vercel project.
 
 ---
 

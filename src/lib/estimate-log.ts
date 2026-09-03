@@ -1,9 +1,6 @@
-import {
-  estimateJob,
-  sampleJob,
-  type ClientInfo,
-  type JobRoom,
-} from "@/lib/estimator";
+import { estimateJob, sampleJob, type ClientInfo, type JobRoom } from "@/lib/estimator";
+import { effectiveOpPercent } from "@/lib/op";
+import { normalizeRooms } from "@/lib/selections";
 
 const LOG_KEY = "flipfixer.estimate-log.v1";
 const DRAFT_KEY = "flipfixer.estimate-draft.v1";
@@ -11,6 +8,8 @@ const DRAFT_KEY = "flipfixer.estimate-draft.v1";
 export type EstimateSnapshot = {
   rooms: JobRoom[];
   laborRate: number;
+  opEnabled?: boolean;
+  lastOpPercent?: number;
   client: ClientInfo;
 };
 
@@ -58,7 +57,8 @@ function writeJson(key: string, value: unknown) {
 }
 
 export function summarizeSnapshot(snapshot: EstimateSnapshot) {
-  const job = estimateJob(snapshot.rooms, snapshot.laborRate);
+  const op = effectiveOpPercent(snapshot.laborRate, snapshot.opEnabled ?? true);
+  const job = estimateJob(snapshot.rooms, op);
   const customer = snapshot.client.name.trim();
   const property = snapshot.client.propertyName.trim();
   const address = snapshot.client.propertyAddress.trim() || snapshot.client.address.trim();
@@ -78,32 +78,54 @@ function isSavedEstimate(value: unknown): value is SavedEstimate {
   return Boolean(item.id && item.savedAt && item.snapshot?.rooms && item.snapshot.client);
 }
 
+function normalizeSnapshot(snapshot: EstimateSnapshot): EstimateSnapshot {
+  return {
+    rooms: normalizeRooms(snapshot.rooms),
+    laborRate: snapshot.laborRate,
+    opEnabled: snapshot.opEnabled ?? true,
+    lastOpPercent: snapshot.lastOpPercent ?? snapshot.laborRate,
+    client: snapshot.client,
+  };
+}
+
 export function loadEstimateLog(): SavedEstimate[] {
   const raw = readJson<unknown>(LOG_KEY);
   const list = Array.isArray(raw) ? raw.filter(isSavedEstimate) : [];
-  return list.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  return list
+    .map((item) => ({ ...item, snapshot: normalizeSnapshot(item.snapshot) }))
+    .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
 
 function writeEstimateLog(list: SavedEstimate[]) {
   writeJson(LOG_KEY, list);
 }
 
+export function replaceEstimateLog(list: SavedEstimate[]) {
+  writeEstimateLog(
+    list
+      .filter(isSavedEstimate)
+      .map((item) => ({ ...item, snapshot: normalizeSnapshot(item.snapshot) }))
+      .sort((a, b) => b.savedAt.localeCompare(a.savedAt)),
+  );
+}
+
 export function loadDraft(): EstimateDraft | null {
   const draft = readJson<EstimateDraft>(DRAFT_KEY);
   if (!draft?.rooms?.length || !draft.client) return null;
-  return draft;
+  return {
+    ...draft,
+    rooms: normalizeRooms(draft.rooms),
+    opEnabled: draft.opEnabled ?? true,
+    lastOpPercent: draft.lastOpPercent ?? draft.laborRate,
+  };
 }
 
 export function saveDraft(draft: EstimateDraft) {
-  writeJson(DRAFT_KEY, cloneJson(draft));
+  writeJson(DRAFT_KEY, cloneJson({ ...draft, rooms: normalizeRooms(draft.rooms) }));
 }
 
 export function snapshotFromJob(input: EstimateSnapshot): EstimateSnapshot {
-  return cloneJson({
-    rooms: input.rooms,
-    laborRate: input.laborRate,
-    client: input.client,
-  });
+  return cloneJson(normalizeSnapshot(input));
 }
 
 export function upsertSavedEstimate(
@@ -111,11 +133,12 @@ export function upsertSavedEstimate(
   id?: string | null,
 ): SavedEstimate {
   const list = loadEstimateLog();
+  const normalized = snapshotFromJob(snapshot);
   const record: SavedEstimate = {
     id: id && list.some((item) => item.id === id) ? id : crypto.randomUUID(),
     savedAt: new Date().toISOString(),
-    snapshot: snapshotFromJob(snapshot),
-    summary: summarizeSnapshot(snapshot),
+    snapshot: normalized,
+    summary: summarizeSnapshot(normalized),
   };
   writeEstimateLog([record, ...list.filter((item) => item.id !== record.id)]);
   return record;
@@ -152,6 +175,8 @@ export function seedSampleEstimateIfEmpty() {
   upsertSavedEstimate({
     rooms: sample.rooms,
     laborRate: sample.laborRate,
+    opEnabled: true,
+    lastOpPercent: sample.laborRate,
     client: sample.client,
   });
   return loadEstimateLog();
