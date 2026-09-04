@@ -11,8 +11,7 @@ export function SiteFooter() {
         <div>
           <p className="font-display text-xl text-primary">{SITE.legalName}</p>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
-            Kitchen and bath remodels, flooring, paint, and make-ready work.
-            Design in-house. 30+ years on the tools.
+            {SITE.tagline} Design in-house. 30+ years on the tools.
           </p>
         </div>
         <div>

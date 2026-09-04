@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          `Flip Fixer. Kitchen and bath remodels, flooring, paint, and make-ready work. ${AREA_LINE} 30+ years on the tools. Design in-house. Call (210) 436-9117.`,
+          `Flip Fixer. ${SITE.tagline} ${AREA_LINE} 30+ years on the tools. Design in-house. Call (210) 436-9117.`,
       },
     ],
   }),

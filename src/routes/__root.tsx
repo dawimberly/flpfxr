@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Flip Fixer. Kitchen and bath remodels, flooring, paint, and make-ready work. Design in-house. 30+ years on the tools. Alamo Heights, The Dominion, Kerrville, Boerne, and San Antonio. Call (210) 436-9117.",
+          `Flip Fixer. ${SITE.tagline} Design in-house. 30+ years on the tools. Alamo Heights, The Dominion, Kerrville, Boerne, and San Antonio. Call (210) 436-9117.`,
       },
       { name: "theme-color", content: "#131517" },
     ],
