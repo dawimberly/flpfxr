@@ -606,9 +606,9 @@ export const GALLERY: Array<{
   },
   {
     src: "/images/gallery-22-b.webp",
-    alt: "Charred structure during fire rebuild by Flip Fixer",
+    alt: "Open exposed framing during fire rebuild by Flip Fixer",
     title: "Fire rebuild",
-    caption: "Insurance claim — full rebuild. Fire damage exposed.",
+    caption: "Insurance claim — full rebuild. Open framing after tear-out.",
     category: "Custom",
   },
   {
