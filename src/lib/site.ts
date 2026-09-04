@@ -707,6 +707,8 @@ export function galleryJobId(src: string): string {
   if (numbered) return numbered[1];
   if (/kitchenbefore|kitchenafter/.test(src)) return "kitchen-remodel";
   if (/patio/.test(src)) return src.includes("patio2") ? "patio-2" : "patio-1";
+  // repair.webp + handyman.webp share one gallery section
+  if (/\/(repair|handyman)\./.test(src)) return "repairs";
   return src.replace(/^\/images\//, "").replace(/\.[a-z]+$/i, "");
 }
 
