@@ -48,6 +48,7 @@ export type ServiceId =
   | "outdoor"
   | "make-ready"
   | "carpentry"
+  | "insurance-claims"
   | "consulting";
 
 export const SERVICES: Array<{
@@ -112,6 +113,14 @@ export const SERVICES: Array<{
     short: "Built-ins, bars, stairs.",
     body: "Built-ins, bars, stairs. Built to fit the house.",
     image: "/images/bar1.webp",
+    group: "Specialty",
+  },
+  {
+    id: "insurance-claims",
+    title: "Insurance claims",
+    short: "Fire and storm rebuilds.",
+    body: "Insurance claim rebuilds — tear-out through finish. Full restore after fire or storm damage.",
+    image: "/images/gallery-22-f.webp",
     group: "Specialty",
   },
   {
@@ -715,6 +724,7 @@ export function galleryJobId(src: string): string {
 export function galleryService(
   item: (typeof GALLERY)[number],
 ): ServiceId {
+  if (item.src.includes("gallery-22")) return "insurance-claims";
   if (item.src.includes("flooring")) return "flooring";
   if (item.src.includes("painter")) return "paint";
   if (item.src.includes("punchout")) return "make-ready";
@@ -771,6 +781,7 @@ export const GALLERY_FILTERS: Array<{ id?: ServiceId; label: string }> = [
   { id: "paint", label: "Paint" },
   { id: "outdoor", label: "Outdoor" },
   { id: "carpentry", label: "Carpentry" },
+  { id: "insurance-claims", label: "Insurance claims" },
   { id: "handyman", label: "Repairs" },
   { id: "make-ready", label: "Make-ready" },
 ];
