@@ -1,7 +1,8 @@
 export const SITE = {
   name: "Flip Fixer",
   legalName: "The Flip Fixer",
-  tagline: "Kitchen and bath remodels, flooring, paint, and make-ready work.",
+  tagline:
+    "Kitchen and bath remodels, flooring, paint, make-ready, and insurance claim rebuilds.",
   phone: "2104369117",
   phoneDisplay: "(210) 436-9117",
   email: "Jon@TheFlipFixer.com",
@@ -135,11 +136,12 @@ export const SERVICES: Array<{
 
 export const HOME_SERVICES: ServiceId[] = [
   "kitchen-bath",
-  "handyman",
+  "insurance-claims",
   "flooring",
   "paint",
   "outdoor",
   "make-ready",
+  "handyman",
 ];
 
 export const STATS = [
@@ -789,7 +791,7 @@ export const GALLERY_FILTERS: Array<{ id?: ServiceId; label: string }> = [
 export const FAQS = [
   {
     q: "What kind of jobs do you take?",
-    a: "Kitchen and bath remodels, flooring, paint, handyman work, outdoor, and make-ready. Alamo Heights, The Dominion, Kerrville, Boerne, San Antonio, and nearby.",
+    a: "Kitchen and bath remodels, flooring, paint, handyman work, outdoor, make-ready, and insurance claim rebuilds. Alamo Heights, The Dominion, Kerrville, Boerne, San Antonio, and nearby.",
   },
   {
     q: "How do I get a price?",

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/services")({
       {
         name: "description",
         content:
-          `Kitchen and bath, handyman, flooring, paint, outdoor, and make-ready. ${AREA_LINE} Call (210) 436-9117.`,
+          `Kitchen and bath, flooring, paint, outdoor, make-ready, and insurance claims. ${AREA_LINE} Call (210) 436-9117.`,
       },
     ],
   }),
@@ -29,8 +29,7 @@ function ServicesPage() {
     <div>
       <PageIntro eyebrow="Services" title="What we do">
         <p>
-          Kitchen and bath remodels, flooring, paint, and make-ready work.
-          {AREA_LINE}
+          {SITE.tagline} {AREA_LINE}
         </p>
       </PageIntro>
 
