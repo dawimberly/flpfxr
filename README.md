@@ -1,4 +1,4 @@
-# Flip Fixer — marketing site + estimator
+# The Flip Fixer — marketing site + estimator
 
 Public website for **The Flip Fixer** (kitchen/bath remodels, flooring, paint, make-ready), plus the employee room-by-room estimator. Built with React, TanStack Start, and Vite. Deploys to Vercel.
 
