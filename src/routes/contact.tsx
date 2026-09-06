@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { trackContactFormSubmit } from "@/lib/google-ads";
 import {
   ESTIMATE_TYPES,
   SERVICE_AREAS,
@@ -68,6 +69,10 @@ function ContactPage() {
     setMessage(draft.message ?? "");
     setNextUrl(`${window.location.origin}/contact?sent=1`);
   }, [serviceFromUrl]);
+
+  useEffect(() => {
+    if (sentFromUrl) trackContactFormSubmit();
+  }, [sentFromUrl]);
 
   const serviceLabel =
     ESTIMATE_TYPES.find((t) => t.id === service)?.label || service;

@@ -1,4 +1,5 @@
 import { forwardRef, type ComponentProps, type MouseEvent } from "react";
+import { trackPhoneClick } from "@/lib/google-ads";
 import { SITE } from "@/lib/site";
 import { telHref } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ export const CallLink = forwardRef<HTMLAnchorElement, ComponentProps<"a">>(
         target="_top"
         className={className}
         onClick={(e) => {
+          trackPhoneClick();
           onClick?.(e);
           if (!e.defaultPrevented) openDialer(e);
         }}
