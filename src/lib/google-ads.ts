@@ -1,6 +1,12 @@
 /** Google Ads destination tag for The Flip Fixer (account 514-833-8223). */
 export const GOOGLE_ADS_ID = "AW-18251288464";
 
+/** Conversion labels from Ads → Submit lead form / Click to call. */
+export const GOOGLE_ADS_LEAD_SEND_TO =
+  "AW-18251288464/XOc8CJqR8-8cEJCf8v5D";
+export const GOOGLE_ADS_PHONE_SEND_TO =
+  "AW-18251288464/8MtLCJ2R8-8cEJCf8v5D";
+
 declare global {
   interface Window {
     dataLayer: IArguments[];
@@ -35,20 +41,18 @@ export function trackContactFormSubmit() {
   } catch {
     // sessionStorage blocked — still fire once this load
   }
-  // Named events for Ads Goals → Google tag → Event matching.
-  gtag("event", "generate_lead", {
-    currency: "USD",
-    value: 1,
-  });
   gtag("event", "conversion", {
-    send_to: GOOGLE_ADS_ID,
+    send_to: GOOGLE_ADS_LEAD_SEND_TO,
+    value: 1.0,
+    currency: "USD",
   });
 }
 
 export function trackPhoneClick() {
   if (typeof window === "undefined") return;
-  gtag("event", "phone_call_lead");
   gtag("event", "conversion", {
-    send_to: GOOGLE_ADS_ID,
+    send_to: GOOGLE_ADS_PHONE_SEND_TO,
+    value: 1.0,
+    currency: "USD",
   });
 }
