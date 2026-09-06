@@ -38,7 +38,7 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Call Flip Fixer for a free estimate. (210) 436-9117 · Jon@TheFlipFixer.com. Alamo Heights, The Dominion, Kerrville, Boerne, and San Antonio.",
+          "Call The Flip Fixer for a free estimate. (210) 436-9117 · Jon@TheFlipFixer.com. Alamo Heights, The Dominion, Kerrville, Boerne, and San Antonio.",
       },
     ],
   }),
@@ -126,7 +126,7 @@ function ContactPage() {
               <h2 className="font-display text-2xl text-fg">
                 Tell us about the job
               </h2>
-              <input type="hidden" name="_subject" value="Flip Fixer job" />
+              <input type="hidden" name="_subject" value="The Flip Fixer job" />
               <input type="hidden" name="_template" value="table" />
               <input type="hidden" name="_captcha" value="false" />
               <input type="hidden" name="_next" value={nextUrl} />

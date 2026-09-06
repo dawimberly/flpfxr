@@ -37,13 +37,8 @@ export function SiteHeader() {
           onClick={() => setOpen(false)}
         >
           <LogoMark />
-          <span className="leading-none">
-            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted">
-              The
-            </span>
-            <span className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">
-              Flip Fixer
-            </span>
+          <span className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">
+            {SITE.name}
           </span>
         </Link>
 

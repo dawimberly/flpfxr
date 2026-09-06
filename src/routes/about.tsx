@@ -10,7 +10,7 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          `Flip Fixer remodels kitchens and baths, designs the work in-house, and gets rentals and listings ready to show. 30+ years on the tools. ${AREA_LINE}`,
+          `The Flip Fixer remodels kitchens and baths, designs the work in-house, and gets rentals and listings ready to show. 30+ years on the tools. ${AREA_LINE}`,
       },
     ],
   }),
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/about")({
 function AboutPage() {
   return (
     <div>
-      <PageIntro eyebrow="About" title="Flip Fixer">
+      <PageIntro eyebrow="About" title={SITE.name}>
         <p>
           We remodel kitchens and baths, fix what's broken, and get
           rentals and listings ready to show. Design is handled in-house.

@@ -79,7 +79,7 @@ function LoginForm() {
   return (
     <div>
       <PageIntro eyebrow="Employees" title="Sign in">
-        <p>For Flip Fixer crew only.</p>
+        <p>For The Flip Fixer crew only.</p>
       </PageIntro>
 
       <form

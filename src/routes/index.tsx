@@ -26,7 +26,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          `Flip Fixer. ${SITE.tagline} ${AREA_LINE} 30+ years on the tools. Design in-house. Call (210) 436-9117.`,
+          `The Flip Fixer. ${SITE.tagline} ${AREA_LINE} 30+ years on the tools. Design in-house. Call (210) 436-9117.`,
       },
     ],
   }),
@@ -60,7 +60,7 @@ function Home() {
       <section className="relative isolate min-h-[78vh] overflow-hidden">
         <Photo
           src="/images/gallery-01-a.webp"
-          alt="Farmhouse kitchen remodel by Flip Fixer"
+          alt="Farmhouse kitchen remodel by The Flip Fixer"
           className="absolute inset-0 size-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/35" />
