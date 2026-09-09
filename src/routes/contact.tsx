@@ -106,6 +106,22 @@ function ContactPage() {
         .join(" · ")
     : [serviceLabel, sizeLabel].filter(Boolean).join(" · ");
 
+  const quoteBlock = [
+    "Ballpark from the website:",
+    serviceLabel ? `Job: ${serviceLabel}` : null,
+    kitchenBath && kitchenLabel ? `Kitchen size: ${kitchenLabel}` : null,
+    kitchenBath && bathroomLabel ? `Bathroom size: ${bathroomLabel}` : null,
+    !kitchenBath && sizeLabel ? `Size: ${sizeLabel}` : null,
+    ballpark ? `Planning range: ${ballpark}` : null,
+    quote?.includes ? quote.includes : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const subjectLine = kitchenBath
+    ? `Flip Fixer — Kitchen ${kitchenLabel}, Bath ${bathroomLabel}${ballpark ? ` (${ballpark})` : ""}`
+    : `Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
+
   const onQuoteChange = (next: QuoteSelection) => {
     setQuote(next);
     if (next.service) setService(next.service);
@@ -114,6 +130,22 @@ function ContactPage() {
   };
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const form = e.currentTarget;
+    const setField = (name: string, value: string) => {
+      const el = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
+      if (el) el.value = value;
+    };
+
+    setField("_subject", subjectLine);
+    setField("Job", serviceLabel || "n/a");
+    setField("Kitchen_size", kitchenBath ? kitchenLabel || "None" : "n/a");
+    setField("Bathroom_size", kitchenBath ? bathroomLabel || "None" : "n/a");
+    setField("Planning_range", ballpark || "n/a");
+    if (!kitchenBath) setField("Size", sizeLabel || serviceLabel || "n/a");
+
+    const body = message.trim();
+    setField("message", body ? `${body}\n\n${quoteBlock}` : quoteBlock);
+
     saveLeadDraft({
       name,
       email,
@@ -171,16 +203,14 @@ function ContactPage() {
               <h2 className="font-display text-2xl text-fg">
                 Tell us about the job
               </h2>
-              <input type="hidden" name="_subject" value="The Flip Fixer job" />
+              <input type="hidden" name="_subject" value={subjectLine} />
               <input type="hidden" name="_template" value="table" />
               <input type="hidden" name="_captcha" value="false" />
               <input type="hidden" name="_next" value={nextUrl} />
-              <input type="hidden" name="job" value={serviceLabel} />
-              <input type="hidden" name="kitchen_size" value={kitchenBath ? kitchenLabel : "n/a"} />
-              <input type="hidden" name="bathroom_size" value={kitchenBath ? bathroomLabel : "n/a"} />
-              <input type="hidden" name="job_size" value={kitchenBath ? quoteLine : sizeLabel || "n/a"} />
-              <input type="hidden" name="ballpark" value={ballpark || "n/a"} />
-              <input type="hidden" name="quote_summary" value={quote?.includes || quoteLine} />
+              <input type="hidden" name="Job" value={serviceLabel || "n/a"} />
+              <input type="hidden" name="Kitchen_size" value={kitchenBath ? kitchenLabel || "None" : "n/a"} />
+              <input type="hidden" name="Bathroom_size" value={kitchenBath ? bathroomLabel || "None" : "n/a"} />
+              <input type="hidden" name="Planning_range" value={ballpark || "n/a"} />
               <div className="hidden" aria-hidden="true">
                 <Label htmlFor="company">Company</Label>
                 <Input
@@ -245,10 +275,29 @@ function ContactPage() {
                 </select>
               </div>
               {quoteLine || ballpark ? (
-                <div className="rounded-xl bg-bg px-4 py-3 text-sm text-muted">
-                  <p className="font-medium text-fg">{quoteLine || serviceLabel}</p>
-                  {ballpark ? <p className="mt-1 tabular-nums">Ballpark {ballpark}</p> : null}
-                  <p className="mt-1 text-xs text-subtle">Goes with this form. Change it on the left.</p>
+                <div className="space-y-2 rounded-xl bg-bg px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Goes with this email</p>
+                  {kitchenBath ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="kitchen-display">Kitchen</Label>
+                        <Input id="kitchen-display" readOnly tabIndex={-1} value={kitchenLabel || "None"} className="mt-1.5 bg-surface" />
+                      </div>
+                      <div>
+                        <Label htmlFor="bathroom-display">Bathroom</Label>
+                        <Input id="bathroom-display" readOnly tabIndex={-1} value={bathroomLabel || "None"} className="mt-1.5 bg-surface" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="size-display">Size</Label>
+                      <Input id="size-display" readOnly tabIndex={-1} value={sizeLabel || serviceLabel || "—"} className="mt-1.5 bg-surface" />
+                    </div>
+                  )}
+                  <div>
+                    <Label htmlFor="ballpark-display">Ballpark</Label>
+                    <Input id="ballpark-display" readOnly tabIndex={-1} value={ballpark || "Walk the job for a number"} className="mt-1.5 bg-surface tabular-nums" />
+                  </div>
                 </div>
               ) : null}
               <div className="space-y-2">
