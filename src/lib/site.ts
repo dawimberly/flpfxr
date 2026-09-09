@@ -907,6 +907,74 @@ export const SCOPE_LABELS: Record<EstimateScope, string> = {
   large: "Large",
 };
 
+export type RoomKind = "kitchen" | "bathroom";
+export type RoomScope = EstimateScope | "none";
+
+export const ROOM_SCOPE_LABELS: Record<RoomScope, string> = {
+  none: "None",
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
+
+export const ROOM_BALLPARKS: Record<
+  RoomKind,
+  {
+    label: string;
+    ranges: Record<EstimateScope, [number, number]>;
+    includes: Record<EstimateScope, string>;
+  }
+> = {
+  kitchen: {
+    label: "Kitchen",
+    ranges: {
+      small: [4000, 9000],
+      medium: [12000, 25000],
+      large: [25000, 45000],
+    },
+    includes: {
+      small: "Refresh: counters, fixtures, paint",
+      medium: "Stock cabinets, counters, floors",
+      large: "Full kitchen — cabinets, quartz, tile or LVP",
+    },
+  },
+  bathroom: {
+    label: "Bathroom",
+    ranges: {
+      small: [3000, 7000],
+      medium: [8000, 16000],
+      large: [15000, 28000],
+    },
+    includes: {
+      small: "Vanity, fixtures, paint",
+      medium: "Full bath remodel",
+      large: "Primary bath with tile shower",
+    },
+  },
+};
+
+export function roomRange(kind: RoomKind, scope: RoomScope): [number, number] | null {
+  if (scope === "none") return null;
+  return ROOM_BALLPARKS[kind].ranges[scope];
+}
+
+export function addRanges(
+  a: [number, number] | null,
+  b: [number, number] | null,
+): [number, number] | null {
+  if (!a && !b) return null;
+  if (!a) return b;
+  if (!b) return a;
+  return [a[0] + b[0], a[1] + b[1]];
+}
+
+export function kitchenBathLine(kitchen: RoomScope, bathroom: RoomScope): string {
+  const bits: string[] = [];
+  if (kitchen !== "none") bits.push(`Kitchen ${SCOPE_LABELS[kitchen]}`);
+  if (bathroom !== "none") bits.push(`Bathroom ${SCOPE_LABELS[bathroom]}`);
+  return bits.join(". ") || "";
+}
+
 export const LEAD_STORAGE_KEY = "flipfixer-lead-draft";
 
 export type LeadDraft = {
@@ -915,6 +983,8 @@ export type LeadDraft = {
   phone?: string;
   service?: ServiceId | "";
   scope?: EstimateScope | "";
+  kitchenScope?: RoomScope | "";
+  bathroomScope?: RoomScope | "";
   message?: string;
 };
 
@@ -936,3 +1006,4 @@ export function loadLeadDraft(): LeadDraft {
     return {};
   }
 }
+

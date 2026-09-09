@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Mail, MapPin, Phone } from "lucide-react";
 import { CallLink } from "@/components/call-link";
-import { QuoteEstimator } from "@/components/quote-estimator";
+import { QuoteEstimator, type QuoteSelection } from "@/components/quote-estimator";
 import { PageIntro } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { trackContactFormSubmit } from "@/lib/google-ads";
 import {
   ESTIMATE_TYPES,
+  ROOM_SCOPE_LABELS,
+  SCOPE_LABELS,
   SERVICE_AREAS,
   SITE,
   loadLeadDraft,
   saveLeadDraft,
+  type RoomScope,
   type ServiceId,
 } from "@/lib/site";
+import { formatUsdRange } from "@/lib/utils";
 
 type Search = {
   service?: ServiceId;
@@ -55,6 +59,9 @@ function ContactPage() {
   const [honeypot, setHoneypot] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [nextUrl, setNextUrl] = useState(`${SITE.url}/contact?sent=1`);
+  const [kitchen, setKitchen] = useState<RoomScope>("medium");
+  const [bathroom, setBathroom] = useState<RoomScope>("medium");
+  const [quote, setQuote] = useState<QuoteSelection | null>(null);
 
   const estimateService = ESTIMATE_TYPES.some((t) => t.id === serviceFromUrl)
     ? serviceFromUrl
@@ -67,6 +74,12 @@ function ContactPage() {
     setPhone(draft.phone ?? "");
     setService(serviceFromUrl || draft.service || "");
     setMessage(draft.message ?? "");
+    if (draft.kitchenScope === "none" || draft.kitchenScope === "small" || draft.kitchenScope === "medium" || draft.kitchenScope === "large") {
+      setKitchen(draft.kitchenScope);
+    }
+    if (draft.bathroomScope === "none" || draft.bathroomScope === "small" || draft.bathroomScope === "medium" || draft.bathroomScope === "large") {
+      setBathroom(draft.bathroomScope);
+    }
     setNextUrl(`${window.location.origin}/contact?sent=1`);
   }, [serviceFromUrl]);
 
@@ -77,12 +90,38 @@ function ContactPage() {
   const serviceLabel =
     ESTIMATE_TYPES.find((t) => t.id === service)?.label || service;
 
+  const kitchenBath = (quote?.service || service) === "kitchen-bath";
+  const kitchenLabel = kitchenBath ? ROOM_SCOPE_LABELS[quote?.kitchen ?? kitchen] : "";
+  const bathroomLabel = kitchenBath ? ROOM_SCOPE_LABELS[quote?.bathroom ?? bathroom] : "";
+  const sizeLabel = kitchenBath
+    ? ""
+    : quote
+      ? SCOPE_LABELS[quote.scope]
+      : "";
+  const ballpark =
+    quote?.range ? formatUsdRange(quote.range[0], quote.range[1]) : "";
+  const quoteLine = kitchenBath
+    ? [kitchenLabel !== "None" ? `Kitchen: ${kitchenLabel}` : null, bathroomLabel !== "None" ? `Bathroom: ${bathroomLabel}` : null]
+        .filter(Boolean)
+        .join(" · ")
+    : [serviceLabel, sizeLabel].filter(Boolean).join(" · ");
+
+  const onQuoteChange = (next: QuoteSelection) => {
+    setQuote(next);
+    if (next.service) setService(next.service);
+    setKitchen(next.kitchen);
+    setBathroom(next.bathroom);
+  };
+
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     saveLeadDraft({
       name,
       email,
       phone,
       service: (service as ServiceId) || "",
+      kitchenScope: kitchen,
+      bathroomScope: bathroom,
+      scope: quote?.scope ?? "",
       message,
     });
     if (honeypot) {
@@ -105,6 +144,7 @@ function ContactPage() {
             initialService={estimateService}
             hideCta
             onServiceChange={(id) => setService(id)}
+            onQuoteChange={onQuoteChange}
           />
 
           <div className="rounded-2xl bg-surface p-8 shadow-[var(--shadow-border)]">
@@ -136,6 +176,11 @@ function ContactPage() {
               <input type="hidden" name="_captcha" value="false" />
               <input type="hidden" name="_next" value={nextUrl} />
               <input type="hidden" name="job" value={serviceLabel} />
+              <input type="hidden" name="kitchen_size" value={kitchenBath ? kitchenLabel : "n/a"} />
+              <input type="hidden" name="bathroom_size" value={kitchenBath ? bathroomLabel : "n/a"} />
+              <input type="hidden" name="job_size" value={kitchenBath ? quoteLine : sizeLabel || "n/a"} />
+              <input type="hidden" name="ballpark" value={ballpark || "n/a"} />
+              <input type="hidden" name="quote_summary" value={quote?.includes || quoteLine} />
               <div className="hidden" aria-hidden="true">
                 <Label htmlFor="company">Company</Label>
                 <Input
@@ -199,6 +244,13 @@ function ContactPage() {
                   <option value="other">Something else</option>
                 </select>
               </div>
+              {quoteLine || ballpark ? (
+                <div className="rounded-xl bg-bg px-4 py-3 text-sm text-muted">
+                  <p className="font-medium text-fg">{quoteLine || serviceLabel}</p>
+                  {ballpark ? <p className="mt-1 tabular-nums">Ballpark {ballpark}</p> : null}
+                  <p className="mt-1 text-xs text-subtle">Goes with this form. Change it on the left.</p>
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <Label htmlFor="message">What's going on *</Label>
                 <Textarea
