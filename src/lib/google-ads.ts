@@ -1,3 +1,6 @@
+/** GA4 measurement ID — primary gtag.js loader. */
+export const GA4_MEASUREMENT_ID = "G-548WLW4MEK";
+
 /** Google Ads destination tag for The Flip Fixer (account 514-833-8223). */
 export const GOOGLE_ADS_ID = "AW-18251288464";
 
