@@ -911,7 +911,7 @@ export type RoomKind = "kitchen" | "bathroom";
 export type RoomScope = EstimateScope | "none";
 
 export const ROOM_SCOPE_LABELS: Record<RoomScope, string> = {
-  none: "None",
+  none: "Skip",
   small: "Small",
   medium: "Medium",
   large: "Large",

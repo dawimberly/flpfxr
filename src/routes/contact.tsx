@@ -60,7 +60,7 @@ function ContactPage() {
   const [blocked, setBlocked] = useState(false);
   const [nextUrl, setNextUrl] = useState(`${SITE.url}/contact?sent=1`);
   const [kitchen, setKitchen] = useState<RoomScope>("medium");
-  const [bathroom, setBathroom] = useState<RoomScope>("medium");
+  const [bathroom, setBathroom] = useState<RoomScope>("none");
   const [quote, setQuote] = useState<QuoteSelection | null>(null);
 
   const estimateService = ESTIMATE_TYPES.some((t) => t.id === serviceFromUrl)
@@ -74,12 +74,6 @@ function ContactPage() {
     setPhone(draft.phone ?? "");
     setService(serviceFromUrl || draft.service || "");
     setMessage(draft.message ?? "");
-    if (draft.kitchenScope === "none" || draft.kitchenScope === "small" || draft.kitchenScope === "medium" || draft.kitchenScope === "large") {
-      setKitchen(draft.kitchenScope);
-    }
-    if (draft.bathroomScope === "none" || draft.bathroomScope === "small" || draft.bathroomScope === "medium" || draft.bathroomScope === "large") {
-      setBathroom(draft.bathroomScope);
-    }
     setNextUrl(`${window.location.origin}/contact?sent=1`);
   }, [serviceFromUrl]);
 
@@ -101,7 +95,7 @@ function ContactPage() {
   const ballpark =
     quote?.range ? formatUsdRange(quote.range[0], quote.range[1]) : "";
   const quoteLine = kitchenBath
-    ? [kitchenLabel !== "None" ? `Kitchen: ${kitchenLabel}` : null, bathroomLabel !== "None" ? `Bathroom: ${bathroomLabel}` : null]
+    ? [kitchenLabel !== "Skip" ? `Kitchen: ${kitchenLabel}` : null, bathroomLabel !== "Skip" ? `Bathroom: ${bathroomLabel}` : null]
         .filter(Boolean)
         .join(" · ")
     : [serviceLabel, sizeLabel].filter(Boolean).join(" · ");
@@ -119,7 +113,12 @@ function ContactPage() {
     .join("\n");
 
   const subjectLine = kitchenBath
-    ? `Flip Fixer — Kitchen ${kitchenLabel}, Bath ${bathroomLabel}${ballpark ? ` (${ballpark})` : ""}`
+    ? `Flip Fixer — ${[
+        kitchenLabel && kitchenLabel !== "Skip" ? `Kitchen ${kitchenLabel}` : null,
+        bathroomLabel && bathroomLabel !== "Skip" ? `Bath ${bathroomLabel}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ")}${ballpark ? ` (${ballpark})` : ""}`
     : `Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
 
   const onQuoteChange = (next: QuoteSelection) => {
@@ -275,30 +274,10 @@ function ContactPage() {
                 </select>
               </div>
               {quoteLine || ballpark ? (
-                <div className="space-y-2 rounded-xl bg-bg px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Goes with this email</p>
-                  {kitchenBath ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="kitchen-display">Kitchen</Label>
-                        <Input id="kitchen-display" readOnly tabIndex={-1} value={kitchenLabel || "None"} className="mt-1.5 bg-surface" />
-                      </div>
-                      <div>
-                        <Label htmlFor="bathroom-display">Bathroom</Label>
-                        <Input id="bathroom-display" readOnly tabIndex={-1} value={bathroomLabel || "None"} className="mt-1.5 bg-surface" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor="size-display">Size</Label>
-                      <Input id="size-display" readOnly tabIndex={-1} value={sizeLabel || serviceLabel || "—"} className="mt-1.5 bg-surface" />
-                    </div>
-                  )}
-                  <div>
-                    <Label htmlFor="ballpark-display">Ballpark</Label>
-                    <Input id="ballpark-display" readOnly tabIndex={-1} value={ballpark || "Walk the job for a number"} className="mt-1.5 bg-surface tabular-nums" />
-                  </div>
-                </div>
+                <p className="rounded-xl bg-bg px-4 py-3 text-sm text-muted">
+                  <span className="font-medium text-fg">{quoteLine || serviceLabel}</span>
+                  {ballpark ? <span className="mt-1 block tabular-nums">Ballpark {ballpark}</span> : null}
+                </p>
               ) : null}
               <div className="space-y-2">
                 <Label htmlFor="message">What's going on *</Label>

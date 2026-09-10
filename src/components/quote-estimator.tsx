@@ -21,7 +21,7 @@ import {
 import { cn, formatUsdRange } from "@/lib/utils";
 
 const SCOPES: EstimateScope[] = ["small", "medium", "large"];
-const ROOM_SCOPES: RoomScope[] = ["none", "small", "medium", "large"];
+const SIZE_SCOPES: EstimateScope[] = ["small", "medium", "large"];
 
 export type QuoteSelection = {
   service: ServiceId | "";
@@ -64,7 +64,7 @@ export function QuoteEstimator({
     isRoomScope(initialKitchen) ? initialKitchen : "medium",
   );
   const [bathroom, setBathroom] = useState<RoomScope>(
-    isRoomScope(initialBathroom) ? initialBathroom : "medium",
+    isRoomScope(initialBathroom) ? initialBathroom : "none",
   );
   const navigate = useNavigate();
 
@@ -76,8 +76,6 @@ export function QuoteEstimator({
 
   useEffect(() => {
     const draft = loadLeadDraft();
-    if (isRoomScope(draft.kitchenScope)) setKitchen(draft.kitchenScope);
-    if (isRoomScope(draft.bathroomScope)) setBathroom(draft.bathroomScope);
     if (draft.scope === "small" || draft.scope === "medium" || draft.scope === "large") {
       setScope(draft.scope);
     }
@@ -143,6 +141,8 @@ export function QuoteEstimator({
     void navigate({ to: "/contact", search: { service: serviceId || undefined } });
   };
 
+  const bothRooms = kitchenBath && kitchen !== "none" && bathroom !== "none";
+
   return (
     <div
       id="ballpark"
@@ -180,9 +180,10 @@ export function QuoteEstimator({
       </div>
 
       {kitchenBath ? (
-        <div className="mt-6 space-y-5">
-          <RoomSizeRow kind="kitchen" value={kitchen} onChange={setKitchen} />
-          <RoomSizeRow kind="bathroom" value={bathroom} onChange={setBathroom} />
+        <div className="mt-6 space-y-4">
+          <p className="text-sm text-muted">Pick a kitchen, a bath, or both. Each has its own number.</p>
+          <RoomSizeRow kind="kitchen" value={kitchen} onChange={setKitchen} range={kitRange} />
+          <RoomSizeRow kind="bathroom" value={bathroom} onChange={setBathroom} range={bathRange} />
         </div>
       ) : (
         <>
@@ -209,7 +210,29 @@ export function QuoteEstimator({
         </>
       )}
 
-      {selected && range ? (
+      {kitchenBath && range ? (
+        <div className="mt-6 rounded-xl bg-bg p-5">
+          {bothRooms ? (
+            <>
+              <p className="text-sm text-muted">Together</p>
+              <p className="mt-1 font-display text-3xl text-fg tabular-nums md:text-4xl">
+                {formatUsdRange(range[0], range[1])}
+              </p>
+              <p className="mt-2 text-sm text-muted">{includes}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted">{includes}</p>
+              <p className="mt-2 font-display text-3xl text-fg tabular-nums md:text-4xl">
+                {formatUsdRange(range[0], range[1])}
+              </p>
+            </>
+          )}
+          <p className="mt-1 text-xs text-subtle">
+            Finish and the house itself change this. We'll walk it free.
+          </p>
+        </div>
+      ) : selected && range && !kitchenBath ? (
         <div className="mt-6 rounded-xl bg-bg p-5">
           <p className="text-sm text-muted">{includes}</p>
           <p className="mt-2 font-display text-3xl text-fg tabular-nums md:text-4xl">
@@ -237,18 +260,35 @@ function RoomSizeRow({
   kind,
   value,
   onChange,
+  range,
 }: {
   kind: RoomKind;
   value: RoomScope;
   onChange: (scope: RoomScope) => void;
+  range: [number, number] | null;
 }) {
   return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-        {ROOM_BALLPARKS[kind].label} size
-      </p>
-      <div className="mt-2 grid grid-cols-4 gap-2">
-        {ROOM_SCOPES.map((s) => (
+    <div className="rounded-xl bg-bg px-4 py-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-medium text-fg">{ROOM_BALLPARKS[kind].label}</p>
+        <p className="text-sm tabular-nums text-muted">
+          {range ? formatUsdRange(range[0], range[1]) : "Skip"}
+        </p>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        <button
+          type="button"
+          onClick={() => onChange("none")}
+          className={cn(
+            "h-11 rounded-lg text-sm font-medium transition-[background-color,color] duration-150",
+            value === "none"
+              ? "bg-cream text-cream-fg"
+              : "bg-surface text-muted shadow-[var(--shadow-border)] hover:text-fg",
+          )}
+        >
+          Skip
+        </button>
+        {SIZE_SCOPES.map((s) => (
           <button
             key={s}
             type="button"
@@ -257,13 +297,16 @@ function RoomSizeRow({
               "h-11 rounded-lg text-sm font-medium transition-[background-color,color] duration-150",
               value === s
                 ? "bg-cream text-cream-fg"
-                : "bg-bg text-muted shadow-[var(--shadow-border)] hover:text-fg",
+                : "bg-surface text-muted shadow-[var(--shadow-border)] hover:text-fg",
             )}
           >
             {ROOM_SCOPE_LABELS[s]}
           </button>
         ))}
       </div>
+      {value !== "none" ? (
+        <p className="mt-2 text-xs text-subtle">{ROOM_BALLPARKS[kind].includes[value]}</p>
+      ) : null}
     </div>
   );
 }
