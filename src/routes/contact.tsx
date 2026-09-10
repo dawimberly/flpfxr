@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { trackContactFormSubmit } from "@/lib/google-ads";
 import {
   ESTIMATE_TYPES,
-  ROOM_SCOPE_LABELS,
   SCOPE_LABELS,
   SERVICE_AREAS,
   SITE,
@@ -63,9 +62,12 @@ function ContactPage() {
   const [bathroom, setBathroom] = useState<RoomScope>("none");
   const [quote, setQuote] = useState<QuoteSelection | null>(null);
 
-  const estimateService = ESTIMATE_TYPES.some((t) => t.id === serviceFromUrl)
-    ? serviceFromUrl
-    : undefined;
+  const estimateService =
+    serviceFromUrl === "kitchen-bath"
+      ? "kitchen"
+      : ESTIMATE_TYPES.some((t) => t.id === serviceFromUrl)
+        ? serviceFromUrl
+        : undefined;
 
   useEffect(() => {
     const draft = loadLeadDraft();
@@ -84,42 +86,28 @@ function ContactPage() {
   const serviceLabel =
     ESTIMATE_TYPES.find((t) => t.id === service)?.label || service;
 
-  const kitchenBath = (quote?.service || service) === "kitchen-bath";
-  const kitchenLabel = kitchenBath ? ROOM_SCOPE_LABELS[quote?.kitchen ?? kitchen] : "";
-  const bathroomLabel = kitchenBath ? ROOM_SCOPE_LABELS[quote?.bathroom ?? bathroom] : "";
-  const sizeLabel = kitchenBath
-    ? ""
-    : quote
-      ? SCOPE_LABELS[quote.scope]
-      : "";
+  const sizeLabel = quote ? SCOPE_LABELS[quote.scope] : "";
+  const kitchenLabel =
+    (quote?.service || service) === "kitchen" ? sizeLabel : "n/a";
+  const bathroomLabel =
+    (quote?.service || service) === "bathroom" ? sizeLabel : "n/a";
   const ballpark =
     quote?.range ? formatUsdRange(quote.range[0], quote.range[1]) : "";
-  const quoteLine = kitchenBath
-    ? [kitchenLabel !== "Skip" ? `Kitchen: ${kitchenLabel}` : null, bathroomLabel !== "Skip" ? `Bathroom: ${bathroomLabel}` : null]
-        .filter(Boolean)
-        .join(" · ")
-    : [serviceLabel, sizeLabel].filter(Boolean).join(" · ");
+  const quoteLine = [serviceLabel, sizeLabel].filter(Boolean).join(" · ");
 
   const quoteBlock = [
     "Ballpark from the website:",
     serviceLabel ? `Job: ${serviceLabel}` : null,
-    kitchenBath && kitchenLabel ? `Kitchen size: ${kitchenLabel}` : null,
-    kitchenBath && bathroomLabel ? `Bathroom size: ${bathroomLabel}` : null,
-    !kitchenBath && sizeLabel ? `Size: ${sizeLabel}` : null,
+    sizeLabel ? `Size: ${sizeLabel}` : null,
+    kitchenLabel !== "n/a" ? `Kitchen size: ${kitchenLabel}` : null,
+    bathroomLabel !== "n/a" ? `Bathroom size: ${bathroomLabel}` : null,
     ballpark ? `Planning range: ${ballpark}` : null,
     quote?.includes ? quote.includes : null,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const subjectLine = kitchenBath
-    ? `Flip Fixer — ${[
-        kitchenLabel && kitchenLabel !== "Skip" ? `Kitchen ${kitchenLabel}` : null,
-        bathroomLabel && bathroomLabel !== "Skip" ? `Bath ${bathroomLabel}` : null,
-      ]
-        .filter(Boolean)
-        .join(", ")}${ballpark ? ` (${ballpark})` : ""}`
-    : `Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
+  const subjectLine = `Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
 
   const onQuoteChange = (next: QuoteSelection) => {
     setQuote(next);
@@ -137,10 +125,10 @@ function ContactPage() {
 
     setField("_subject", subjectLine);
     setField("Job", serviceLabel || "n/a");
-    setField("Kitchen_size", kitchenBath ? kitchenLabel || "None" : "n/a");
-    setField("Bathroom_size", kitchenBath ? bathroomLabel || "None" : "n/a");
+    setField("Kitchen_size", kitchenLabel);
+    setField("Bathroom_size", bathroomLabel);
     setField("Planning_range", ballpark || "n/a");
-    if (!kitchenBath) setField("Size", sizeLabel || serviceLabel || "n/a");
+    setField("Size", sizeLabel || serviceLabel || "n/a");
 
     const body = message.trim();
     setField("message", body ? `${body}\n\n${quoteBlock}` : quoteBlock);
@@ -207,9 +195,10 @@ function ContactPage() {
               <input type="hidden" name="_captcha" value="false" />
               <input type="hidden" name="_next" value={nextUrl} />
               <input type="hidden" name="Job" value={serviceLabel || "n/a"} />
-              <input type="hidden" name="Kitchen_size" value={kitchenBath ? kitchenLabel || "None" : "n/a"} />
-              <input type="hidden" name="Bathroom_size" value={kitchenBath ? bathroomLabel || "None" : "n/a"} />
+              <input type="hidden" name="Kitchen_size" value={kitchenLabel} />
+              <input type="hidden" name="Bathroom_size" value={bathroomLabel} />
               <input type="hidden" name="Planning_range" value={ballpark || "n/a"} />
+              <input type="hidden" name="Size" value={sizeLabel || "n/a"} />
               <div className="hidden" aria-hidden="true">
                 <Label htmlFor="company">Company</Label>
                 <Input

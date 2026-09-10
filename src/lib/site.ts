@@ -43,6 +43,8 @@ export const AREA_LINE =
 
 export type ServiceId =
   | "kitchen-bath"
+  | "kitchen"
+  | "bathroom"
   | "flooring"
   | "paint"
   | "handyman"
@@ -816,17 +818,31 @@ export const ESTIMATE_TYPES: Array<{
   includes: Record<EstimateScope, string>;
 }> = [
   {
-    id: "kitchen-bath",
-    label: "Kitchen or bath",
+    id: "kitchen",
+    label: "Kitchen",
     ranges: {
-      small: [5000, 12000],
+      small: [4000, 9000],
       medium: [12000, 25000],
       large: [25000, 45000],
     },
     includes: {
-      small: "Refresh: vanity or counters, fixtures, paint",
-      medium: "Stock cabinets kitchen, or a full bath remodel",
-      large: "Full kitchen or primary bath with tile shower",
+      small: "Refresh: counters, fixtures, paint",
+      medium: "Stock cabinets, counters, floors",
+      large: "Full kitchen — cabinets, quartz, tile or LVP",
+    },
+  },
+  {
+    id: "bathroom",
+    label: "Bathroom",
+    ranges: {
+      small: [3000, 7000],
+      medium: [8000, 16000],
+      large: [15000, 28000],
+    },
+    includes: {
+      small: "Vanity, fixtures, paint",
+      medium: "Full bath remodel",
+      large: "Primary bath with tile shower",
     },
   },
   {
