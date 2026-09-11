@@ -364,24 +364,38 @@ export const GALLERY: Array<{
     category: "Kitchen",
   },
   {
-    src: "/images/gallery-06-a.webp",
-    alt: "Open kitchen by The Flip Fixer",
+    src: "/images/gallery-10-b.webp",
+    alt: "Open kitchen before the remodel",
     title: "Open kitchen",
-    caption: "Open kitchen",
+    caption: "Before",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-06-a.webp",
+    alt: "Open kitchen after the remodel",
+    title: "Open kitchen",
+    caption: "After",
     category: "Kitchen",
   },
   {
     src: "/images/gallery-06-b.webp",
-    alt: "Open kitchen by The Flip Fixer",
+    alt: "Open kitchen after the remodel",
     title: "Open kitchen",
-    caption: "Open kitchen",
+    caption: "After",
     category: "Kitchen",
   },
   {
     src: "/images/gallery-06-c.webp",
-    alt: "Open kitchen by The Flip Fixer",
+    alt: "Open kitchen after the remodel",
     title: "Open kitchen",
-    caption: "Open kitchen",
+    caption: "After",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-10-a.webp",
+    alt: "Open kitchen after the remodel",
+    title: "Open kitchen",
+    caption: "After",
     category: "Kitchen",
   },
   {
@@ -438,20 +452,6 @@ export const GALLERY: Array<{
     alt: "White kitchen, black island by The Flip Fixer",
     title: "White kitchen, black island",
     caption: "White kitchen, black island",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-10-a.webp",
-    alt: "Dark wood kitchen by The Flip Fixer",
-    title: "Dark wood kitchen",
-    caption: "Dark wood kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-10-b.webp",
-    alt: "Dark wood kitchen by The Flip Fixer",
-    title: "Dark wood kitchen",
-    caption: "Dark wood kitchen",
     category: "Kitchen",
   },
   {
@@ -689,7 +689,10 @@ export const GALLERY: Array<{
 
 export function galleryJobId(src: string): string {
   const numbered = src.match(/gallery-(\d+)/);
-  if (numbered) return numbered[1];
+  if (numbered) {
+    if (numbered[1] === "06" || numbered[1] === "10") return "open-kitchen";
+    return numbered[1];
+  }
   if (/kitchenbefore|kitchenafter/.test(src)) return "kitchen-remodel";
   if (/patio/.test(src)) return src.includes("patio2") ? "patio-2" : "patio-1";
   // repair.webp + handyman.webp share one gallery section
