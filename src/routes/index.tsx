@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PencilRuler, Phone, Wrench } from "lucide-react";
 import { Photo } from "@/components/photo";
+import { BeforeAfterBand } from "@/components/before-after-band";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -114,6 +115,8 @@ function Home() {
           ))}
         </div>
       </section>
+
+      <BeforeAfterBand />
 
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
         <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">

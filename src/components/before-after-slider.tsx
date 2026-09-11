@@ -1,4 +1,5 @@
 import { useCallback, useId, useRef, useState, type PointerEvent } from "react";
+import { Photo } from "@/components/photo";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -56,19 +57,23 @@ export function BeforeAfterSlider({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <img
+      <Photo
         src={afterSrc}
         alt={afterAlt}
         className="absolute inset-0 size-full object-cover"
         draggable={false}
       />
-      <img
-        src={beforeSrc}
-        alt={beforeAlt}
-        className="absolute inset-0 size-full object-cover"
+      <div
+        className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
-        draggable={false}
-      />
+      >
+        <Photo
+          src={beforeSrc}
+          alt={beforeAlt}
+          className="size-full object-cover"
+          draggable={false}
+        />
+      </div>
       <div
         className="absolute inset-y-0 z-10 w-0.5 bg-fg"
         style={{ left: `${pos}%` }}

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 type Search = {
   service?: ServiceId;
+  view?: "before-after";
 };
 
 function isServiceId(value: string): value is ServiceId {
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/gallery")({
       typeof search.service === "string" && isServiceId(search.service)
         ? search.service
         : undefined,
+    view: search.view === "before-after" ? "before-after" : undefined,
   }),
   head: () => ({
     meta: [
@@ -38,28 +40,44 @@ export const Route = createFileRoute("/gallery")({
 });
 
 function GalleryPage() {
-  const { service } = Route.useSearch();
-  const current = SERVICES.find((s) => s.id === service);
+  const { service, view } = Route.useSearch();
+  const beforeAfter = view === "before-after";
+  const current = beforeAfter
+    ? undefined
+    : SERVICES.find((s) => s.id === service);
 
   return (
     <div>
-      <PageIntro eyebrow="Gallery" title={current ? current.title : "Jobs."}>
+      <PageIntro
+        eyebrow="Gallery"
+        title={beforeAfter ? "Before and after." : current ? current.title : "Jobs."}
+      >
         <p>
-          {current
-            ? current.body
-            : "Each job stays together. Kitchen, bath, outdoor, and the rest."}
+          {beforeAfter
+            ? "Same house. Same crew. Drag the photos, or swipe the job."
+            : current
+              ? current.body
+              : "Each job stays together. Kitchen, bath, outdoor, and the rest."}
         </p>
       </PageIntro>
 
       <section className="mx-auto max-w-6xl px-4 pb-8">
         <div className="flex flex-wrap gap-2">
           {GALLERY_FILTERS.map((filter) => {
-            const active = filter.id === service;
+            const active = filter.view
+              ? beforeAfter
+              : !beforeAfter && filter.id === service;
             return (
               <Link
                 key={filter.label}
                 to="/gallery"
-                search={filter.id ? { service: filter.id } : {}}
+                search={
+                  filter.view
+                    ? { view: "before-after" }
+                    : filter.id
+                      ? { service: filter.id }
+                      : {}
+                }
                 className={cn(
                   "inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium",
                   active
@@ -75,7 +93,7 @@ function GalleryPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-16">
-        <GalleryGrid service={service} />
+        <GalleryGrid service={beforeAfter ? undefined : service} beforeAfter={beforeAfter} />
       </section>
 
       <CtaBand />

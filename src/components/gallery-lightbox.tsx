@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   galleryJobs,
+  isBeforeAfterJob,
   type GalleryJob,
   type ServiceId,
 } from "@/lib/site";
@@ -11,10 +12,15 @@ import { cn } from "@/lib/utils";
 
 export function GalleryGrid({
   service,
+  beforeAfter = false,
 }: {
   service?: ServiceId;
+  beforeAfter?: boolean;
 }) {
-  const jobs = useMemo(() => galleryJobs(service), [service]);
+  const jobs = useMemo(() => {
+    const all = galleryJobs(service);
+    return beforeAfter ? all.filter(isBeforeAfterJob) : all;
+  }, [service, beforeAfter]);
   const photos = useMemo(() => jobs.flatMap((job) => job.photos), [jobs]);
   const [index, setIndex] = useState<number | null>(null);
 

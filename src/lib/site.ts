@@ -774,8 +774,34 @@ export function serviceHasWork(id: ServiceId): boolean {
   return GALLERY.some((item) => galleryService(item) === id);
 }
 
-export const GALLERY_FILTERS: Array<{ id?: ServiceId; label: string }> = [
+export function isBeforeAfterJob(job: GalleryJob): boolean {
+  return job.photos.some((photo) => photo.caption === "Before");
+}
+
+export const BEFORE_AFTER = [
+  {
+    title: "Kitchen remodel",
+    before: "/images/gallery-23-a.webp",
+    after: "/images/gallery-23-e.webp",
+    beforeAlt: "Kitchen before the remodel",
+    afterAlt: "Kitchen after the remodel",
+  },
+  {
+    title: "Open kitchen",
+    before: "/images/gallery-10-b.webp",
+    after: "/images/gallery-06-a.webp",
+    beforeAlt: "Open kitchen before the remodel",
+    afterAlt: "Open kitchen after the remodel",
+  },
+] as const;
+
+export const GALLERY_FILTERS: Array<{
+  label: string;
+  id?: ServiceId;
+  view?: "before-after";
+}> = [
   { label: "All" },
+  { view: "before-after", label: "Before & after" },
   { id: "kitchen-bath", label: "Kitchen & bath" },
   { id: "flooring", label: "Flooring" },
   { id: "paint", label: "Paint" },
