@@ -336,6 +336,13 @@ export const GALLERY: Array<{
     category: "Kitchen",
   },
   {
+    src: "/images/gallery-24-a.webp",
+    alt: "White open kitchen with dark island and cooktop by The Flip Fixer",
+    title: "White island kitchen",
+    caption: "White island kitchen",
+    category: "Kitchen",
+  },
+  {
     src: "/images/gallery-01-a.webp",
     alt: "Farmhouse kitchen by The Flip Fixer",
     title: "Farmhouse kitchen",
