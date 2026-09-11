@@ -427,38 +427,38 @@ export const GALLERY: Array<{
     category: "Kitchen",
   },
   {
-    src: "/images/gallery-10-b.webp",
-    alt: "Open kitchen before the remodel",
-    title: "Open kitchen",
-    caption: "Before",
-    category: "Kitchen",
-  },
-  {
     src: "/images/gallery-06-a.webp",
-    alt: "Open kitchen after the remodel",
+    alt: "Open kitchen by The Flip Fixer",
     title: "Open kitchen",
-    caption: "After",
+    caption: "Open kitchen",
     category: "Kitchen",
   },
   {
     src: "/images/gallery-06-b.webp",
-    alt: "Open kitchen after the remodel",
+    alt: "Open kitchen by The Flip Fixer",
     title: "Open kitchen",
-    caption: "After",
+    caption: "Open kitchen",
     category: "Kitchen",
   },
   {
     src: "/images/gallery-06-c.webp",
-    alt: "Open kitchen after the remodel",
+    alt: "Open kitchen living area by The Flip Fixer",
     title: "Open kitchen",
-    caption: "After",
+    caption: "Open kitchen",
     category: "Kitchen",
   },
   {
     src: "/images/gallery-10-a.webp",
-    alt: "Open kitchen after the remodel",
-    title: "Open kitchen",
-    caption: "After",
+    alt: "Dark wood kitchen by The Flip Fixer",
+    title: "Dark wood kitchen",
+    caption: "Dark wood kitchen",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-10-b.webp",
+    alt: "Dark wood kitchen by The Flip Fixer",
+    title: "Dark wood kitchen",
+    caption: "Dark wood kitchen",
     category: "Kitchen",
   },
   {
@@ -753,7 +753,6 @@ export const GALLERY: Array<{
 export function galleryJobId(src: string): string {
   const numbered = src.match(/gallery-(\d+)/);
   if (numbered) {
-    if (numbered[1] === "06" || numbered[1] === "10") return "open-kitchen";
     return numbered[1];
   }
   if (/kitchenbefore|kitchenafter/.test(src)) return "kitchen-remodel";
@@ -827,13 +826,6 @@ export const BEFORE_AFTER = [
     after: "/images/gallery-23-e.webp",
     beforeAlt: "Kitchen before the remodel",
     afterAlt: "Kitchen after the remodel",
-  },
-  {
-    title: "Open kitchen",
-    before: "/images/gallery-10-b.webp",
-    after: "/images/gallery-06-a.webp",
-    beforeAlt: "Open kitchen before the remodel",
-    afterAlt: "Open kitchen after the remodel",
   },
 ] as const;
 
