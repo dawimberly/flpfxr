@@ -76,7 +76,7 @@ export const SERVICES: Array<{
     title: "Flooring",
     short: "Hardwood, laminate, tile, vinyl.",
     body: "Hardwood, laminate, tile, vinyl. Installed for this climate.",
-    image: "/images/gallery-04-a.webp",
+    image: "/images/flooring.webp",
     group: "Remodels",
   },
   {
@@ -403,27 +403,6 @@ export const GALLERY: Array<{
     alt: "Charcoal kitchen by The Flip Fixer",
     title: "Charcoal kitchen",
     caption: "Charcoal kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-04-a.webp",
-    alt: "Taupe kitchen by The Flip Fixer",
-    title: "Taupe kitchen",
-    caption: "Taupe kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-04-b.webp",
-    alt: "Taupe kitchen by The Flip Fixer",
-    title: "Taupe kitchen",
-    caption: "Taupe kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-04-c.webp",
-    alt: "Taupe kitchen by The Flip Fixer",
-    title: "Taupe kitchen",
-    caption: "Taupe kitchen",
     category: "Kitchen",
   },
   {
