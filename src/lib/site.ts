@@ -644,6 +644,20 @@ export const GALLERY: Array<{
     category: "Custom",
   },
   {
+    src: "/images/gallery-22-h.webp",
+    alt: "Flooring install during fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. New floors going in.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-g.webp",
+    alt: "Finished kitchen after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished kitchen.",
+    category: "Custom",
+  },
+  {
     src: "/images/gallery-22-e.webp",
     alt: "Finished bath after fire rebuild by The Flip Fixer",
     title: "Fire rebuild",
@@ -651,10 +665,31 @@ export const GALLERY: Array<{
     category: "Custom",
   },
   {
+    src: "/images/gallery-22-i.webp",
+    alt: "Finished vanity after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished vanity.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-j.webp",
+    alt: "Finished bath hall after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished bath hall.",
+    category: "Custom",
+  },
+  {
     src: "/images/gallery-22-f.webp",
     alt: "Finished exterior after fire rebuild by The Flip Fixer",
     title: "Fire rebuild",
     caption: "Insurance claim — full rebuild. Home finished.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-k.webp",
+    alt: "Finished front exterior after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished front elevation.",
     category: "Custom",
   },
   {
