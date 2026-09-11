@@ -245,6 +245,41 @@ export const GALLERY: Array<{
   category: "Kitchen" | "Bath" | "Outdoor" | "Interior" | "Custom";
 }> = [
   {
+    src: "/images/gallery-23-a.webp",
+    alt: "Kitchen before the remodel",
+    title: "Kitchen remodel",
+    caption: "Before",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-23-b.webp",
+    alt: "Kitchen tear-out during the remodel",
+    title: "Kitchen remodel",
+    caption: "Tear-out",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-23-c.webp",
+    alt: "Cabinets going in during the remodel",
+    title: "Kitchen remodel",
+    caption: "Cabinets in",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-23-d.webp",
+    alt: "Kitchen after the remodel, sink run",
+    title: "Kitchen remodel",
+    caption: "After",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-23-e.webp",
+    alt: "Kitchen after the remodel, peninsula",
+    title: "Kitchen remodel",
+    caption: "After",
+    category: "Kitchen",
+  },
+  {
     src: "/images/gallery-01-a.webp",
     alt: "Farmhouse kitchen by The Flip Fixer",
     title: "Farmhouse kitchen",

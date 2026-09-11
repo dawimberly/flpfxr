@@ -61,10 +61,12 @@ export function GalleryGrid({
             <h3 className="font-display text-xl text-fg">{job.title}</h3>
             <div
               className={cn(
-                "mt-4 grid gap-3",
-                job.photos.length === 1 && "max-w-xl sm:grid-cols-1",
-                job.photos.length === 2 && "sm:grid-cols-2",
-                job.photos.length >= 3 && "sm:grid-cols-3",
+                "mt-4 gap-3",
+                job.photos.length >= 3
+                  ? "flex snap-x snap-mandatory overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0"
+                  : job.photos.length === 2
+                    ? "grid sm:grid-cols-2"
+                    : "grid max-w-xl sm:grid-cols-1",
               )}
             >
               {job.photos.map((item, photoIndex) => (
@@ -72,7 +74,11 @@ export function GalleryGrid({
                   key={item.src}
                   type="button"
                   onClick={() => openPhoto(job, item.src)}
-                  className="group overflow-hidden rounded-xl text-left"
+                  className={cn(
+                    "group overflow-hidden rounded-xl text-left",
+                    job.photos.length >= 3 &&
+                      "w-[85%] shrink-0 snap-center sm:w-auto sm:shrink",
+                  )}
                 >
                   <Photo
                     src={item.src}
