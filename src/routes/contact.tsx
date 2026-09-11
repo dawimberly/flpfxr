@@ -1,6 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Mail, MapPin, Phone } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallLink } from "@/components/call-link";
 import { QuoteEstimator, type QuoteSelection } from "@/components/quote-estimator";
 import { PageIntro } from "@/components/site-shell";
@@ -10,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trackContactFormSubmit } from "@/lib/google-ads";
 import {
+  AREA_LINE,
   ESTIMATE_TYPES,
   SCOPE_LABELS,
-  SERVICE_AREAS,
   SITE,
   loadLeadDraft,
   saveLeadDraft,
@@ -41,8 +40,7 @@ export const Route = createFileRoute("/contact")({
       { title: `Contact | ${SITE.legalName}` },
       {
         name: "description",
-        content:
-          "Call The Flip Fixer for a free estimate. (210) 436-9117 · Jon@TheFlipFixer.com. Alamo Heights, The Dominion, Kerrville, Boerne, and San Antonio.",
+        content: `Call ${SITE.name} at ${SITE.phoneDisplay}. ${AREA_LINE}`,
       },
     ],
   }),
@@ -93,7 +91,6 @@ function ContactPage() {
     (quote?.service || service) === "bathroom" ? sizeLabel : "n/a";
   const ballpark =
     quote?.range ? formatUsdRange(quote.range[0], quote.range[1]) : "";
-  const quoteLine = [serviceLabel, sizeLabel].filter(Boolean).join(" · ");
 
   const quoteBlock = [
     "Ballpark from the website:",
@@ -107,7 +104,7 @@ function ContactPage() {
     .filter(Boolean)
     .join("\n");
 
-  const subjectLine = `Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
+  const subjectLine = `The Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
 
   const onQuoteChange = (next: QuoteSelection) => {
     setQuote(next);
@@ -118,8 +115,10 @@ function ContactPage() {
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     const form = e.currentTarget;
-    const setField = (name: string, value: string) => {
-      const el = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${name}"]`);
+    const setField = (field: string, value: string) => {
+      const el = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+        `[name="${field}"]`,
+      );
       if (el) el.value = value;
     };
 
@@ -131,7 +130,7 @@ function ContactPage() {
     setField("Size", sizeLabel || serviceLabel || "n/a");
 
     const body = message.trim();
-    setField("message", body ? `${body}\n\n${quoteBlock}` : quoteBlock);
+    setField("message", quote?.range && body ? `${body}\n\n${quoteBlock}` : body || quoteBlock);
 
     saveLeadDraft({
       name,
@@ -154,31 +153,40 @@ function ContactPage() {
   return (
     <div>
       <PageIntro eyebrow="Contact" title="Tell us about the job.">
-        <p>{SITE.phoneDisplay}. Or send pictures of the job.</p>
+        <p>Call or send photos of the job.</p>
       </PageIntro>
 
-      <section className="mx-auto max-w-6xl space-y-8 px-4 pb-20">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-          <QuoteEstimator
-            initialService={estimateService}
-            hideCta
-            onServiceChange={(id) => setService(id)}
-            onQuoteChange={onQuoteChange}
-          />
+      <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
+        <aside className="space-y-6 md:col-span-2">
+          <CallLink className="block font-display text-4xl text-primary hover:text-primary-hover md:text-5xl">
+            {SITE.phoneDisplay}
+          </CallLink>
+          <a
+            href={`mailto:${SITE.email}`}
+            className="block text-muted hover:text-primary"
+          >
+            {SITE.email}
+          </a>
+          <p className="text-muted">{AREA_LINE}</p>
+          <p className="text-sm leading-relaxed text-subtle">
+            Military, CASA, or a group home?{" "}
+            <Link to="/community" className="font-medium text-primary">
+              Use the Community form
+            </Link>{" "}
+            so those notes are labeled.
+          </p>
+        </aside>
 
-          <div className="rounded-2xl bg-surface p-8 shadow-[var(--shadow-border)]">
+        <div className="rounded-2xl bg-surface p-8 shadow-[var(--shadow-border)] md:col-span-3">
           {sent ? (
             <div className="flex min-h-80 flex-col items-center justify-center text-center">
-              <CheckCircle2 className="size-12 text-primary" />
-              <h2 className="mt-4 font-display text-2xl text-fg">Sent.</h2>
-              <p className="mt-2 max-w-sm text-sm text-muted">
-                It went to {SITE.email}. We'll get back to you.
+              <h2 className="font-display text-3xl text-fg">Sent.</h2>
+              <p className="mt-2 max-w-sm text-muted">
+                We got your message and will get back to you.
               </p>
-              <div className="mt-6">
-                <Button asChild variant="outline">
-                  <CallLink>Call {SITE.phoneDisplay}</CallLink>
-                </Button>
-              </div>
+              <CallLink className="mt-6 text-primary hover:text-primary-hover">
+                Call {SITE.phoneDisplay}
+              </CallLink>
             </div>
           ) : (
             <form
@@ -187,9 +195,6 @@ function ContactPage() {
               onSubmit={onSubmit}
               className="space-y-5"
             >
-              <h2 className="font-display text-2xl text-fg">
-                Tell us about the job
-              </h2>
               <input type="hidden" name="_subject" value={subjectLine} />
               <input type="hidden" name="_template" value="table" />
               <input type="hidden" name="_captcha" value="false" />
@@ -244,28 +249,13 @@ function ContactPage() {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="service">What kind of job</Label>
-                <select
-                  id="service"
-                  name="service"
-                  value={service}
-                  onChange={(e) => setService(e.target.value)}
-                  className="flex h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-fg shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Select one</option>
-                  {ESTIMATE_TYPES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.label}
-                    </option>
-                  ))}
-                  <option value="other">Something else</option>
-                </select>
-              </div>
-              {quoteLine || ballpark ? (
+              {ballpark ? (
                 <p className="rounded-xl bg-bg px-4 py-3 text-sm text-muted">
-                  <span className="font-medium text-fg">{quoteLine || serviceLabel}</span>
-                  {ballpark ? <span className="mt-1 block tabular-nums">Ballpark {ballpark}</span> : null}
+                  <span className="font-medium text-fg">
+                    {serviceLabel}
+                    {sizeLabel ? ` · ${sizeLabel}` : ""}
+                  </span>
+                  <span className="mt-1 block tabular-nums">Ballpark {ballpark}</span>
                 </p>
               ) : null}
               <div className="space-y-2">
@@ -274,57 +264,30 @@ function ContactPage() {
                   id="message"
                   name="message"
                   required
+                  rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Neighborhood, what needs doing, when you need it done."
+                  placeholder="Neighborhood, the room, when you want to start."
                 />
               </div>
-              <Button type="submit" size="lg" className="w-full">
+              <Button type="submit" size="lg">
                 Send it over
               </Button>
               <p className="text-center text-xs text-subtle">
-                Goes to {SITE.email}. We'll get back to you.
+                We reply by phone or email after you send.
               </p>
             </form>
           )}
-          </div>
         </div>
+      </section>
 
-        <aside className="mx-auto w-full max-w-md rounded-2xl bg-surface px-6 py-6 text-center shadow-[var(--shadow-border)] lg:max-w-none lg:px-10 lg:py-5">
-          <h2 className="font-display text-2xl text-fg lg:text-xl">
-            Call or write
-          </h2>
-          <ul className="mt-4 space-y-4 lg:mt-3 lg:flex lg:flex-row lg:flex-wrap lg:items-start lg:justify-center lg:gap-x-12 lg:gap-y-3 lg:space-y-0 lg:text-left">
-            <li className="flex flex-col items-center gap-1 lg:flex-row lg:items-start lg:gap-3">
-              <Phone className="size-5 shrink-0 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-fg">Phone</p>
-                <CallLink className="text-muted hover:text-primary">
-                  {SITE.phoneDisplay}
-                </CallLink>
-              </div>
-            </li>
-            <li className="flex flex-col items-center gap-1 lg:flex-row lg:items-start lg:gap-3">
-              <Mail className="size-5 shrink-0 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-fg">Email</p>
-                <a
-                  href={`mailto:${SITE.email}`}
-                  className="text-muted hover:text-primary"
-                >
-                  {SITE.email}
-                </a>
-              </div>
-            </li>
-            <li className="flex flex-col items-center gap-1 lg:flex-row lg:items-start lg:gap-3 lg:max-w-xl">
-              <MapPin className="size-5 shrink-0 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-fg">Service area</p>
-                <p className="text-muted">{SERVICE_AREAS.join(" · ")}</p>
-              </div>
-            </li>
-          </ul>
-        </aside>
+      <section className="mx-auto max-w-6xl px-4 pb-20">
+        <QuoteEstimator
+          initialService={estimateService}
+          hideCta
+          onServiceChange={(id) => setService(id)}
+          onQuoteChange={onQuoteChange}
+        />
       </section>
     </div>
   );

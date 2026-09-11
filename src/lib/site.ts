@@ -236,6 +236,22 @@ export const COMMUNITY = {
       what: "A kitchen or bath that can be used, and people on site who know how to keep it.",
     },
   ],
+  kinds: [
+    "A group home",
+    "CASA or child-advocacy",
+    "Military, veteran, first responder, or educator",
+    "A grant writer or foundation",
+    "A donor, church, or civic partner",
+    "A vendor who can gift materials",
+    "A partner in another form",
+  ],
+  funded: [
+    { value: "", label: "Still mapping this" },
+    { value: "Funded — looking for design and labor", label: "Funded — looking for design and labor" },
+    { value: "Partly funded", label: "Partly funded" },
+    { value: "Ready to pursue a grant or donations together", label: "Ready to pursue a grant or donations together" },
+    { value: "Ready to donate or gift product", label: "Ready to donate or gift product" },
+  ],
 } as const;
 
 export const TESTIMONIALS = [
