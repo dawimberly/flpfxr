@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import { PROCESS, SITE, AREA_LINE } from "@/lib/site";
 
@@ -25,6 +25,14 @@ function AboutPage() {
           rentals and listings ready to show. Design is handled in-house.
           30+ years on the tools. No middleman. No speeches. You get a
           price, a plan, and the job finished.
+        </p>
+        <p className="mt-4">
+          We donate design and labor on group homes and CASA houses when a
+          partner covers materials.{" "}
+          <Link to="/community" className="font-medium text-primary">
+            Community
+          </Link>
+          .
         </p>
       </PageIntro>
 

@@ -19,6 +19,7 @@ export const NAV = [
   { to: "/services", label: "Services" },
   { to: "/gallery", label: "Gallery" },
   { to: "/about", label: "About" },
+  { to: "/community", label: "Community" },
   { to: "/testimonials", label: "Reviews" },
   { to: "/contact", label: "Contact" },
 ] as const;
@@ -197,6 +198,45 @@ export const PROCESS = [
     body: "We walk it with you. Then you get the house back.",
   },
 ] as const;
+
+export const COMMUNITY = {
+  title: "If you have the house, we bring the labor.",
+  intro:
+    "If you run a group home, work with CASA, or serve military families, first responders, or educators in San Antonio, this is the start of a partnership. We design the kitchen or bath and donate the labor. We need partners to cover materials — grants, donations, churches, civic groups, and vendors.",
+  subject: "community partnership",
+  lanes: [
+    {
+      title: "If the kitchen is the room that needs to work",
+      body: "Send the house, the room, and photos. We design it, write the takeoff, and put free labor on it. Mentoring on the work is part of the visit, so the people who live there can keep the room.",
+    },
+    {
+      title: "If you have a grant, a gift, or product to give",
+      body: "A material list with real numbers is what a grant or a donor can attach to. We price the takeoff in plain language. You cover cabinets, counters, and fixtures. We cover design and labor.",
+    },
+    {
+      title: "If you are military, first responder, or an educator",
+      body: "Ask when you call. We discount the job. Bring ID or a work email if you have it.",
+    },
+    {
+      title: "If you already know which house comes next",
+      body: "Sit with us on the application. We put a design, a takeoff, and donated labor on the page so the ask is concrete.",
+    },
+  ],
+  split: [
+    {
+      who: "We give",
+      what: "Design, the list, free labor, and training on the work.",
+    },
+    {
+      who: "A partner gives",
+      what: "A grant, a donation, gifted product, or a group ready to cover materials.",
+    },
+    {
+      who: "The house gets",
+      what: "A kitchen or bath that can be used, and people on site who know how to keep it.",
+    },
+  ],
+} as const;
 
 export const TESTIMONIALS = [
   {
