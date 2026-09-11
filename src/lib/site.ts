@@ -245,20 +245,6 @@ export const GALLERY: Array<{
   category: "Kitchen" | "Bath" | "Outdoor" | "Interior" | "Custom";
 }> = [
   {
-    src: "/images/kitchenbefore.webp",
-    alt: "Kitchen before the remodel",
-    title: "Kitchen remodel",
-    caption: "Before",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/kitchenafter.webp",
-    alt: "Kitchen after the remodel",
-    title: "Kitchen remodel",
-    caption: "After",
-    category: "Kitchen",
-  },
-  {
     src: "/images/gallery-01-a.webp",
     alt: "Farmhouse kitchen by The Flip Fixer",
     title: "Farmhouse kitchen",
