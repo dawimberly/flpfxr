@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import {
   SERVICES,
@@ -22,7 +21,68 @@ export const Route = createFileRoute("/services")({
   }),
 });
 
-const GROUPS = ["Remodels", "Make-ready", "Repairs", "Specialty"] as const;
+const GROUPS = [
+  {
+    name: "Remodels",
+    /** Three across */
+    grid: "grid-cols-1 sm:grid-cols-3",
+    center: false,
+  },
+  {
+    name: "Make-ready",
+    /** Single window, centered */
+    grid: "grid-cols-1 max-w-sm mx-auto",
+    center: true,
+  },
+  {
+    name: "Repairs",
+    /** Single window, centered */
+    grid: "grid-cols-1 max-w-sm mx-auto",
+    center: true,
+  },
+  {
+    name: "Specialty",
+    /** Square of four */
+    grid: "grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto",
+    center: false,
+  },
+] as const;
+
+function ServiceCard({
+  service,
+}: {
+  service: (typeof SERVICES)[number];
+}) {
+  return (
+    <article
+      id={service.id}
+      className="scroll-mt-28 flex h-full flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] sm:p-8"
+    >
+      <h3 className="font-display text-2xl text-fg">{service.title}</h3>
+      <p className="mt-2 max-w-xs flex-1 text-sm leading-relaxed text-muted">
+        {service.body}
+      </p>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <Link
+          to="/contact"
+          search={{ service: service.id }}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Get a price
+        </Link>
+        {serviceHasWork(service.id) ? (
+          <Link
+            to="/gallery"
+            search={{ service: service.id }}
+            className="text-sm font-medium text-muted hover:text-primary hover:underline"
+          >
+            See the work
+          </Link>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
 function ServicesPage() {
   return (
@@ -31,58 +91,30 @@ function ServicesPage() {
         <p>
           {SITE.tagline} {AREA_LINE}
         </p>
+        <p className="mt-3">
+          Photos are on the{" "}
+          <Link to="/gallery" className="font-medium text-primary">
+            Gallery
+          </Link>
+          .
+        </p>
       </PageIntro>
 
-      {GROUPS.map((group) => {
-        const items = SERVICES.filter((s) => s.group === group);
-        return (
-          <section key={group} className="mx-auto max-w-6xl px-4 pb-16">
-            <h2 className="font-display text-2xl text-primary">{group}</h2>
-            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((service) => (
-                <article
-                  id={service.id}
-                  key={service.id}
-                  className="scroll-mt-28 overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-border)]"
-                >
-                  <Photo
-                    src={service.image}
-                    alt=""
-                    loading="lazy"
-                    className="photo-frame h-48 w-full object-cover"
-                  />
-                  <div className="p-6">
-                    <h3 className="font-display text-xl text-fg">
-                      {service.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted">
-                      {service.body}
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-                      {serviceHasWork(service.id) ? (
-                        <Link
-                          to="/gallery"
-                          search={{ service: service.id }}
-                          className="text-sm font-medium text-primary hover:underline"
-                        >
-                          See the work
-                        </Link>
-                      ) : null}
-                      <Link
-                        to="/contact"
-                        search={{ service: service.id }}
-                        className="text-sm font-medium text-muted hover:text-primary hover:underline"
-                      >
-                        Get a price
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16">
+        {GROUPS.map((group) => {
+          const items = SERVICES.filter((s) => s.group === group.name);
+          return (
+            <section key={group.name} className="text-center">
+              <h2 className="font-display text-xl text-primary">{group.name}</h2>
+              <div className={`mt-6 grid gap-4 ${group.grid}`}>
+                {items.map((service) => (
+                  <ServiceCard key={service.id} service={service} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       <CtaBand />
     </div>
