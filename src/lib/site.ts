@@ -13,12 +13,12 @@ export const SITE = {
 
 export const CREW = [
   {
-    name: "Jon",
+    name: "Jon Styles",
     src: "/images/crew-jon.webp",
     line: "30+ years on the tools. Design in-house.",
   },
   {
-    name: "Dan",
+    name: "Dan Wimberly",
     src: "/images/crew-dan.webp",
     line: "",
   },
