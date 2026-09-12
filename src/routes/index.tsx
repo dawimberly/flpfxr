@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/accordion";
 import {
   FAQS,
-  HOME_SERVICES,
   PROCESS,
-  SERVICES,
   SITE,
   AREA_LINE,
   TESTIMONIALS,
@@ -52,10 +50,6 @@ const WHY = [
 ];
 
 function Home() {
-  const homeServices = HOME_SERVICES.map(
-    (id) => SERVICES.find((s) => s.id === id)!,
-  );
-
   return (
     <div>
       <section className="relative isolate min-h-[78vh] overflow-hidden">
@@ -84,27 +78,28 @@ function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 py-16 text-center md:py-24">
+      <section className="mx-auto max-w-3xl px-4 py-16 text-center md:py-24">
         <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
           What we do
         </h2>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          {homeServices.map((service) => (
-            <Link
-              key={service.id}
-              to="/gallery"
-              search={{ service: service.id }}
-              className="group flex flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] transition-[box-shadow] duration-150 hover:shadow-[var(--shadow-border-hover)] sm:p-8"
-            >
-              <h3 className="font-display text-xl text-fg">{service.title}</h3>
-              <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-                {service.short}
-              </p>
-              <p className="mt-auto pt-4 text-sm font-medium text-primary">
-                See the work
-              </p>
-            </Link>
-          ))}
+        <p className="mt-6 text-lg leading-relaxed text-muted">
+          Kitchens and baths, flooring, paint, make-ready, repairs, and
+          insurance rebuilds. Design in-house. One crew from walkthrough to
+          finish.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+          <Link
+            to="/services"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Full service list
+          </Link>
+          <Link
+            to="/gallery"
+            className="text-sm font-medium text-muted hover:text-primary hover:underline"
+          >
+            See the Gallery
+          </Link>
         </div>
       </section>
 
