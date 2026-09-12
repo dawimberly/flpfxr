@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import {
-  HOME_SERVICES,
   SERVICES,
   SITE,
   AREA_LINE,
+  serviceHasWork,
 } from "@/lib/site";
 
 export const Route = createFileRoute("/services")({
@@ -21,9 +21,68 @@ export const Route = createFileRoute("/services")({
   }),
 });
 
-const featured = HOME_SERVICES.map(
-  (id) => SERVICES.find((s) => s.id === id)!,
-);
+const GROUPS = [
+  {
+    name: "Remodels",
+    /** Three across */
+    grid: "grid-cols-1 sm:grid-cols-3",
+    center: false,
+  },
+  {
+    name: "Make-ready",
+    /** Single window, centered */
+    grid: "grid-cols-1 max-w-sm mx-auto",
+    center: true,
+  },
+  {
+    name: "Repairs",
+    /** Single window, centered */
+    grid: "grid-cols-1 max-w-sm mx-auto",
+    center: true,
+  },
+  {
+    name: "Specialty",
+    /** Square of four */
+    grid: "grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto",
+    center: false,
+  },
+] as const;
+
+function ServiceCard({
+  service,
+}: {
+  service: (typeof SERVICES)[number];
+}) {
+  return (
+    <article
+      id={service.id}
+      className="scroll-mt-28 flex h-full flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] sm:p-8"
+    >
+      <h3 className="font-display text-2xl text-fg">{service.title}</h3>
+      <p className="mt-2 max-w-xs flex-1 text-sm leading-relaxed text-muted">
+        {service.body}
+      </p>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <Link
+          to="/contact"
+          search={{ service: service.id }}
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Get a price
+        </Link>
+        {serviceHasWork(service.id) ? (
+          <Link
+            to="/gallery"
+            search={{ service: service.id }}
+            className="text-sm font-medium text-muted hover:text-primary hover:underline"
+          >
+            See the work
+          </Link>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
 function ServicesPage() {
   return (
@@ -41,36 +100,21 @@ function ServicesPage() {
         </p>
       </PageIntro>
 
-      <section className="mx-auto max-w-4xl px-4 pb-16">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {featured.map((service) => (
-            <article
-              id={service.id}
-              key={service.id}
-              className="scroll-mt-28 flex flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] sm:p-8"
-            >
-              <h2 className="font-display text-2xl text-fg">{service.title}</h2>
-              <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-                {service.body}
-              </p>
-              <Link
-                to="/contact"
-                search={{ service: service.id }}
-                className="mt-auto pt-4 text-sm font-medium text-primary hover:underline"
-              >
-                Get a price
-              </Link>
-            </article>
-          ))}
-        </div>
-        <p className="mt-10 text-center text-sm text-muted">
-          Also flooring, paint, outdoor, and custom carpentry.{" "}
-          <Link to="/gallery" className="font-medium text-primary hover:underline">
-            See the Gallery
-          </Link>
-          .
-        </p>
-      </section>
+      <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16">
+        {GROUPS.map((group) => {
+          const items = SERVICES.filter((s) => s.group === group.name);
+          return (
+            <section key={group.name} className="text-center">
+              <h2 className="font-display text-xl text-primary">{group.name}</h2>
+              <div className={`mt-6 grid gap-4 ${group.grid}`}>
+                {items.map((service) => (
+                  <ServiceCard key={service.id} service={service} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       <CtaBand />
     </div>
