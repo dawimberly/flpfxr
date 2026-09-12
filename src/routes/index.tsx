@@ -84,33 +84,25 @@ function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+      <section className="mx-auto max-w-4xl px-4 py-16 text-center md:py-24">
         <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
           What we do
         </h2>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {homeServices.map((service) => (
             <Link
               key={service.id}
               to="/gallery"
               search={{ service: service.id }}
-              className="group overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-border)] transition-[box-shadow] duration-150 hover:shadow-[var(--shadow-border-hover)]"
+              className="group flex flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] transition-[box-shadow] duration-150 hover:shadow-[var(--shadow-border-hover)] sm:p-8"
             >
-              <Photo
-                src={service.image}
-                alt=""
-                loading="lazy"
-                className="photo-frame h-44 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-              <div className="p-5">
-                <h3 className="font-display text-xl text-fg">{service.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  {service.short}
-                </p>
-                <p className="mt-3 text-sm font-medium text-primary">
-                  See the work
-                </p>
-              </div>
+              <h3 className="font-display text-xl text-fg">{service.title}</h3>
+              <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
+                {service.short}
+              </p>
+              <p className="mt-auto pt-4 text-sm font-medium text-primary">
+                See the work
+              </p>
             </Link>
           ))}
         </div>

@@ -150,12 +150,10 @@ export const SERVICES: Array<{
   },
 ];
 
+/** Featured service windows — keep at 4 (2×2) so the grid stays even. */
 export const HOME_SERVICES: ServiceId[] = [
   "kitchen-bath",
   "insurance-claims",
-  "flooring",
-  "paint",
-  "outdoor",
   "make-ready",
   "handyman",
 ];

@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import {
+  HOME_SERVICES,
   SERVICES,
   SITE,
   AREA_LINE,
-  serviceHasWork,
 } from "@/lib/site";
 
 export const Route = createFileRoute("/services")({
@@ -22,7 +21,9 @@ export const Route = createFileRoute("/services")({
   }),
 });
 
-const GROUPS = ["Remodels", "Make-ready", "Repairs", "Specialty"] as const;
+const featured = HOME_SERVICES.map(
+  (id) => SERVICES.find((s) => s.id === id)!,
+);
 
 function ServicesPage() {
   return (
@@ -31,58 +32,45 @@ function ServicesPage() {
         <p>
           {SITE.tagline} {AREA_LINE}
         </p>
+        <p className="mt-3">
+          Photos are on the{" "}
+          <Link to="/gallery" className="font-medium text-primary">
+            Gallery
+          </Link>
+          .
+        </p>
       </PageIntro>
 
-      {GROUPS.map((group) => {
-        const items = SERVICES.filter((s) => s.group === group);
-        return (
-          <section key={group} className="mx-auto max-w-6xl px-4 pb-16">
-            <h2 className="font-display text-2xl text-primary">{group}</h2>
-            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((service) => (
-                <article
-                  id={service.id}
-                  key={service.id}
-                  className="scroll-mt-28 overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-border)]"
-                >
-                  <Photo
-                    src={service.image}
-                    alt=""
-                    loading="lazy"
-                    className="photo-frame h-48 w-full object-cover"
-                  />
-                  <div className="p-6">
-                    <h3 className="font-display text-xl text-fg">
-                      {service.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted">
-                      {service.body}
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-                      {serviceHasWork(service.id) ? (
-                        <Link
-                          to="/gallery"
-                          search={{ service: service.id }}
-                          className="text-sm font-medium text-primary hover:underline"
-                        >
-                          See the work
-                        </Link>
-                      ) : null}
-                      <Link
-                        to="/contact"
-                        search={{ service: service.id }}
-                        className="text-sm font-medium text-muted hover:text-primary hover:underline"
-                      >
-                        Get a price
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <section className="mx-auto max-w-4xl px-4 pb-16">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {featured.map((service) => (
+            <article
+              id={service.id}
+              key={service.id}
+              className="scroll-mt-28 flex flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] sm:p-8"
+            >
+              <h2 className="font-display text-2xl text-fg">{service.title}</h2>
+              <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
+                {service.body}
+              </p>
+              <Link
+                to="/contact"
+                search={{ service: service.id }}
+                className="mt-auto pt-4 text-sm font-medium text-primary hover:underline"
+              >
+                Get a price
+              </Link>
+            </article>
+          ))}
+        </div>
+        <p className="mt-10 text-center text-sm text-muted">
+          Also flooring, paint, outdoor, and custom carpentry.{" "}
+          <Link to="/gallery" className="font-medium text-primary hover:underline">
+            See the Gallery
+          </Link>
+          .
+        </p>
+      </section>
 
       <CtaBand />
     </div>
