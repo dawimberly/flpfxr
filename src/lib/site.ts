@@ -96,7 +96,7 @@ export const SERVICES: Array<{
     title: "Paint",
     short: "Interior and exterior, prepped right.",
     body: "Interior and exterior. Prep first, then paint.",
-    image: "/images/laundry.webp",
+    image: "/images/gallery-08-a.webp",
     group: "Remodels",
   },
   {
@@ -708,13 +708,6 @@ export const GALLERY: Array<{
     category: "Interior",
   },
   {
-    src: "/images/laundry.webp",
-    alt: "Painted laundry room with white cabinets by The Flip Fixer",
-    title: "Laundry paint & cabinets",
-    caption: "Fresh paint, white cabinets, finished laundry.",
-    category: "Interior",
-  },
-  {
     src: "/images/bar1.webp",
     alt: "Custom home bar",
     title: "Custom bar",
@@ -754,9 +747,6 @@ export function galleryService(
   // Flooring showcase
   if (item.title === "Herringbone floors" || item.src.includes("flooring")) {
     return "flooring";
-  }
-  if (item.src.includes("laundry") || item.src.includes("painter")) {
-    return "paint";
   }
   if (item.src.includes("punchout")) return "make-ready";
   if (
@@ -833,7 +823,6 @@ export const GALLERY_FILTERS: Array<{
   { view: "before-after", label: "Before & after" },
   { id: "kitchen-bath", label: "Kitchen & bath" },
   { id: "flooring", label: "Flooring" },
-  { id: "paint", label: "Paint" },
   { id: "outdoor", label: "Outdoor" },
   { id: "insurance-claims", label: "Insurance claims" },
   { id: "handyman", label: "Repairs" },
