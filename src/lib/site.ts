@@ -11,6 +11,19 @@ export const SITE = {
   owner: "Jon",
 } as const;
 
+export const CREW = [
+  {
+    name: "Jon",
+    src: "/images/crew-jon.webp",
+    line: "30+ years on the tools. Design in-house.",
+  },
+  {
+    name: "Dan",
+    src: "/images/crew-dan.webp",
+    line: "",
+  },
+] as const;
+
 /** Same-origin employee estimator (gated at /login). */
 export const ESTIMATOR_APP_URL = "/estimator";
 

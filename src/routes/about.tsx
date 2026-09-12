@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
-import { PROCESS, SITE, AREA_LINE } from "@/lib/site";
+import { CREW, PROCESS, SITE, AREA_LINE } from "@/lib/site";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
@@ -35,6 +36,27 @@ function AboutPage() {
           .
         </p>
       </PageIntro>
+
+      <section className="mx-auto max-w-4xl px-4 pb-16">
+        <h2 className="font-display text-3xl font-semibold text-fg">
+          Who shows up
+        </h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-2">
+          {CREW.map((person) => (
+            <article key={person.name}>
+              <Photo
+                src={person.src}
+                alt={person.name}
+                className="photo-frame aspect-[3/4] w-full object-cover object-top"
+              />
+              <h3 className="mt-4 font-display text-2xl text-fg">{person.name}</h3>
+              {person.line ? (
+                <p className="mt-1 text-sm text-muted">{person.line}</p>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <h2 className="font-display text-3xl font-semibold text-fg">
