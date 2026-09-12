@@ -42,8 +42,8 @@ const GROUPS = [
   },
   {
     name: "Specialty",
-    /** Square of four */
-    grid: "grid-cols-1 sm:grid-cols-2 max-w-3xl mx-auto",
+    /** Three across after dropping carpentry */
+    grid: "grid-cols-1 sm:grid-cols-3",
     center: false,
   },
 ] as const;

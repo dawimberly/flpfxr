@@ -33,7 +33,7 @@ export const Route = createFileRoute("/gallery")({
       {
         name: "description",
         content:
-          "Kitchens, baths, patios, and carpentry from The Flip Fixer in San Antonio. Real jobs, finished.",
+          "Kitchens, baths, patios, and repairs from The Flip Fixer in San Antonio. Real jobs, finished.",
       },
     ],
   }),

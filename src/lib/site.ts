@@ -64,7 +64,6 @@ export type ServiceId =
   | "handyman"
   | "outdoor"
   | "make-ready"
-  | "carpentry"
   | "insurance-claims"
   | "consulting";
 
@@ -97,7 +96,7 @@ export const SERVICES: Array<{
     title: "Paint",
     short: "Interior and exterior, prepped right.",
     body: "Interior and exterior. Prep first, then paint.",
-    image: "/images/painter.webp",
+    image: "/images/laundry.webp",
     group: "Remodels",
   },
   {
@@ -113,7 +112,7 @@ export const SERVICES: Array<{
     title: "Handyman",
     short: "Repairs and punch lists.",
     body: "Repairs and punch lists. Doors, drywall, hardware, the leftover work.",
-    image: "/images/repair.webp",
+    image: "/images/staircase.webp",
     group: "Repairs",
   },
   {
@@ -122,14 +121,6 @@ export const SERVICES: Array<{
     short: "Decks, patios, lighting.",
     body: "Decks, patios, lighting. Outdoor work that holds up out here.",
     image: "/images/patio1.webp",
-    group: "Specialty",
-  },
-  {
-    id: "carpentry",
-    title: "Custom carpentry",
-    short: "Built-ins, bars, stairs.",
-    body: "Built-ins, bars, stairs. Built to fit the house.",
-    image: "/images/bar1.webp",
     group: "Specialty",
   },
   {
@@ -711,16 +702,16 @@ export const GALLERY: Array<{
   },
   {
     src: "/images/staircase.webp",
-    alt: "Staircase with wood treads and black rail",
+    alt: "Staircase with wood treads and black rail by The Flip Fixer",
     title: "Stairs",
-    caption: "Stairs",
+    caption: "Stairs — wood treads and rail, finished clean.",
     category: "Interior",
   },
   {
     src: "/images/laundry.webp",
-    alt: "Laundry room with built-in storage",
-    title: "Laundry",
-    caption: "Laundry",
+    alt: "Painted laundry room with white cabinets by The Flip Fixer",
+    title: "Laundry paint & cabinets",
+    caption: "Fresh paint, white cabinets, finished laundry.",
     category: "Interior",
   },
   {
@@ -732,37 +723,16 @@ export const GALLERY: Array<{
   },
   {
     src: "/images/flooring.webp",
-    alt: "Wood-look flooring",
-    title: "Floors",
-    caption: "Floors",
-    category: "Interior",
-  },
-  {
-    src: "/images/painter.webp",
-    alt: "Interior paint by The Flip Fixer",
-    title: "Paint",
-    caption: "Paint",
+    alt: "Herringbone wood-look flooring by The Flip Fixer",
+    title: "Herringbone floors",
+    caption: "Herringbone floors in a finished kitchen.",
     category: "Interior",
   },
   {
     src: "/images/punchout.webp",
-    alt: "Make-ready work by The Flip Fixer",
+    alt: "Make-ready fireplace tile install by The Flip Fixer",
     title: "Make-ready",
-    caption: "Make-ready",
-    category: "Interior",
-  },
-  {
-    src: "/images/repair.webp",
-    alt: "Repair work by The Flip Fixer",
-    title: "Repairs",
-    caption: "Repairs",
-    category: "Interior",
-  },
-  {
-    src: "/images/handyman.webp",
-    alt: "Handyman work by The Flip Fixer",
-    title: "Repairs",
-    caption: "Repairs",
+    caption: "Make-ready — tile, built-ins, punch list work.",
     category: "Interior",
   },
 ];
@@ -774,8 +744,6 @@ export function galleryJobId(src: string): string {
   }
   if (/kitchenbefore|kitchenafter/.test(src)) return "kitchen-remodel";
   if (/patio/.test(src)) return src.includes("patio2") ? "patio-2" : "patio-1";
-  // repair.webp + handyman.webp share one gallery section
-  if (/\/(repair|handyman)\./.test(src)) return "repairs";
   return src.replace(/^\/images\//, "").replace(/\.[a-z]+$/i, "");
 }
 
@@ -783,10 +751,20 @@ export function galleryService(
   item: (typeof GALLERY)[number],
 ): ServiceId {
   if (item.src.includes("gallery-22")) return "insurance-claims";
-  if (item.src.includes("flooring")) return "flooring";
-  if (item.src.includes("painter")) return "paint";
+  // Flooring showcase
+  if (item.title === "Herringbone floors" || item.src.includes("flooring")) {
+    return "flooring";
+  }
+  if (item.src.includes("laundry") || item.src.includes("painter")) {
+    return "paint";
+  }
   if (item.src.includes("punchout")) return "make-ready";
-  if (item.src.includes("repair") || item.src.includes("handyman")) {
+  if (
+    item.src.includes("staircase") ||
+    item.src.includes("bar1") ||
+    item.src.includes("repair") ||
+    item.src.includes("handyman")
+  ) {
     return "handyman";
   }
   if (item.src.includes("patio")) return "outdoor";
@@ -794,7 +772,7 @@ export function galleryService(
     return "kitchen-bath";
   }
   if (item.category === "Outdoor") return "outdoor";
-  return "carpentry";
+  return "handyman";
 }
 
 export type GalleryJob = {
@@ -857,7 +835,6 @@ export const GALLERY_FILTERS: Array<{
   { id: "flooring", label: "Flooring" },
   { id: "paint", label: "Paint" },
   { id: "outdoor", label: "Outdoor" },
-  { id: "carpentry", label: "Carpentry" },
   { id: "insurance-claims", label: "Insurance claims" },
   { id: "handyman", label: "Repairs" },
   { id: "make-ready", label: "Make-ready" },
