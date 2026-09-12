@@ -20,7 +20,7 @@ export const CREW = [
   {
     name: "Dan Wimberly",
     src: "/images/crew-dan.webp",
-    line: "",
+    line: "Estimates and project coordination. Kitchen, bath, and insurance scopes — 10+ years Xactimate.",
   },
 ] as const;
 
