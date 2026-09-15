@@ -1,18 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { EstimatorApp } from "@/components/estimator-app";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { authEnabled } from "@/lib/auth/client";
-import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/estimator")({
-  component: EstimatorPage,
-  head: () => ({
-    meta: [{ title: `Estimator | ${SITE.legalName}`, robots: "noindex" }],
-  }),
+  component: EstimatorLayout,
 });
 
-function EstimatorPage() {
+function EstimatorLayout() {
   const { user, isPending } = useCurrentUserState();
 
   if (authEnabled) {
@@ -20,9 +15,5 @@ function EstimatorPage() {
     if (!user) return <RedirectToSignIn />;
   }
 
-  return (
-    <div className="estimator-shell min-h-dvh bg-bg">
-      <EstimatorApp />
-    </div>
-  );
+  return <Outlet />;
 }

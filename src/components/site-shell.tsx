@@ -5,13 +5,15 @@ import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
 
 /** Full-bleed app surfaces — no marketing chrome. */
-const APP_PATHS = new Set(["/login", "/estimator"]);
+function isAppSurface(pathname: string) {
+  return pathname === "/login" || pathname === "/estimator" || pathname.startsWith("/estimator/");
+}
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isAppSurface = APP_PATHS.has(pathname);
+  const appSurface = isAppSurface(pathname);
 
-  if (isAppSurface) {
+  if (appSurface) {
     return <div className="min-h-dvh bg-bg text-fg">{children}</div>;
   }
 

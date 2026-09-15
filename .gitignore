@@ -10,4 +10,6 @@ dist
 *.log
 .neon
 
+public/sim-spring-rain/
+
 .env*

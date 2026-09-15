@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   AppWindow,
   Copy,
@@ -521,6 +522,9 @@ export function EstimatorApp() {
               </div>
             </div>
             <div className="hidden items-center gap-2 sm:flex">
+              <Button asChild type="button" variant="ghost" size="sm">
+                <Link to="/estimator/roof">Roof trace</Link>
+              </Button>
               <EstimateLogButton />
               <SaveEstimateButton tone="light" />
               <Button type="button" variant="ghost" size="sm" onClick={loadSample}>
@@ -536,6 +540,11 @@ export function EstimatorApp() {
               </Button>
             </div>
             <div className="flex shrink-0 items-center gap-1 sm:hidden">
+              <Button asChild type="button" variant="ghost" size="icon" aria-label="Roof trace">
+                <Link to="/estimator/roof">
+                  <Hammer className="size-4" />
+                </Link>
+              </Button>
               <EstimateLogButton icon />
               <SaveEstimateButton tone="light" icon />
               <Button
