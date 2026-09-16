@@ -6,6 +6,7 @@ import {
   esriWaybackAppUrl,
   googleEarthNadirUrl,
   googleMapsSatelliteUrl,
+  googleMapsScriptUrl,
   openTopographyUrl,
   parseWaybackConfig,
   roofMapBasemap,
@@ -28,6 +29,15 @@ describe("roof-basemap", () => {
       waybackTileUrl("26334"),
       "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/26334/{z}/{y}/{x}",
     );
+  });
+
+  it("lists Google satellite first", () => {
+    assert.equal(availableBasemaps()[0]?.id, "google");
+  });
+
+  it("builds the Google Maps JS url", () => {
+    assert.match(googleMapsScriptUrl("test-key"), /maps\.googleapis\.com\/maps\/api\/js/);
+    assert.match(googleMapsScriptUrl("test-key"), /key=test-key/);
   });
 
   it("hides MapTiler until a key exists", () => {

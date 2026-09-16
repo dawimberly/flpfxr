@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Camera, Hammer, ImagePlus, Trash2, Undo2 } from "lucide-react";
+import { RoofOrbitControls } from "@/components/roof-orbit-controls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import {
 import { RoofDimFields } from "@/components/roof-ev-chrome";
 import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE } from "@/lib/blue-quail";
 import { useEstimatorStore } from "@/lib/estimator-store";
+import { clientToImagePx, coverScale, imageFit, pointerAngle, wrapDeg } from "@/lib/photo-view";
 import {
   DEFAULT_WASTE_PCT,
   PITCH_OPTIONS,
@@ -82,9 +84,8 @@ type LineKind = NonNullable<PhotoMeasure["kind"]>;
 const SNAP_SCREEN_PX = 10;
 const SAME_KIND_SNAP_SCREEN_PX = 4;
 
-function imageSnapRadius(img: HTMLImageElement, screenPx: number): number {
-  const rect = img.getBoundingClientRect();
-  const fit = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+function imageSnapRadius(view: HTMLElement, img: HTMLImageElement, screenPx: number): number {
+  const { fit } = imageFit(view.clientWidth, view.clientHeight, img.naturalWidth, img.naturalHeight);
   return fit > 0 ? screenPx / fit : screenPx;
 }
 
@@ -143,21 +144,20 @@ function newId(prefix: string) {
     : `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function clientToImage(event: { clientX: number; clientY: number }, img: HTMLImageElement): Px | null {
-  const rect = img.getBoundingClientRect();
-  if (!img.naturalWidth || !img.naturalHeight || rect.width < 2 || rect.height < 2) return null;
-  const fit = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
-  const drawW = img.naturalWidth * fit;
-  const drawH = img.naturalHeight * fit;
-  const left = rect.left + (rect.width - drawW) / 2;
-  const top = rect.top + (rect.height - drawH) / 2;
-  const x = (event.clientX - left) / fit;
-  const y = (event.clientY - top) / fit;
-  if (x < -2 || y < -2 || x > img.naturalWidth + 2 || y > img.naturalHeight + 2) return null;
-  return [
-    Math.min(img.naturalWidth, Math.max(0, x)),
-    Math.min(img.naturalHeight, Math.max(0, y)),
-  ];
+function clientToImage(
+  event: { clientX: number; clientY: number },
+  view: HTMLElement,
+  img: HTMLImageElement,
+  deg: number,
+): Px | null {
+  return clientToImagePx(
+    event.clientX,
+    event.clientY,
+    view.getBoundingClientRect(),
+    img.naturalWidth,
+    img.naturalHeight,
+    deg,
+  );
 }
 
 export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
@@ -165,8 +165,13 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const applyRoofTrace = useEstimatorStore((s) => s.applyRoofTrace);
   const hydrate = useEstimatorStore((s) => s.hydrate);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const viewRef = useRef<HTMLDivElement | null>(null);
   const cameraRef = useRef<HTMLInputElement | null>(null);
   const rollRef = useRef<HTMLInputElement | null>(null);
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const rotatingRef = useRef(false);
+  const rotateOriginRef = useRef({ angle: 0, deg: 0 });
+  const skipClickRef = useRef(false);
   const [shots, setShots] = useState<Shot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("line");
@@ -184,6 +189,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [address, setAddress] = useState(BLUE_QUAIL.address);
   const [frame, setFrame] = useState(0);
+  const [photoDeg, setPhotoDeg] = useState<Record<string, number>>({});
   const [sampleReady, setSampleReady] = useState(false);
   const sampleOnce = useRef(false);
   const lastClearTick = useRef(clearTick);
@@ -364,14 +370,15 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
     if (!scaleA) setTool("scale");
   }
 
-  function onImageClick(event: React.PointerEvent<HTMLElement>) {
-    if (event.button !== 0) return;
+  function onImageClick(event: { clientX: number; clientY: number; button?: number; target: EventTarget | null }) {
+    if ((event.button ?? 0) !== 0) return;
     if ((event.target as HTMLElement | null)?.closest("button")) return;
     const img = imgRef.current;
-    if (!img || !active) return;
-    const pt = clientToImage(event, img);
+    const view = viewRef.current;
+    if (!img || !view || !active) return;
+    const deg = photoDeg[active.id] ?? 0;
+    const pt = clientToImage(event, view, img, deg);
     if (!pt) return;
-    event.preventDefault();
     if (!drawingOnPlan) return;
     if (tool === "scale") {
       if (!scaleA || (scaleA && scaleB)) {
@@ -382,8 +389,8 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
       setScaleB(pt);
       return;
     }
-    const otherR = imageSnapRadius(img, SNAP_SCREEN_PX);
-    const sameR = imageSnapRadius(img, SAME_KIND_SNAP_SCREEN_PX);
+    const otherR = imageSnapRadius(view, img, SNAP_SCREEN_PX);
+    const sameR = imageSnapRadius(view, img, SAME_KIND_SNAP_SCREEN_PX);
     if (tool === "line") {
       const firstAnchors = lineSnapAnchors(measures, facets, lineKind, sameR, otherR, null);
       if (draft.length === 0) {
@@ -400,11 +407,50 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
       pt,
       lineSnapAnchors(measures, facets, lineKind, otherR, otherR, null),
     );
-    if (tool === "plane" && draft.length >= 3 && nearPx(snapped, draft[0], imageSnapRadius(img, SNAP_SCREEN_PX))) {
+    if (tool === "plane" && draft.length >= 3 && nearPx(snapped, draft[0], imageSnapRadius(view, img, SNAP_SCREEN_PX))) {
       finishPlane(draft);
       return;
     }
     setDraft((current) => [...current, snapped]);
+  }
+
+  function setPhotoHeading(next: number, shotId = active?.id) {
+    if (!shotId) return;
+    const deg = wrapDeg(next);
+    setPhotoDeg((current) => ({ ...current, [shotId]: deg }));
+  }
+
+  function stepPhotoHeading(delta: number) {
+    if (!active) return;
+    const shotId = active.id;
+    setPhotoDeg((current) => ({ ...current, [shotId]: wrapDeg((current[shotId] ?? 0) + delta) }));
+  }
+
+  function onViewPointerDown(event: React.PointerEvent<HTMLElement>) {
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size >= 2) {
+      rotatingRef.current = true;
+      skipClickRef.current = true;
+      const [a, b] = [...pointersRef.current.values()];
+      rotateOriginRef.current = { angle: pointerAngle(a, b), deg: photoDeg[active?.id ?? ""] ?? 0 };
+    }
+  }
+
+  function onViewPointerMove(event: React.PointerEvent<HTMLElement>) {
+    if (!pointersRef.current.has(event.pointerId)) return;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (!rotatingRef.current || pointersRef.current.size < 2 || !active) return;
+    const [a, b] = [...pointersRef.current.values()];
+    setPhotoHeading(rotateOriginRef.current.deg + (pointerAngle(a, b) - rotateOriginRef.current.angle));
+  }
+
+  function onViewPointerUp(event: React.PointerEvent<HTMLElement>) {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) rotatingRef.current = false;
+    if (pointersRef.current.size === 0) {
+      if (!skipClickRef.current) onImageClick(event);
+      skipClickRef.current = false;
+    }
   }
 
   function setLine() {
@@ -674,37 +720,32 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
           </div>
         ) : null}
         <div
+          ref={viewRef}
           className="relative min-h-0 flex-1 touch-none overflow-hidden bg-zinc-200"
-          onPointerDown={onImageClick}
+          onPointerDown={onViewPointerDown}
+          onPointerMove={onViewPointerMove}
+          onPointerUp={onViewPointerUp}
+          onPointerCancel={onViewPointerUp}
         >
           {active ? (
-            <img
-              ref={imgRef}
-              src={active.url}
-              alt={active.name}
-              draggable={false}
-              className="h-full w-full cursor-crosshair bg-white object-contain"
-              onLoad={() => setFrame((n) => n + 1)}
-            />
-          ) : (
-            <div className="grid h-full place-items-center px-6 text-center">
-              <div className="max-w-sm space-y-3 text-ink-foreground/80">
-                <p className="text-sm font-medium text-ink-foreground">
-                  {walkStep ? walkStep.prompt : "Walk is in."}
-                </p>
-                <p className="text-sm text-ink-foreground/70">
-                  {walkStep
-                    ? walkStep.hint
-                    : "Add a plan or top if you have one. Label a known length, then draw slopes."}
-                </p>
-                <p className="text-xs text-ink-foreground/55">
-                  Front, right, back, left. Same order as the Xactimate.
-                </p>
-              </div>
-            </div>
-          )}
-          {active ? (
-            <>
+            <div
+              className="absolute inset-0"
+              style={{
+                transform: `rotate(${photoDeg[active.id] ?? 0}deg) scale(${coverScale(
+                  viewRef.current?.clientWidth ?? 400,
+                  viewRef.current?.clientHeight ?? 400,
+                  photoDeg[active.id] ?? 0,
+                )})`,
+              }}
+            >
+              <img
+                ref={imgRef}
+                src={active.url}
+                alt={active.name}
+                draggable={false}
+                className="h-full w-full cursor-crosshair bg-white object-contain"
+                onLoad={() => setFrame((n) => n + 1)}
+              />
               <svg className="pointer-events-none absolute inset-0 h-full w-full">
                 <PhotoOverlay
                   key={frame}
@@ -723,7 +764,31 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
                   pitch={linePitch}
                 />
               </svg>
-            </>
+            </div>
+          ) : (
+            <div className="grid h-full place-items-center px-6 text-center">
+              <div className="max-w-sm space-y-3 text-ink-foreground/80">
+                <p className="text-sm font-medium text-ink-foreground">
+                  {walkStep ? walkStep.prompt : "Walk is in."}
+                </p>
+                <p className="text-sm text-ink-foreground/70">
+                  {walkStep
+                    ? walkStep.hint
+                    : "Add a plan or top if you have one. Label a known length, then draw slopes."}
+                </p>
+                <p className="text-xs text-ink-foreground/55">
+                  Front, right, back, left. Same order as the Xactimate.
+                </p>
+              </div>
+            </div>
+          )}
+          {active ? (
+            <RoofOrbitControls
+              className="absolute right-3 top-3 z-10"
+              heading={photoDeg[active.id] ?? 0}
+              onRotate={stepPhotoHeading}
+              onNorth={() => setPhotoHeading(0)}
+            />
           ) : null}
         </div>
         <p className="px-4 py-2 text-xs text-muted">
@@ -741,7 +806,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
                   : "Tap each corner of a slope, then Close plane. Draw plane is on."
             : planShot
               ? "Tap Draw here (the line drawing) to trace. Yard photos are only for pitch and drain."
-              : "Walk is in. Add or mark a plan / top to draw squares."}
+              : "Walk is in. Add or mark a plan / top to draw squares. Rotate the photo like Maps."}
         </p>
       </section>
 
@@ -797,7 +862,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
                 {summary.total_area_with_pitch_multiplier_sqft.toFixed(0)} sf
               </dd>
             </div>
-            {summary.drip_ft != null ? (
+            {summary.drip_ft != null || summary.steps_ft ? (
               <>
                 <div>
                   <dt className="text-[11px] uppercase tracking-wide text-ink-foreground/55">Eave / rake</dt>
@@ -811,10 +876,16 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
                     {summary.ridges_ft} / {summary.hips_ft} / {summary.valleys_ft} ft
                   </dd>
                 </div>
+                {summary.steps_ft ? (
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-wide text-ink-foreground/55">Wall</dt>
+                    <dd className="font-mono tabular-nums">{summary.steps_ft} ft</dd>
+                  </div>
+                ) : null}
               </>
             ) : (
               <p className="col-span-2 text-xs text-ink-foreground/60">
-                Pick a line color and tap both ends. That names ridge, eave, rake, hip, and valley.
+                Pick a line color and tap both ends. Headwall is roof into a wall, not a ridge.
               </p>
             )}
           </dl>
@@ -1021,14 +1092,9 @@ function PhotoOverlay({
   pitch: string;
 }) {
   if (!img || !img.clientWidth) return null;
-  const rect = img.getBoundingClientRect();
-  const parent = img.parentElement?.getBoundingClientRect();
+  const parent = img.parentElement;
   if (!parent) return null;
-  const fit = Math.min(rect.width / shot.width, rect.height / shot.height);
-  const drawW = shot.width * fit;
-  const drawH = shot.height * fit;
-  const ox = rect.left - parent.left + (rect.width - drawW) / 2;
-  const oy = rect.top - parent.top + (rect.height - drawH) / 2;
+  const { fit, ox, oy } = imageFit(parent.clientWidth, parent.clientHeight, shot.width, shot.height);
   const xy = (pt: Px) => [ox + pt[0] * fit, oy + pt[1] * fit] as const;
   const to = (pt: Px) => `${xy(pt)[0]},${xy(pt)[1]}`;
   const edges = plan ? photoEdges(facets, ftPerPx) : [];

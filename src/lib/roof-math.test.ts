@@ -102,6 +102,7 @@ describe("roof-math", () => {
     assert.ok(Math.abs((summary.eaves_ft ?? 0) - 40) < 0.8);
     assert.equal(summary.ridges_ft, 0);
     assert.ok(Math.abs((summary.steps_ft ?? 0) - 40) < 0.8);
+    assert.ok(summary.edges.some((edge) => edge.kind === "headwall"));
   });
 
   it("does not classify edges without drain", () => {
@@ -264,5 +265,32 @@ describe("roof-math", () => {
     assert.equal(rake, 13);
     assert.equal(hip, 10.4);
     assert.equal(eave, 20);
+  });
+
+  it("keeps a headwall level and a sidewall on the slope", () => {
+    const head = measureLengthFt(
+      { id: "hw", a: [0, 0], b: [20, 0], name: "Headwall", kind: "headwall" },
+      1,
+      "5/12",
+    );
+    const side = measureLengthFt(
+      { id: "sw", a: [0, 0], b: [12, 0], name: "Sidewall", kind: "sidewall" },
+      1,
+      "5/12",
+    );
+    assert.equal(head, 20);
+    assert.equal(side, 13);
+  });
+
+  it("adds tapped headwall into wall totals, not ridge or drip", () => {
+    const summary = summarizePhotoFacets(
+      [],
+      1,
+      0,
+      [{ id: "w1", a: [0, 0], b: [40, 0], name: "Headwall", kind: "headwall" }],
+    );
+    assert.equal(summary.steps_ft, 40);
+    assert.equal(summary.ridges_ft, 0);
+    assert.equal(summary.drip_ft, 0);
   });
 });

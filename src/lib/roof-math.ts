@@ -283,12 +283,13 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
     const length = level ? plan : Math.hypot(plan, rise);
     const drains = slot.sides.map((side) => side.drains);
     const wall = slot.sides.some((side) => side.wall);
+    const wallKind = level ? "headwall" : "sidewall";
     let kind = "unclassified";
     if (drains.length && drains.every((item) => item != null)) {
       if (wall && drains.length === 1 && !(drains[0] === "toward" && level)) {
-        kind = "step";
+        kind = wallKind;
       } else if (drains.length === 1) {
-        if (drains[0] === "away" && level) kind = "step";
+        if (drains[0] === "away" && level) kind = "headwall";
         else if (drains[0] === "toward" && level) kind = "eave";
         else kind = "rake";
       } else if (drains.length === 2) {
@@ -300,7 +301,7 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
         } else if ((pair.size === 1 && pair.has("away")) || (pair.has("away") && pair.has("along") && pair.size === 2)) {
           kind = "hip";
         } else {
-          kind = "step";
+          kind = wallKind;
         }
       }
     }
@@ -328,6 +329,7 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
   const ridges = total("ridge");
   const hips = total("hip");
   const valleys = total("valley");
+  const steps = Math.round((total("headwall") + total("sidewall") + total("step") + total("wall")) * 10) / 10;
   const named = edges.some((edge) => edge.kind !== "unclassified");
   return {
     classified: named,
@@ -336,7 +338,7 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
     ridges_ft: ridges,
     hips_ft: hips,
     valleys_ft: valleys,
-    steps_ft: total("step"),
+    steps_ft: steps,
     ridges_hips_ft: Math.round((ridges + hips) * 10) / 10,
     drip_ft: Math.round((eaves + rakes) * 10) / 10,
     shared_edges: [...groups.values()].filter((slot) => slot.sides.length >= 2).length,
@@ -525,7 +527,7 @@ export type PhotoMeasure = {
   a: Px;
   b: Px;
   name: string;
-  kind?: "ridge" | "hip" | "valley" | "rake" | "eave";
+  kind?: "ridge" | "hip" | "valley" | "rake" | "eave" | "headwall" | "sidewall";
 };
 
 export function summarizePhotoFacets(
@@ -624,8 +626,8 @@ export function lineTrueLengthFt(
 ): number {
   const plan = pixelDistance(a, b) * ftPerPx;
   const risePer = pitchRisePerRun(pitch);
-  if (!kind || risePer <= 0 || kind === "eave" || kind === "ridge") return plan;
-  if (kind === "rake") return Math.hypot(plan, plan * risePer);
+  if (!kind || risePer <= 0 || kind === "eave" || kind === "ridge" || kind === "headwall") return plan;
+  if (kind === "rake" || kind === "sidewall") return Math.hypot(plan, plan * risePer);
   return Math.hypot(plan, (plan * risePer) / Math.SQRT2);
 }
 
@@ -636,7 +638,7 @@ export function applyDrawnLines(
   pitch = "5/12",
 ): RoofSummary {
   if (ftPerPx == null || ftPerPx <= 0 || !lines.length) return summary;
-  const add = { eave: 0, rake: 0, ridge: 0, hip: 0, valley: 0 };
+  const add = { eave: 0, rake: 0, ridge: 0, hip: 0, valley: 0, headwall: 0, sidewall: 0 };
   let any = false;
   for (const line of lines) {
     const kind = line.kind;
@@ -651,6 +653,7 @@ export function applyDrawnLines(
   const ridges = round((summary.ridges_ft ?? 0) + add.ridge);
   const hips = round((summary.hips_ft ?? 0) + add.hip);
   const valleys = round((summary.valleys_ft ?? 0) + add.valley);
+  const steps = round((summary.steps_ft ?? 0) + add.headwall + add.sidewall);
   return {
     ...summary,
     eaves_ft: eaves,
@@ -658,6 +661,7 @@ export function applyDrawnLines(
     ridges_ft: ridges,
     hips_ft: hips,
     valleys_ft: valleys,
+    steps_ft: steps,
     ridges_hips_ft: round(ridges + hips),
     drip_ft: round(eaves + rakes),
   };

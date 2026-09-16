@@ -3,7 +3,7 @@
 export const WAYBACK_CONFIG_URL =
   "https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json";
 
-export type BasemapId = "esri" | "wayback" | "usgs" | "opentopo" | "maptiler";
+export type BasemapId = "google" | "esri" | "wayback" | "usgs" | "opentopo" | "maptiler";
 
 export type BasemapDef = {
   id: BasemapId;
@@ -32,6 +32,14 @@ export type WaybackRelease = {
 const TITLE_DATE = /Wayback (\d{4}-\d{2}-\d{2})/;
 
 export const BASEMAPS: BasemapDef[] = [
+  {
+    id: "google",
+    label: "Google satellite",
+    hint: "Google Maps satellite. Rotate and tilt.",
+    attribution: "Google",
+    maxZoom: 22,
+    maxNativeZoom: 22,
+  },
   {
     id: "esri",
     label: "Esri aerial",
@@ -113,13 +121,82 @@ export function availableBasemaps(maptilerKey?: string): BasemapDef[] {
   return BASEMAPS.filter((row) => row.id !== "maptiler" || Boolean(maptilerKey));
 }
 
+const GOOGLE_MAPS_CALLBACK = "__ffGoogleMapsReady";
+
+export function googleMapsApiKey() {
+  try {
+    const env = (import.meta as { env?: { VITE_GOOGLE_MAPS_API_KEY?: string } }).env;
+    return env?.VITE_GOOGLE_MAPS_API_KEY?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+export function googleMapsScriptUrl(key = googleMapsApiKey()) {
+  const query = new URLSearchParams({
+    v: "weekly",
+    callback: GOOGLE_MAPS_CALLBACK,
+  });
+  if (key) query.set("key", key);
+  return `https://maps.googleapis.com/maps/api/js?${query}`;
+}
+
+type GmapsWindow = Window & {
+  google?: { maps?: { Map?: unknown } };
+  [GOOGLE_MAPS_CALLBACK]?: () => void;
+};
+
+let googleMapsLoad: Promise<void> | null = null;
+
+export function loadGoogleMaps(key = googleMapsApiKey()): Promise<void> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("Google Maps is browser-only."));
+  }
+  const host = window as GmapsWindow;
+  if (host.google?.maps?.Map) return Promise.resolve();
+  if (googleMapsLoad) return googleMapsLoad;
+  googleMapsLoad = new Promise((resolve, reject) => {
+    const finish = () => {
+      const start = Date.now();
+      const wait = () => {
+        if (host.google?.maps?.Map) {
+          resolve();
+          return;
+        }
+        if (Date.now() - start > 8000) {
+          googleMapsLoad = null;
+          reject(new Error("Google Maps loaded without a Map constructor."));
+          return;
+        }
+        window.setTimeout(wait, 50);
+      };
+      wait();
+    };
+    host[GOOGLE_MAPS_CALLBACK] = finish;
+    const existing = document.querySelector("script[data-ff-gmaps]");
+    if (existing) return;
+    const script = document.createElement("script");
+    script.dataset.ffGmaps = "1";
+    script.async = true;
+    script.defer = true;
+    script.src = googleMapsScriptUrl(key);
+    script.onerror = () => {
+      googleMapsLoad = null;
+      reject(new Error("Google Maps script failed to load."));
+    };
+    document.head.appendChild(script);
+  });
+  return googleMapsLoad;
+}
+
 export function roofMapBasemap(
   id: BasemapId,
   opts: { waybackRelease?: string; maptilerKey?: string } = {},
 ): RoofMapBasemap {
   const def = BASEMAPS.find((row) => row.id === id) ?? BASEMAPS[0];
   let url = esriAerialUrl();
-  if (id === "wayback") url = waybackTileUrl(opts.waybackRelease || "26334");
+  if (id === "google") url = "";
+  else if (id === "wayback") url = waybackTileUrl(opts.waybackRelease || "26334");
   else if (id === "usgs") url = usgsImageryUrl();
   else if (id === "opentopo") url = openTopoMapUrl();
   else if (id === "maptiler" && opts.maptilerKey) url = maptilerSatelliteUrl(opts.maptilerKey);

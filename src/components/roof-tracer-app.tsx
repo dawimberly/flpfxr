@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ExternalLink, Hammer, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import { EvLegend, RoofDimFields } from "@/components/roof-ev-chrome";
+import { RoofGoogleMap } from "@/components/roof-google-map";
 import { RoofMap } from "@/components/roof-map";
 import { RoofPhotoLab } from "@/components/roof-photo-lab";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ export function RoofTracerApp() {
   const hydrate = useEstimatorStore((s) => s.hydrate);
   const [address, setAddress] = useState(BLUE_QUAIL.address);
   const [center, setCenter] = useState(BLUE_QUAIL.center);
-  const [zoom, setZoom] = useState(19);
+  const [zoom, setZoom] = useState(21);
   const [facets, setFacets] = useState<RoofFacet[]>([]);
   const [draft, setDraft] = useState<LatLng[]>([]);
   const [drawing, setDrawing] = useState(false);
@@ -100,8 +101,8 @@ export function RoofTracerApp() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [looking, setLooking] = useState(false);
   const [sent, setSent] = useState(false);
-  const [mode, setMode] = useState<"map" | "photos">("photos");
-  const [mapSeen, setMapSeen] = useState(false);
+  const [mode, setMode] = useState<"map" | "photos">("map");
+  const [mapSeen, setMapSeen] = useState(true);
   const mapApiRef = useRef<{ invalidate: () => void } | null>(null);
   const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
   const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
@@ -110,7 +111,7 @@ export function RoofTracerApp() {
   const [photoClearTick, setPhotoClearTick] = useState(0);
   const maptilerKey = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
   const basemapChoices = availableBasemaps(maptilerKey);
-  const [basemapId, setBasemapId] = useState<BasemapId>("esri");
+  const [basemapId, setBasemapId] = useState<BasemapId>("google");
   const [waybackRelease, setWaybackRelease] = useState("26334");
   const [waybackDates, setWaybackDates] = useState<WaybackRelease[]>([]);
   const mapBasemap = useMemo(
@@ -128,14 +129,14 @@ export function RoofTracerApp() {
       setGarageWidth(saved.garageWidth ?? "");
       setEaveOverhang(saved.eaveOverhang ?? "");
       setRakeOverhang(saved.rakeOverhang ?? "");
-      setZoom(20);
+      setZoom(21);
     } else {
       setAddress(BLUE_QUAIL.address);
       setCenter(BLUE_QUAIL.center);
       setGarageWidth(BLUE_QUAIL.garageWidthFt);
       setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
       setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
-      setZoom(20);
+      setZoom(21);
     }
     setTraceReady(true);
   }, [hydrate]);
@@ -197,7 +198,7 @@ export function RoofTracerApp() {
         return;
       }
       setCenter({ lat: result.hit.lat, lng: result.hit.lng });
-      setZoom(20);
+      setZoom(21);
       setAddress(result.hit.label);
     } catch {
       setLookupError("Address lookup failed.");
@@ -245,7 +246,7 @@ export function RoofTracerApp() {
               <p className="truncate font-display text-base font-medium tracking-tight sm:text-lg">
                 Roof trace
               </p>
-                  <p className="truncate text-xs text-muted">Front, right, back, left, then pitch</p>
+                  <p className="truncate text-xs text-muted">Google satellite top view, then pitch</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -406,37 +407,70 @@ export function RoofTracerApp() {
           </form>
           {lookupError ? <p className="px-4 pt-2 text-xs text-primary">{lookupError}</p> : null}
           <div className="relative min-h-[22rem] flex-1">
-            <RoofMap
-              center={center}
-              zoom={zoom}
-              facets={facets}
-              draft={draft}
-              selectedId={selectedId}
-              drawing={drawing}
-              edges={summary.edges}
-              basemap={mapBasemap}
-              onReady={(api) => {
-                mapApiRef.current = api;
-              }}
-              onClick={onMapClick}
-              onSelect={(id) => {
-                if (drawing) return;
-                setSelectedId(id);
-              }}
-              onMoveVertex={(id, index, latlng) => {
-                setFacets((current) =>
-                  current.map((facet) =>
-                    facet.id === id
-                      ? {
-                          ...facet,
-                          latlngs: facet.latlngs.map((pt, i) => (i === index ? latlng : pt)),
-                        }
-                      : facet,
-                  ),
-                );
-                setSent(false);
-              }}
-            />
+            {basemapId === "google" ? (
+              <RoofGoogleMap
+                center={center}
+                zoom={zoom}
+                facets={facets}
+                draft={draft}
+                selectedId={selectedId}
+                drawing={drawing}
+                edges={summary.edges}
+                onReady={(api) => {
+                  mapApiRef.current = api;
+                }}
+                onClick={onMapClick}
+                onSelect={(id) => {
+                  if (drawing) return;
+                  setSelectedId(id);
+                }}
+                onMoveVertex={(id, index, latlng) => {
+                  setFacets((current) =>
+                    current.map((facet) =>
+                      facet.id === id
+                        ? {
+                            ...facet,
+                            latlngs: facet.latlngs.map((pt, i) => (i === index ? latlng : pt)),
+                          }
+                        : facet,
+                    ),
+                  );
+                  setSent(false);
+                }}
+              />
+            ) : (
+              <RoofMap
+                center={center}
+                zoom={zoom}
+                facets={facets}
+                draft={draft}
+                selectedId={selectedId}
+                drawing={drawing}
+                edges={summary.edges}
+                basemap={mapBasemap}
+                onReady={(api) => {
+                  mapApiRef.current = api;
+                }}
+                onClick={onMapClick}
+                onSelect={(id) => {
+                  if (drawing) return;
+                  setSelectedId(id);
+                }}
+                onMoveVertex={(id, index, latlng) => {
+                  setFacets((current) =>
+                    current.map((facet) =>
+                      facet.id === id
+                        ? {
+                            ...facet,
+                            latlngs: facet.latlngs.map((pt, i) => (i === index ? latlng : pt)),
+                          }
+                        : facet,
+                    ),
+                  );
+                  setSent(false);
+                }}
+              />
+            )}
             <EvLegend className="absolute left-3 top-3 z-[1100]" />
             <div className="absolute bottom-3 left-3 right-3 z-[1100] flex flex-wrap gap-2">
               <Button
@@ -478,9 +512,8 @@ export function RoofTracerApp() {
             </div>
           </div>
           <p className="px-4 py-2 text-xs text-muted">
-            Top view is nadir aerial, not Google 3D. Esri and USGS are current overhead. Wayback is
-            the same imagery on older dates. OpenTopoMap is a topo map. Tap the roof edge, not the
-            slab. Pitch still comes from the house or a gauge.
+            Google satellite rotates and tilts like Maps. Two-finger twist or the compass. Top
+            goes straight down for tracing. Tap the roof edge, not the slab.
           </p>
         </section>
 
@@ -526,10 +559,16 @@ export function RoofTracerApp() {
                       {summary.hips_ft} / {summary.valleys_ft} ft
                     </dd>
                   </div>
+                  {summary.steps_ft ? (
+                    <div>
+                      <dt className="text-[11px] uppercase tracking-wide text-ink-foreground/55">Wall</dt>
+                      <dd className="font-mono tabular-nums">{summary.steps_ft} ft</dd>
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <p className="col-span-2 text-xs text-ink-foreground/60">
-                  Add a drain direction on each plane to name ridge, eave, rake, hip, and valley.
+                  Add a drain direction on each plane. Roof into a wall is headwall, not a ridge.
                 </p>
               )}
             </dl>
