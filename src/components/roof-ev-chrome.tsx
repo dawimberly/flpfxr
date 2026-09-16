@@ -14,7 +14,14 @@ export function EvLegend({ className }: { className?: string }) {
     >
       {EV_LEGEND.map((row) => (
         <div key={row.kind} className="flex items-center gap-2">
-          <span className="inline-block h-[3px] w-5 shrink-0 rounded-sm" style={{ background: row.color }} />
+          <span
+            className="inline-block h-0 w-5 shrink-0"
+            style={{
+              borderTopWidth: 3,
+              borderTopStyle: row.dash ? "dashed" : "solid",
+              borderTopColor: row.color,
+            }}
+          />
           {row.label}
         </div>
       ))}
@@ -58,7 +65,7 @@ export function RoofDimFields({
             id="garage-width"
             inputMode="decimal"
             value={garageWidth}
-            placeholder="22.2"
+            placeholder="18.5"
             onChange={(event) => onGarageWidth(event.target.value)}
             className={inputClass}
           />
@@ -71,7 +78,7 @@ export function RoofDimFields({
             id="eave-oh"
             inputMode="decimal"
             value={eaveOverhang}
-            placeholder="12"
+            placeholder="23"
             onChange={(event) => onEaveOverhang(event.target.value)}
             className={inputClass}
           />

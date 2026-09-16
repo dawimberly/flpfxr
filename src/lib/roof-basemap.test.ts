@@ -1,0 +1,58 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { BLUE_QUAIL } from "./blue-quail.ts";
+import {
+  availableBasemaps,
+  esriWaybackAppUrl,
+  googleEarthNadirUrl,
+  googleMapsSatelliteUrl,
+  openTopographyUrl,
+  parseWaybackConfig,
+  roofMapBasemap,
+  waybackTileUrl,
+} from "./roof-basemap.ts";
+
+describe("roof-basemap", () => {
+  it("parses Wayback dates newest first", () => {
+    const rows = parseWaybackConfig({
+      "31144": { itemTitle: "World Imagery (Wayback 2014-06-11)" },
+      "26334": { itemTitle: "World Imagery (Wayback 2026-08-05)" },
+    });
+    assert.equal(rows[0].date, "2026-08-05");
+    assert.equal(rows[0].release, "26334");
+    assert.equal(rows[1].date, "2014-06-11");
+  });
+
+  it("builds a Wayback XYZ url from the release number", () => {
+    assert.equal(
+      waybackTileUrl("26334"),
+      "https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/26334/{z}/{y}/{x}",
+    );
+  });
+
+  it("hides MapTiler until a key exists", () => {
+    assert.equal(
+      availableBasemaps().some((row) => row.id === "maptiler"),
+      false,
+    );
+    assert.equal(
+      availableBasemaps("demo").some((row) => row.id === "maptiler"),
+      true,
+    );
+  });
+
+  it("opens Google Earth straight down on Blue Quail", () => {
+    const url = googleEarthNadirUrl(BLUE_QUAIL.center.lat, BLUE_QUAIL.center.lng);
+    assert.match(url, /earth\.google\.com\/web/);
+    assert.match(url, /29\.5803375,-98\.4516699/);
+    assert.match(url, /0h,0t,0r/);
+  });
+
+  it("points Maps, Wayback, and OpenTopography at the same house", () => {
+    const { lat, lng } = BLUE_QUAIL.center;
+    assert.match(googleMapsSatelliteUrl(lat, lng), /google\.com\/maps/);
+    assert.match(esriWaybackAppUrl(lat, lng), /livingatlas\.arcgis\.com\/wayback/);
+    assert.match(openTopographyUrl(lat, lng), /opentopography\.org/);
+    assert.match(roofMapBasemap("usgs").url, /nationalmap\.gov/);
+  });
+});

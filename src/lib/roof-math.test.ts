@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, blueQuailDiagramTrace } from "./blue-quail.ts";
 import {
   applyWasteFactor,
   classifyEdges,
@@ -9,6 +10,7 @@ import {
   geodesicRingPerimeterFt,
   gableRoofFt,
   inchesToFt,
+  measureLengthFt,
   photoEdges,
   polygonAreaPx,
   slopedAreaSqft,
@@ -160,6 +162,37 @@ describe("roof-math", () => {
     assert.equal(inchesToFt(18), 1.5);
   });
 
+  it("traces Blue Quail EV diagram in the 28-square range", () => {
+    const trace = blueQuailDiagramTrace();
+    const ftPerPx = ftPerPxFromScale(trace.scaleA, trace.scaleB, Number(trace.scaleFeet));
+    assert.ok(ftPerPx);
+    const summary = summarizePhotoFacets(trace.facets, ftPerPx, 0);
+    assert.equal(trace.facets.length, 5);
+    assert.ok(summary.total_squares > 24);
+    assert.ok(summary.total_squares < 32);
+  });
+
+  it("scales Blue Quail from the level 41 ft ridge", () => {
+    const ftPerPx = ftPerPxFromScale(
+      BLUE_QUAIL_LENGTH_SCALE.a,
+      BLUE_QUAIL_LENGTH_SCALE.b,
+      BLUE_QUAIL_LENGTH_SCALE.feet,
+    );
+    assert.ok(ftPerPx);
+    const ridge = measureLengthFt(
+      {
+        id: "ridge-41",
+        a: BLUE_QUAIL_LENGTH_SCALE.a,
+        b: BLUE_QUAIL_LENGTH_SCALE.b,
+        name: "Ridges 1",
+        kind: "ridge",
+      },
+      ftPerPx,
+      BLUE_QUAIL.ev.pitch,
+    );
+    assert.equal(ridge, 41);
+  });
+
   it("names photo eaves and rakes when drain is set", () => {
     const north: [number, number][] = [
       [0, 0],
@@ -193,5 +226,43 @@ describe("roof-math", () => {
       null,
     );
     assert.equal(summary.incomplete, "Label a known length so the picture has a scale.");
+  });
+
+  it("adds tapped EagleView lines into eave and ridge totals", () => {
+    const summary = summarizePhotoFacets(
+      [],
+      1,
+      0,
+      [
+        { id: "e1", a: [0, 0], b: [40, 0], name: "Eave", kind: "eave" },
+        { id: "r1", a: [0, 0], b: [0, 12], name: "Ridge", kind: "ridge" },
+        { id: "v1", a: [20, 0], b: [20, 10], name: "Valley", kind: "valley" },
+      ],
+    );
+    assert.equal(summary.eaves_ft, 40);
+    assert.equal(summary.ridges_ft, 12);
+    assert.equal(summary.valleys_ft, 10.4);
+    assert.equal(summary.drip_ft, 40);
+  });
+
+  it("matches EagleView 3D lengths for rakes and hips", () => {
+    const rake = measureLengthFt(
+      { id: "r", a: [0, 0], b: [12, 0], name: "Rake", kind: "rake" },
+      1,
+      "5/12",
+    );
+    const hip = measureLengthFt(
+      { id: "h", a: [0, 0], b: [10, 0], name: "Hip", kind: "hip" },
+      1,
+      "5/12",
+    );
+    const eave = measureLengthFt(
+      { id: "e", a: [0, 0], b: [20, 0], name: "Eave", kind: "eave" },
+      1,
+      "5/12",
+    );
+    assert.equal(rake, 13);
+    assert.equal(hip, 10.4);
+    assert.equal(eave, 20);
   });
 });

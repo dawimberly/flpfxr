@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Camera, Hammer, ImagePlus, Trash2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EvLegend, RoofDimFields } from "@/components/roof-ev-chrome";
+import { RoofDimFields } from "@/components/roof-ev-chrome";
+import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE } from "@/lib/blue-quail";
 import { useEstimatorStore } from "@/lib/estimator-store";
 import {
   DEFAULT_WASTE_PCT,
@@ -25,7 +26,7 @@ import {
   type PhotoMeasure,
   type Px,
 } from "@/lib/roof-math";
-import { EV_EDGE_COLOR, EV_FILL, evLengthLabel } from "@/lib/roof-style";
+import { EV_EDGE_COLOR, EV_FILL, EV_LEGEND, evLengthLabel, evStrokeDash } from "@/lib/roof-style";
 import { cn } from "@/lib/utils";
 
 const DRAINS = [
@@ -75,7 +76,66 @@ function nextWalkStep(shots: Pick<Shot, "role">[]): (typeof WALK)[number] | null
   return null;
 }
 
-type Tool = "scale" | "plane" | "measure";
+type Tool = "scale" | "plane" | "line";
+type LineKind = NonNullable<PhotoMeasure["kind"]>;
+
+const SNAP_SCREEN_PX = 10;
+const SAME_KIND_SNAP_SCREEN_PX = 4;
+
+function imageSnapRadius(img: HTMLImageElement, screenPx: number): number {
+  const rect = img.getBoundingClientRect();
+  const fit = Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+  return fit > 0 ? screenPx / fit : screenPx;
+}
+
+function nearPx(a: Px, b: Px, tol = 4): boolean {
+  return Math.hypot(a[0] - b[0], a[1] - b[1]) < tol;
+}
+
+function snapPoint(pt: Px, anchors: { pt: Px; radius: number }[]): Px {
+  let best = pt;
+  let bestD = Infinity;
+  for (const anchor of anchors) {
+    const d = Math.hypot(pt[0] - anchor.pt[0], pt[1] - anchor.pt[1]);
+    if (d <= anchor.radius && d < bestD) {
+      bestD = d;
+      best = anchor.pt;
+    }
+  }
+  return best;
+}
+
+function lineSnapAnchors(
+  measures: PhotoMeasure[],
+  facets: PhotoFacet[],
+  lineKind: LineKind,
+  sameRadius: number,
+  otherRadius: number,
+  draftA: Px | null,
+): { pt: Px; radius: number }[] {
+  const blocked = new Set<string>();
+  const key = (pt: Px) => `${Math.round(pt[0])},${Math.round(pt[1])}`;
+  if (draftA) {
+    for (const row of measures) {
+      if (row.kind !== lineKind) continue;
+      if (nearPx(draftA, row.a)) blocked.add(key(row.b));
+      if (nearPx(draftA, row.b)) blocked.add(key(row.a));
+    }
+  }
+  const anchors: { pt: Px; radius: number }[] = [];
+  for (const row of measures) {
+    const same = row.kind === lineKind;
+    const radius = same ? sameRadius : otherRadius;
+    for (const end of [row.a, row.b] as Px[]) {
+      if (same && blocked.has(key(end))) continue;
+      anchors.push({ pt: end, radius });
+    }
+  }
+  for (const facet of facets) {
+    for (const pt of facet.points) anchors.push({ pt, radius: otherRadius });
+  }
+  return anchors;
+}
 
 function newId(prefix: string) {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -100,7 +160,7 @@ function clientToImage(event: { clientX: number; clientY: number }, img: HTMLIma
   ];
 }
 
-export function RoofPhotoLab() {
+export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const navigate = useNavigate();
   const applyRoofTrace = useEstimatorStore((s) => s.applyRoofTrace);
   const hydrate = useEstimatorStore((s) => s.hydrate);
@@ -109,19 +169,82 @@ export function RoofPhotoLab() {
   const rollRef = useRef<HTMLInputElement | null>(null);
   const [shots, setShots] = useState<Shot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [tool, setTool] = useState<Tool>("scale");
+  const [tool, setTool] = useState<Tool>("line");
+  const [lineKind, setLineKind] = useState<LineKind>("eave");
+  const [roofPitch, setRoofPitch] = useState(BLUE_QUAIL.ev.pitch);
   const [draft, setDraft] = useState<Px[]>([]);
   const [scaleA, setScaleA] = useState<Px | null>(null);
   const [scaleB, setScaleB] = useState<Px | null>(null);
   const [scaleFeet, setScaleFeet] = useState("");
-  const [garageWidth, setGarageWidth] = useState("");
-  const [eaveOverhang, setEaveOverhang] = useState("");
-  const [rakeOverhang, setRakeOverhang] = useState("");
+  const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
+  const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
+  const [rakeOverhang, setRakeOverhang] = useState(BLUE_QUAIL.rakeOverhangIn);
   const [facets, setFacets] = useState<PhotoFacet[]>([]);
   const [measures, setMeasures] = useState<PhotoMeasure[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(BLUE_QUAIL.address);
   const [frame, setFrame] = useState(0);
+  const [sampleReady, setSampleReady] = useState(false);
+  const sampleOnce = useRef(false);
+  const lastClearTick = useRef(clearTick);
+  const loadGen = useRef(0);
+
+  async function addShotUrls(
+    items: { name: string; url: string; role?: PhotoRole }[],
+    replace = false,
+  ) {
+    const next: Shot[] = [];
+    for (const item of items) {
+      const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        const probe = new Image();
+        probe.onload = () => resolve({ width: probe.naturalWidth, height: probe.naturalHeight });
+        probe.onerror = () => reject(new Error(item.name));
+        probe.src = item.url;
+      });
+      const role = (item.role as PhotoRole | undefined) ?? nextWalkStep([...shots, ...next])?.role ?? "extra";
+      next.push({
+        id: newId("shot"),
+        name: item.name,
+        url: item.url,
+        role,
+        width: size.width,
+        height: size.height,
+      });
+    }
+    setShots((current) => (replace ? next : [...current, ...next]));
+    const preferred = next.find((shot) => shot.role === "plan") ?? next[next.length - 1];
+    setActiveId(preferred?.id ?? null);
+    return next.length;
+  }
+
+  async function loadBlueQuailSample(force = false) {
+    const gen = ++loadGen.current;
+    const res = await fetch("/blue-quail-local/manifest.json");
+    if (!res.ok || gen !== loadGen.current) return false;
+    const data = (await res.json()) as {
+      address?: string;
+      shots: { name: string; url: string; role?: PhotoRole }[];
+    };
+    if (gen !== loadGen.current) return false;
+    await addShotUrls(data.shots, true);
+    if (gen !== loadGen.current) return false;
+    setAddress(data.address || BLUE_QUAIL.address);
+    setGarageWidth(BLUE_QUAIL.garageWidthFt);
+    setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
+    setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
+    setRoofPitch(BLUE_QUAIL.ev.pitch);
+    setScaleFeet(String(BLUE_QUAIL_LENGTH_SCALE.feet));
+    setScaleA(BLUE_QUAIL_LENGTH_SCALE.a);
+    setScaleB(BLUE_QUAIL_LENGTH_SCALE.b);
+    setFacets([]);
+    setSelectedId(null);
+    setMeasures([]);
+    setDraft([]);
+    setTool("line");
+    setLineKind("eave");
+    setSampleReady(true);
+    return true;
+  }
 
   useEffect(() => {
     hydrate();
@@ -141,6 +264,9 @@ export function RoofPhotoLab() {
         scaleA?: Px;
         scaleB?: Px;
         facets?: PhotoFacet[];
+        garageWidth?: string;
+        eaveOverhang?: string;
+        rakeOverhang?: string;
       }) => void;
       __ffRoofAddShots?: (
         items: { name: string; url: string; role?: PhotoRole }[],
@@ -148,6 +274,9 @@ export function RoofPhotoLab() {
     };
     host.__ffRoofSim = (raw) => {
       if (raw.address) setAddress(raw.address);
+      if (raw.garageWidth) setGarageWidth(raw.garageWidth);
+      if (raw.eaveOverhang) setEaveOverhang(raw.eaveOverhang);
+      if (raw.rakeOverhang) setRakeOverhang(raw.rakeOverhang);
       if (raw.scaleFeet) setScaleFeet(raw.scaleFeet);
       if (raw.scaleA) setScaleA(raw.scaleA);
       if (raw.scaleB) setScaleB(raw.scaleB);
@@ -165,44 +294,45 @@ export function RoofPhotoLab() {
       });
       setTool("scale");
     };
-    host.__ffRoofAddShots = async (items) => {
-      const next: Shot[] = [];
-      for (const item of items) {
-        const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-          const probe = new Image();
-          probe.onload = () => resolve({ width: probe.naturalWidth, height: probe.naturalHeight });
-          probe.onerror = () => reject(new Error(item.name));
-          probe.src = item.url;
-        });
-        const role = (item.role as PhotoRole | undefined) ?? nextWalkStep([...shots, ...next])?.role ?? "extra";
-        next.push({
-          id: newId("shot"),
-          name: item.name,
-          url: item.url,
-          role,
-          width: size.width,
-          height: size.height,
-        });
-      }
-      setShots((current) => [...current, ...next]);
-      setActiveId(next[next.length - 1]?.id ?? null);
-      return next.length;
-    };
+    host.__ffRoofAddShots = addShotUrls;
     return () => {
       delete host.__ffRoofSim;
       delete host.__ffRoofAddShots;
     };
   }, []);
 
+  useEffect(() => {
+    if (sampleOnce.current) return;
+    sampleOnce.current = true;
+    void loadBlueQuailSample();
+  }, []);
+
+  useLayoutEffect(() => {
+    if (clearTick === lastClearTick.current) return;
+    lastClearTick.current = clearTick;
+    loadGen.current += 1;
+    setFacets([]);
+    setDraft([]);
+    setMeasures([]);
+    setSelectedId(null);
+    setTool("line");
+    setLineKind("eave");
+  }, [clearTick]);
+
   const active = shots.find((shot) => shot.id === activeId) ?? shots[0] ?? null;
   const planShot = shots.find((shot) => shot.role === "plan") ?? null;
   const walkStep = nextWalkStep(shots);
   const gableFt = gableRoofFt(Number(garageWidth), Number(rakeOverhang));
-  const scaleLen = gableFt || Number(scaleFeet);
+  const typedScale = Number(scaleFeet);
+  const scaleLen = typedScale > 0 ? typedScale : gableFt;
   const ftPerPx = scaleA && scaleB ? ftPerPxFromScale(scaleA, scaleB, scaleLen) : null;
-  const summary = useMemo(() => summarizePhotoFacets(facets, ftPerPx), [facets, ftPerPx]);
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
-  const drawingOnPlan = Boolean(active && planShot && active.id === planShot.id);
+  const linePitch = roofPitch;
+  const summary = useMemo(
+    () => summarizePhotoFacets(facets, ftPerPx, DEFAULT_WASTE_PCT, measures, linePitch),
+    [facets, ftPerPx, measures, linePitch],
+  );
+  const drawingOnPlan = active?.role === "plan";
 
   async function addFiles(list: FileList | null, forcedRole?: PhotoRole) {
     if (!list?.length) return;
@@ -234,12 +364,14 @@ export function RoofPhotoLab() {
     if (!scaleA) setTool("scale");
   }
 
-  function onImageClick(event: React.PointerEvent<HTMLImageElement>) {
+  function onImageClick(event: React.PointerEvent<HTMLElement>) {
     if (event.button !== 0) return;
+    if ((event.target as HTMLElement | null)?.closest("button")) return;
     const img = imgRef.current;
     if (!img || !active) return;
     const pt = clientToImage(event, img);
     if (!pt) return;
+    event.preventDefault();
     if (!drawingOnPlan) return;
     if (tool === "scale") {
       if (!scaleA || (scaleA && scaleB)) {
@@ -250,32 +382,64 @@ export function RoofPhotoLab() {
       setScaleB(pt);
       return;
     }
-    if (tool === "measure") {
-      setDraft((current) => {
-        if (current.length === 0) return [pt];
-        const a = current[0];
-        setMeasures((rows) => [
-          ...rows,
-          { id: newId("m"), a, b: pt, name: `Line ${rows.length + 1}` },
-        ]);
-        return [];
-      });
+    const otherR = imageSnapRadius(img, SNAP_SCREEN_PX);
+    const sameR = imageSnapRadius(img, SAME_KIND_SNAP_SCREEN_PX);
+    if (tool === "line") {
+      const firstAnchors = lineSnapAnchors(measures, facets, lineKind, sameR, otherR, null);
+      if (draft.length === 0) {
+        setDraft([snapPoint(pt, firstAnchors)]);
+        return;
+      }
+      const a = draft[0];
+      const b = snapPoint(pt, lineSnapAnchors(measures, facets, lineKind, sameR, otherR, a));
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 4) return;
+      setDraft([a, b]);
       return;
     }
-    setDraft((current) => [...current, pt]);
+    const snapped = snapPoint(
+      pt,
+      lineSnapAnchors(measures, facets, lineKind, otherR, otherR, null),
+    );
+    if (tool === "plane" && draft.length >= 3 && nearPx(snapped, draft[0], imageSnapRadius(img, SNAP_SCREEN_PX))) {
+      finishPlane(draft);
+      return;
+    }
+    setDraft((current) => [...current, snapped]);
   }
 
-  function closePlane() {
-    if (draft.length < 3) return;
+  function setLine() {
+    if (draft.length < 2) return;
+    const a = draft[0];
+    const b = draft[1];
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 4) return;
+    const label = EV_LEGEND.find((row) => row.kind === lineKind)?.label ?? "Line";
+    setMeasures((rows) => [
+      ...rows,
+      { id: newId("m"), a, b, name: `${label} ${rows.length + 1}`, kind: lineKind },
+    ]);
+    setDraft([]);
+  }
+
+  function finishPlane(points: Px[]) {
+    if (points.length < 3) return;
     const facet: PhotoFacet = {
       id: newId("facet"),
-      points: draft,
-      pitch: selected?.pitch || facets[facets.length - 1]?.pitch || "",
+      points,
+      pitch: selected?.pitch || facets[facets.length - 1]?.pitch || roofPitch,
       slopeDeg: selected?.slopeDeg ?? facets[facets.length - 1]?.slopeDeg ?? null,
     };
     setFacets((current) => [...current, facet]);
     setSelectedId(facet.id);
     setDraft([]);
+  }
+
+  function closePlane() {
+    if (tool !== "plane") {
+      setTool("plane");
+      setDraft([]);
+      return;
+    }
+    finishPlane(draft);
   }
 
   function send() {
@@ -318,7 +482,7 @@ export function RoofPhotoLab() {
               id="photo-job"
               value={address}
               onChange={(event) => setAddress(event.target.value)}
-              placeholder="Optional"
+              placeholder="2519 Blue Quail St, San Antonio, TX"
             />
           </div>
           <Button type="button" onClick={() => cameraRef.current?.click()}>
@@ -333,8 +497,29 @@ export function RoofPhotoLab() {
             <ImagePlus className="size-4" />
             From roll
           </Button>
+          <Button type="button" variant="outline" onClick={() => void loadBlueQuailSample(true)}>
+            Reload Blue Quail
+          </Button>
         </div>
         <div className="flex gap-2 overflow-x-auto border-b border-border px-3 py-2">
+          {shots
+            .filter((shot) => shot.role === "plan")
+            .map((shot) => (
+              <button
+                key={shot.id}
+                type="button"
+                onClick={() => setActiveId(shot.id)}
+                className={cn(
+                  "flex h-16 w-28 shrink-0 flex-col overflow-hidden rounded-md border",
+                  shot.id === active?.id ? "border-primary" : "border-border",
+                )}
+              >
+                <img src={shot.url} alt="" className="h-10 w-full bg-white object-contain" />
+                <span className="truncate px-1 text-[10px] uppercase tracking-wide text-muted">
+                  Draw here
+                </span>
+              </button>
+            ))}
           {WALK.map((step) => {
             const shot = shots.find((item) => item.role === step.role);
             const isNext = walkStep?.role === step.role;
@@ -366,7 +551,7 @@ export function RoofPhotoLab() {
             );
           })}
           {shots
-            .filter((shot) => shot.role === "plan" || shot.role === "extra")
+            .filter((shot) => shot.role === "extra")
             .map((shot) => (
               <button
                 key={shot.id}
@@ -384,15 +569,122 @@ export function RoofPhotoLab() {
               </button>
             ))}
         </div>
-        <div className="relative min-h-[22rem] flex-1 bg-ink">
+        {active ? (
+          <div className="sticky top-0 z-20 space-y-2 border-b border-border bg-card px-3 py-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {EV_LEGEND.map((row) => {
+                const on = tool === "line" && lineKind === row.kind;
+                return (
+                  <button
+                    key={row.kind}
+                    type="button"
+                    disabled={!drawingOnPlan}
+                    onClick={() => {
+                      setTool("line");
+                      setLineKind(row.kind as LineKind);
+                    }}
+                    className={cn(
+                      "flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs",
+                      on ? "border-ink bg-wash" : "border-border bg-card",
+                      !drawingOnPlan && "opacity-50",
+                    )}
+                  >
+                    <span
+                      className="inline-block h-0 w-4"
+                      style={{
+                        borderTopWidth: 3,
+                        borderTopStyle: row.dash ? "dashed" : "solid",
+                        borderTopColor: row.color,
+                      }}
+                    />
+                    {row.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={tool === "scale" ? "default" : "outline"}
+                disabled={!drawingOnPlan}
+                onClick={() => {
+                  setTool("scale");
+                  setDraft([]);
+                }}
+              >
+                {gableFt ? "Garage gable" : "Label length"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={tool === "plane" ? "default" : "outline"}
+                disabled={!drawingOnPlan}
+                onClick={() => {
+                  setTool("plane");
+                  if (tool !== "plane") setDraft([]);
+                }}
+              >
+                Draw plane
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={tool === "line" && draft.length >= 2 ? "default" : "outline"}
+                disabled={tool !== "line" || draft.length < 2}
+                onClick={setLine}
+              >
+                Set line
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={tool === "plane" && draft.length >= 3 ? "default" : "outline"}
+                disabled={!drawingOnPlan}
+                onClick={closePlane}
+              >
+                Close plane
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={!draft.length && !measures.length}
+                onClick={() => {
+                  if (draft.length) {
+                    setDraft((current) => current.slice(0, -1));
+                    return;
+                  }
+                  setMeasures((current) => current.slice(0, -1));
+                }}
+              >
+                <Undo2 className="size-4" />
+                Undo
+              </Button>
+              {tool === "line" && draft.length >= 2 ? (
+                <span className="text-xs text-muted">Set line to save it</span>
+              ) : tool === "line" && draft.length === 1 ? (
+                <span className="text-xs text-muted">Tap the other end</span>
+              ) : draft.length ? (
+                <span className="text-xs text-muted">
+                  {draft.length} corner{draft.length === 1 ? "" : "s"}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        <div
+          className="relative min-h-0 flex-1 touch-none overflow-hidden bg-zinc-200"
+          onPointerDown={onImageClick}
+        >
           {active ? (
             <img
               ref={imgRef}
               src={active.url}
               alt={active.name}
-              className="h-full w-full cursor-crosshair object-contain"
+              draggable={false}
+              className="h-full w-full cursor-crosshair bg-white object-contain"
               onLoad={() => setFrame((n) => n + 1)}
-              onPointerUp={onImageClick}
             />
           ) : (
             <div className="grid h-full place-items-center px-6 text-center">
@@ -423,64 +715,33 @@ export function RoofPhotoLab() {
                   scaleB={scaleB}
                   scaleLabel={ftPerPx && scaleLen ? `${Math.round(scaleLen)}` : ""}
                   draft={draft}
+                  draftColor={EV_EDGE_COLOR[lineKind] ?? "#f59e0b"}
                   facets={drawingOnPlan ? facets : []}
                   measures={drawingOnPlan ? measures : []}
                   selectedId={selectedId}
                   ftPerPx={ftPerPx}
+                  pitch={linePitch}
                 />
               </svg>
-              {drawingOnPlan ? <EvLegend className="absolute left-3 top-3" /> : null}
             </>
           ) : null}
-          <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-2">
-      <Button
-              type="button"
-              size="sm"
-              variant={tool === "scale" ? "default" : "outline"}
-              disabled={!drawingOnPlan}
-              onClick={() => setTool("scale")}
-            >
-              {gableFt ? "Garage gable" : "Label length"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={tool === "plane" ? "default" : "outline"}
-              disabled={!drawingOnPlan}
-              onClick={() => setTool("plane")}
-            >
-              Draw plane
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={tool === "measure" ? "default" : "outline"}
-              disabled={!drawingOnPlan || !ftPerPx}
-              onClick={() => setTool("measure")}
-            >
-              Measure
-            </Button>
-            <Button type="button" size="sm" variant="outline" disabled={draft.length < 3} onClick={closePlane}>
-              Close plane
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={!draft.length}
-              onClick={() => setDraft((current) => current.slice(0, -1))}
-            >
-              <Undo2 className="size-4" />
-              Undo
-            </Button>
-          </div>
         </div>
         <p className="px-4 py-2 text-xs text-muted">
-          {walkStep
-            ? `Next: ${walkStep.prompt}. Phone photos from the yard. No tile downloads.`
+          {drawingOnPlan
+            ? tool === "line"
+              ? draft.length >= 2
+                ? `Both ends are marked. Tap Set line to save this ${lineKind}.`
+                : draft.length === 1
+                  ? `Tap the other end of this ${lineKind}, then Set line.`
+                  : `Pick a color, tap both ends, then Set line. ${EV_LEGEND.find((row) => row.kind === lineKind)?.label ?? "Eaves"} is on.`
+              : draft.length >= 3
+                ? `${draft.length} corners on this plane. Tap Close plane, or tap the first corner again.`
+                : draft.length
+                  ? `${draft.length} corner${draft.length === 1 ? "" : "s"} on this plane. Tap the rest, then Close plane.`
+                  : "Tap each corner of a slope, then Close plane. Draw plane is on."
             : planShot
-              ? "Enter garage width and overhangs, tap the garage gable drip to drip, draw each slope, pick pitch and drain."
-              : "Walk is in. Add or mark a plan / top to draw squares. Elevations keep the job."}
+              ? "Tap Draw here (the line drawing) to trace. Yard photos are only for pitch and drain."
+              : "Walk is in. Add or mark a plan / top to draw squares."}
         </p>
       </section>
 
@@ -553,7 +814,7 @@ export function RoofPhotoLab() {
               </>
             ) : (
               <p className="col-span-2 text-xs text-ink-foreground/60">
-                Add a drain on each plane to name ridge, eave, rake, hip, and valley.
+                Pick a line color and tap both ends. That names ridge, eave, rake, hip, and valley.
               </p>
             )}
           </dl>
@@ -567,7 +828,7 @@ export function RoofPhotoLab() {
               onEaveOverhang={setEaveOverhang}
               onRakeOverhang={setRakeOverhang}
             />
-            {gableFt ? null : (
+            {gableFt && typedScale <= 0 ? null : (
               <div className="space-y-1.5">
                 <Label className="text-ink-foreground/60">Known length (ft)</Label>
                 <Input
@@ -578,9 +839,27 @@ export function RoofPhotoLab() {
                 />
               </div>
             )}
+            <div className="space-y-1.5">
+              <Label className="text-ink-foreground/60">Pitch</Label>
+              <Select value={roofPitch} onValueChange={setRoofPitch}>
+                <SelectTrigger
+                  className="h-10 bg-ink-foreground/10 font-mono tabular-nums text-ink-foreground shadow-none ring-1 ring-ink-foreground/15"
+                  aria-label="Roof pitch"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PITCH_OPTIONS.map((pitch) => (
+                    <SelectItem key={pitch} value={pitch}>
+                      {pitch}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <p className="text-xs text-ink-foreground/60">
               {ftPerPx
-                ? `${(1 / ftPerPx).toFixed(1)} px = 1 ft`
+                ? `${(1 / ftPerPx).toFixed(1)} px = 1 ft. Scale is the 41 ft ridge. Rakes, hips, and valleys use ${linePitch} so they match EagleView’s 3D lengths.`
                 : gableFt
                   ? "Tap both ends of the garage gable, drip to drip."
                   : "Tap two ends of something you know, then type the feet."}
@@ -595,20 +874,21 @@ export function RoofPhotoLab() {
 
         {measures.length ? (
           <div className="rounded-xl bg-card p-4 shadow-border">
-            <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Labeled lengths</p>
+            <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Lines</p>
             <ul className="mt-3 space-y-2">
               {measures.map((row) => (
                 <li key={row.id} className="flex items-center justify-between gap-2 text-sm">
-                  <Input
-                    value={row.name}
-                    onChange={(event) =>
-                      setMeasures((current) =>
-                        current.map((item) => (item.id === row.id ? { ...item, name: event.target.value } : item)),
-                      )
-                    }
+                  <span
+                    className="inline-block h-0 w-4 shrink-0"
+                    style={{
+                      borderTopWidth: 3,
+                      borderTopStyle: evStrokeDash(row.kind ?? "") ? "dashed" : "solid",
+                      borderTopColor: (row.kind && EV_EDGE_COLOR[row.kind]) || "#111",
+                    }}
                   />
+                  <span className="min-w-0 flex-1 truncate">{row.name}</span>
                   <span className="shrink-0 font-mono tabular-nums text-muted">
-                    {measureLengthFt(row, ftPerPx) ?? "-"} ft
+                    {measureLengthFt(row, ftPerPx, linePitch) ?? "-"} ft
                   </span>
                   <Button
                     type="button"
@@ -719,10 +999,12 @@ function PhotoOverlay({
   scaleB,
   scaleLabel,
   draft,
+  draftColor,
   facets,
   measures,
   selectedId,
   ftPerPx,
+  pitch,
 }: {
   img: HTMLImageElement | null;
   shot: Shot;
@@ -731,10 +1013,12 @@ function PhotoOverlay({
   scaleB: Px | null;
   scaleLabel: string;
   draft: Px[];
+  draftColor: string;
   facets: PhotoFacet[];
   measures: PhotoMeasure[];
   selectedId: string | null;
   ftPerPx: number | null;
+  pitch: string;
 }) {
   if (!img || !img.clientWidth) return null;
   const rect = img.getBoundingClientRect();
@@ -813,13 +1097,29 @@ function PhotoOverlay({
             })
         : null}
       {draft.length ? (
-        <polyline
-          points={draft.map(to).join(" ")}
-          fill="none"
-          stroke="#111"
-          strokeWidth={2}
-          strokeDasharray="6 4"
-        />
+        <>
+          <polyline
+            points={draft.map(to).join(" ")}
+            fill="none"
+            stroke={draftColor}
+            strokeWidth={2}
+            strokeDasharray="6 4"
+          />
+          {draft.map((pt, index) => {
+            const [cx, cy] = xy(pt);
+            return (
+              <circle
+                key={`draft-${index}`}
+                cx={cx}
+                cy={cy}
+                r={6}
+                fill={draftColor}
+                stroke="#111"
+                strokeWidth={1.5}
+              />
+            );
+          })}
+        </>
       ) : null}
       {scaleA && !edges.length ? <circle cx={xy(scaleA)[0]} cy={xy(scaleA)[1]} r={5} fill="#111" stroke="#fff" /> : null}
       {scaleA && scaleB && !edges.length ? (
@@ -859,33 +1159,48 @@ function PhotoOverlay({
           ) : null}
         </>
       ) : null}
-      {measures.map((row) => (
-        <g key={row.id}>
-          <line
-            x1={xy(row.a)[0]}
-            y1={xy(row.a)[1]}
-            x2={xy(row.b)[0]}
-            y2={xy(row.b)[1]}
-            stroke="#111"
-            strokeWidth={2}
-          />
-          <text
-            x={(xy(row.a)[0] + xy(row.b)[0]) / 2}
-            y={(xy(row.a)[1] + xy(row.b)[1]) / 2 - 8}
-            fill="#111"
-            stroke="#fff"
-            strokeWidth={3}
-            paintOrder="stroke"
-            fontSize="12"
-            fontWeight="700"
-            fontFamily="Arial, Helvetica, sans-serif"
-            textAnchor="middle"
-          >
-            {row.name}
-            {ftPerPx ? ` ${measureLengthFt(row, ftPerPx)}` : ""}
-          </text>
-        </g>
-      ))}
+      {measures.map((row) => {
+        const color = (row.kind && EV_EDGE_COLOR[row.kind]) || "#111";
+        const dash = row.kind ? evStrokeDash(row.kind) : undefined;
+        const [x1, y1] = xy(row.a);
+        const [x2, y2] = xy(row.b);
+        const length = measureLengthFt(row, ftPerPx, pitch);
+        const label = length != null ? evLengthLabel(length) : "";
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy) || 1;
+        return (
+          <g key={row.id}>
+            <line
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke={color}
+              strokeWidth={3.25}
+              strokeLinecap="round"
+              strokeDasharray={dash}
+            />
+            {label ? (
+              <text
+                x={(x1 + x2) / 2 - (dy / len) * 10}
+                y={(y1 + y2) / 2 + (dx / len) * 10}
+                fill={color}
+                stroke="#fff"
+                strokeWidth={3.5}
+                paintOrder="stroke"
+                fontSize="13"
+                fontWeight="700"
+                fontFamily="Arial, Helvetica, sans-serif"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {label}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
     </g>
   );
 }

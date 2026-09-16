@@ -551,7 +551,7 @@ export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
   writeTradeSections(pdf, job, "contractor");
 
   pdf.paragraph(
-    `This estimate uses ${PRICE_LIST} installed unit prices (${PRICE_AS_OF}) except cabinets. Cabinets use Northville Cabinetry MSRP (December 2023) plus $75 install per unit ($125 for pantries and refrigerator panels). Overhead and profit is applied to the job total. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
+    `This estimate uses ${PRICE_LIST} installed unit prices (${PRICE_AS_OF}) except cabinets. Cabinets use Northville Cabinetry MSRP (December 2023) plus $75 install per unit ($125 for pantries and refrigerator panels). Line codes: R&R remove & replace, R remove only, + install only. Overhead and profit is applied to interior work. Roofing is installed unit prices with no O&P. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
     8,
     MUTED,
   );
@@ -604,7 +604,7 @@ export async function buildCustomerPdf(job: JobEstimate, client: ClientInfo) {
   // 3) Trade breakdown after the job total
   writeTradeSections(pdf, job, "customer");
   pdf.paragraph(
-    `Job total includes installed work and overhead. Valid 30 days. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
+    `Job total includes installed work. Overhead applies to interior rooms, not roofing. R&R is remove & replace, R is remove only, + is install only. Valid 30 days. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
     8,
     MUTED,
   );

@@ -1,4 +1,5 @@
 import type { JobEstimate, JobLineItem, LineItem } from "@/lib/estimator";
+import { lineTakesOp, opBaseFromLines } from "@/lib/op";
 
 /** Print order for By trade / Cost per item (who does the work). */
 export const TRADE_ORDER = [
@@ -173,18 +174,25 @@ function round2(n: number) {
 }
 
 export function tradeTotals(job: JobEstimate): TradeTotal[] {
-  const opRate = job.materialsSubtotal > 0 ? job.laborSubtotal / job.materialsSubtotal : 0;
-  const buckets = new Map<TradeName, number>();
-  for (const trade of TRADE_ORDER) buckets.set(trade, 0);
+  const opBase = opBaseFromLines(job.completeLineItems);
+  const opRate = opBase > 0 ? job.laborSubtotal / opBase : 0;
+  const installedBy = new Map<TradeName, number>();
+  const opBy = new Map<TradeName, number>();
+  for (const trade of TRADE_ORDER) {
+    installedBy.set(trade, 0);
+    opBy.set(trade, 0);
+  }
 
   for (const line of job.completeLineItems) {
     const trade = assignTrade(line);
-    buckets.set(trade, (buckets.get(trade) ?? 0) + line.lineTotal);
+    installedBy.set(trade, (installedBy.get(trade) ?? 0) + line.lineTotal);
+    const lineOp = lineTakesOp(line.category) ? line.lineTotal * opRate : 0;
+    opBy.set(trade, (opBy.get(trade) ?? 0) + lineOp);
   }
 
-  return TRADE_ORDER.filter((trade) => (buckets.get(trade) ?? 0) > 0).map((trade) => {
-    const installed = round2(buckets.get(trade) ?? 0);
-    const op = round2(installed * opRate);
+  return TRADE_ORDER.filter((trade) => (installedBy.get(trade) ?? 0) > 0).map((trade) => {
+    const installed = round2(installedBy.get(trade) ?? 0);
+    const op = round2(opBy.get(trade) ?? 0);
     return { trade, installed, op, total: round2(installed + op) };
   });
 }

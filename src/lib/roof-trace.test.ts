@@ -44,6 +44,9 @@ describe("roof-trace", () => {
     assert.ok(names.includes("Hip / ridge cap \u2014 composition"));
     const shingles = items.find((item) => item.name === ROOF_SHINGLE);
     assert.equal(shingles?.quantity, summary.squares_with_waste);
+    assert.equal(shingles?.act, "plus");
+    const tearoff = items.find((item) => item.name === ROOF_TEAROFF);
+    assert.equal(tearoff?.act, "r");
     assert.ok((shingles?.quantity ?? 0) > 0);
   });
 });

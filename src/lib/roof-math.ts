@@ -525,12 +525,15 @@ export type PhotoMeasure = {
   a: Px;
   b: Px;
   name: string;
+  kind?: "ridge" | "hip" | "valley" | "rake" | "eave";
 };
 
 export function summarizePhotoFacets(
   facets: PhotoFacet[],
   ftPerPx: number | null,
   wastePct = DEFAULT_WASTE_PCT,
+  lines: PhotoMeasure[] = [],
+  pitch?: string,
 ): RoofSummary {
   const emptyEdges: NamedEdge[] = [];
   if (ftPerPx == null || ftPerPx <= 0) {
@@ -580,32 +583,91 @@ export function summarizePhotoFacets(
   const slopedRounded = Math.round(sloped * 10) / 10;
   const withWaste = applyWasteFactor(slopedRounded, wastePct);
   const classified = classifyEdges(photoFacetsToRoof(facets, ftPerPx));
+  const linePitch = pitch || facets.find((facet) => normalizePitch(facet.pitch))?.pitch || "5/12";
+  return applyDrawnLines(
+    {
+      facet_count: count,
+      total_flat_area_sqft: Math.round(flat * 10) / 10,
+      total_area_with_pitch_multiplier_sqft: slopedRounded,
+      total_squares: Math.round((slopedRounded / 100) * 100) / 100,
+      waste_factor_pct: wastePct,
+      final_area_sqft_with_waste: withWaste,
+      squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
+      perimeter_ft: Math.round(peri * 10) / 10,
+      incomplete:
+        count === 0 ? "Draw at least one roof plane on the plan photo." : missingPitch ? "Every facet needs a pitch." : null,
+      eaves_ft: classified.eaves_ft,
+      rakes_ft: classified.rakes_ft,
+      ridges_ft: classified.ridges_ft,
+      hips_ft: classified.hips_ft,
+      valleys_ft: classified.valleys_ft,
+      steps_ft: classified.steps_ft,
+      ridges_hips_ft: classified.ridges_hips_ft,
+      drip_ft: classified.drip_ft,
+      shared_edges: classified.shared_edges,
+      edges: classified.edges.length ? classified.edges : emptyEdges,
+      steep_squares: Math.round((steepSloped / 100) * 100) / 100,
+    },
+    lines,
+    ftPerPx,
+    linePitch,
+  );
+}
+
+/** Plan length from the photo. EagleView prints 3D (along-the-roof) lengths instead. */
+export function lineTrueLengthFt(
+  a: Px,
+  b: Px,
+  kind: PhotoMeasure["kind"] | undefined,
+  ftPerPx: number,
+  pitch: string,
+): number {
+  const plan = pixelDistance(a, b) * ftPerPx;
+  const risePer = pitchRisePerRun(pitch);
+  if (!kind || risePer <= 0 || kind === "eave" || kind === "ridge") return plan;
+  if (kind === "rake") return Math.hypot(plan, plan * risePer);
+  return Math.hypot(plan, (plan * risePer) / Math.SQRT2);
+}
+
+export function applyDrawnLines(
+  summary: RoofSummary,
+  lines: PhotoMeasure[],
+  ftPerPx: number | null,
+  pitch = "5/12",
+): RoofSummary {
+  if (ftPerPx == null || ftPerPx <= 0 || !lines.length) return summary;
+  const add = { eave: 0, rake: 0, ridge: 0, hip: 0, valley: 0 };
+  let any = false;
+  for (const line of lines) {
+    const kind = line.kind;
+    if (!kind || !(kind in add)) continue;
+    add[kind] += lineTrueLengthFt(line.a, line.b, kind, ftPerPx, pitch);
+    any = true;
+  }
+  if (!any) return summary;
+  const round = (n: number) => Math.round(n * 10) / 10;
+  const eaves = round((summary.eaves_ft ?? 0) + add.eave);
+  const rakes = round((summary.rakes_ft ?? 0) + add.rake);
+  const ridges = round((summary.ridges_ft ?? 0) + add.ridge);
+  const hips = round((summary.hips_ft ?? 0) + add.hip);
+  const valleys = round((summary.valleys_ft ?? 0) + add.valley);
   return {
-    facet_count: count,
-    total_flat_area_sqft: Math.round(flat * 10) / 10,
-    total_area_with_pitch_multiplier_sqft: slopedRounded,
-    total_squares: Math.round((slopedRounded / 100) * 100) / 100,
-    waste_factor_pct: wastePct,
-    final_area_sqft_with_waste: withWaste,
-    squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
-    perimeter_ft: Math.round(peri * 10) / 10,
-    incomplete:
-      count === 0 ? "Draw at least one roof plane on the plan photo." : missingPitch ? "Every facet needs a pitch." : null,
-    eaves_ft: classified.eaves_ft,
-    rakes_ft: classified.rakes_ft,
-    ridges_ft: classified.ridges_ft,
-    hips_ft: classified.hips_ft,
-    valleys_ft: classified.valleys_ft,
-    steps_ft: classified.steps_ft,
-    ridges_hips_ft: classified.ridges_hips_ft,
-    drip_ft: classified.drip_ft,
-    shared_edges: classified.shared_edges,
-    edges: classified.edges.length ? classified.edges : emptyEdges,
-    steep_squares: Math.round((steepSloped / 100) * 100) / 100,
+    ...summary,
+    eaves_ft: eaves,
+    rakes_ft: rakes,
+    ridges_ft: ridges,
+    hips_ft: hips,
+    valleys_ft: valleys,
+    ridges_hips_ft: round(ridges + hips),
+    drip_ft: round(eaves + rakes),
   };
 }
 
-export function measureLengthFt(measure: PhotoMeasure, ftPerPx: number | null): number | null {
+export function measureLengthFt(
+  measure: PhotoMeasure,
+  ftPerPx: number | null,
+  pitch = "5/12",
+): number | null {
   if (ftPerPx == null) return null;
-  return Math.round(pixelDistance(measure.a, measure.b) * ftPerPx * 10) / 10;
+  return Math.round(lineTrueLengthFt(measure.a, measure.b, measure.kind, ftPerPx, pitch) * 10) / 10;
 }

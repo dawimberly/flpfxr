@@ -1,4 +1,5 @@
 import type { SelectionValue } from "@/lib/estimator";
+import { normalizeLineAct } from "@/lib/line-act";
 
 export type SelectionInput = SelectionValue | SelectionValue[] | undefined;
 
@@ -19,6 +20,7 @@ export function normalizeSelections(
       out[key] = list.map((item) => ({
         name: item.name,
         quantity: item.quantity ?? null,
+        act: normalizeLineAct(item.act, item.name),
       }));
     }
   }

@@ -36,6 +36,7 @@ import {
 import { DEFAULT_OP_PERCENT, effectiveOpPercent, rememberOpPercent } from "@/lib/op";
 import { applyRoofTraceToJob } from "@/lib/roof-trace";
 import type { RoofSummary } from "@/lib/roof-math";
+import { defaultLineAct, normalizeLineAct, type LineAct } from "@/lib/line-act";
 import { normalizeRooms, selectionList } from "@/lib/selections";
 
 type JobSlice = {
@@ -67,6 +68,7 @@ type EstimatorState = JobSlice & {
   setSelection: (category: string, patch: Partial<SelectionValue>) => void;
   addSelection: (category: string, name: string) => void;
   setSelectionQty: (category: string, name: string, quantity: number | null) => void;
+  setSelectionAct: (category: string, name: string, act: LineAct) => void;
   removeSelection: (category: string, name: string) => void;
   clearSelection: (category: string) => void;
   addCategory: (category: string) => void;
@@ -290,6 +292,7 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
         const next: SelectionValue = {
           name: patch.name,
           quantity: patch.quantity !== undefined ? patch.quantity : existing?.quantity ?? (needsQty ? 1 : null),
+          act: normalizeLineAct(patch.act ?? existing?.act, patch.name),
         };
         const others = list.filter((item) => item.name !== patch.name);
         return patchActive(state, {
@@ -315,7 +318,7 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       return patchActive(state, {
         selections: {
           ...active.selections,
-          [category]: [...list, { name, quantity: needsQty ? 1 : null }],
+          [category]: [...list, { name, quantity: needsQty ? 1 : null, act: defaultLineAct(name) }],
         },
       });
     }),
@@ -334,6 +337,20 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
                   quantity: quantity == null || Number.isFinite(quantity) ? quantity : item.quantity,
                 }
               : item,
+          ),
+        },
+      });
+    }),
+  setSelectionAct: (category, name, act) =>
+    set((state) => {
+      const active = state.rooms.find((room) => room.id === state.activeRoomId);
+      if (!active) return state;
+      const list = selectionList(active.selections[category]);
+      return patchActive(state, {
+        selections: {
+          ...active.selections,
+          [category]: list.map((item) =>
+            item.name === name ? { ...item, act: normalizeLineAct(act, item.name) } : item,
           ),
         },
       });

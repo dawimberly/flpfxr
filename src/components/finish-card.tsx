@@ -17,12 +17,14 @@ import {
   type JobRoom,
 } from "@/lib/estimator";
 import { useEstimatorStore } from "@/lib/estimator-store";
+import { actUnitCost, isRemoveOnlySku, LINE_ACTS, normalizeLineAct } from "@/lib/line-act";
 import { selectionList } from "@/lib/selections";
-import { money, qtyLabel } from "@/lib/utils";
+import { cn, money, qtyLabel } from "@/lib/utils";
 
 export function FinishCard({ category, room }: { category: string; room: JobRoom }) {
   const addSelection = useEstimatorStore((s) => s.addSelection);
   const setSelectionQty = useEstimatorStore((s) => s.setSelectionQty);
+  const setSelectionAct = useEstimatorStore((s) => s.setSelectionAct);
   const removeSelection = useEstimatorStore((s) => s.removeSelection);
   const clearSelection = useEstimatorStore((s) => s.clearSelection);
   const block = catalog[category];
@@ -59,14 +61,41 @@ export function FinishCard({ category, room }: { category: string; room: JobRoom
             const infer = canInferQuantity(category, option.unit);
             const autoQty = inferredQuantity(scan, category, option.unit);
             const qty = pick.quantity ?? autoQty;
+            const act = normalizeLineAct(pick.act, option.name);
+            const unitCost = actUnitCost(option, act);
+            const removeOnly = isRemoveOnlySku(option.name);
             return (
               <li key={pick.name} className="py-2.5 first:pt-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm text-fg">{option.name}</p>
                     <p className="text-xs text-muted">
-                      {money(option.cost_per_unit)} / {option.unit}
+                      {money(unitCost)} / {option.unit}
                     </p>
+                    <div className="mt-2 flex w-fit rounded-full bg-card p-0.5 shadow-border">
+                      {LINE_ACTS.map((item) => {
+                        const lockedOff = removeOnly && item.id !== "r";
+                        const on = act === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            disabled={lockedOff}
+                            title={item.label}
+                            aria-label={item.label}
+                            aria-pressed={on}
+                            onClick={() => setSelectionAct(category, pick.name, item.id)}
+                            className={cn(
+                              "h-7 min-w-8 rounded-full px-2 text-xs tabular-nums transition-colors duration-150",
+                              on ? "bg-ink text-ink-foreground" : "text-muted",
+                              lockedOff && "opacity-40",
+                            )}
+                          >
+                            {item.code}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <button
                     type="button"

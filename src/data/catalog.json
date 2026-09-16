@@ -750,12 +750,14 @@
       {
         "name": "3-tab composition shingles — 25 yr",
         "unit": "square",
-        "cost_per_unit": 268
+        "cost_per_unit": 268,
+        "remove_cost_per_unit": 72
       },
       {
         "name": "Laminated composition shingles",
         "unit": "square",
-        "cost_per_unit": 325
+        "cost_per_unit": 325,
+        "remove_cost_per_unit": 72
       },
       {
         "name": "Asphalt starter — universal",

@@ -11,5 +11,6 @@ dist
 .neon
 
 public/sim-spring-rain/
+public/blue-quail-local/
 
 .env*

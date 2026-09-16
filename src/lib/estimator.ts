@@ -1,6 +1,14 @@
 import catalogJson from "@/data/catalog.json";
 import roomTypesJson from "@/data/room-types.json";
 import { cabinetLineItems, isCabinetCategory, type CabinetPick } from "@/lib/cabinets";
+import {
+  actDescription,
+  actUnitCost,
+  isRemoveOnlySku,
+  normalizeLineAct,
+  type LineAct,
+} from "@/lib/line-act";
+import { opBaseFromLines } from "@/lib/op";
 
 export const LABOR_RATE_PER_HOUR = 55;
 export const OP_PERCENT = 20;
@@ -21,6 +29,7 @@ export type CatalogOption = {
   name: string;
   unit: string;
   cost_per_unit: number;
+  remove_cost_per_unit?: number;
 };
 
 export type CatalogCategory = {
@@ -51,7 +60,7 @@ export type ClientInfo = {
   propertyAddress: string;
 };
 
-export type SelectionValue = { name: string; quantity: number | null };
+export type SelectionValue = { name: string; quantity: number | null; act?: LineAct };
 
 export type CategorySelections = SelectionValue | SelectionValue[];
 
@@ -59,6 +68,7 @@ export type Selection = {
   category: string;
   name: string;
   quantity: number | null;
+  act?: LineAct;
 };
 
 export type LineItem = {
@@ -69,6 +79,7 @@ export type LineItem = {
   lineTotal: number;
   kind: "material" | "labor";
   category: string;
+  act?: LineAct;
 };
 
 export type JobLineItem = LineItem & {
@@ -243,6 +254,7 @@ export function selectionsFromRoom(room: JobRoom): Selection[] {
         category,
         name: item.name,
         quantity: item.quantity,
+        act: item.act,
       })),
     );
 }
@@ -255,6 +267,12 @@ export function buildEstimate(
 ): Estimate {
   const lineItems: LineItem[] = [];
   const warnings: string[] = [];
+  const shingleCoversTearoff = selections.some((selection) => {
+    if (selection.category !== "roofing" || isRemoveOnlySku(selection.name)) return false;
+    if (!/shingles/i.test(selection.name)) return false;
+    const act = normalizeLineAct(selection.act, selection.name);
+    return act === "rr" || act === "r";
+  });
 
   for (const selection of selections) {
     if (!selection.name) continue;
@@ -262,6 +280,11 @@ export function buildEstimate(
     const item = lookupOption(selection.category, selection.name);
     if (!item) {
       warnings.push(`No catalog option named \u201c${selection.name}\u201d in ${selection.category}.`);
+      continue;
+    }
+
+    const act = normalizeLineAct(selection.act, item.name);
+    if (shingleCoversTearoff && isRemoveOnlySku(item.name) && /tear-?off/i.test(item.name)) {
       continue;
     }
 
@@ -275,15 +298,19 @@ export function buildEstimate(
     }
 
     const quantity = round2(qty);
-    const unitCost = item.cost_per_unit;
+    const unitCost = actUnitCost(item, act);
+    if (act === "r" && unitCost <= 0) {
+      warnings.push(`No remove price for ${item.name}. Priced at $0 — switch to + or R&R, or pick a tear-off line.`);
+    }
     lineItems.push({
-      description: item.name,
+      description: actDescription(item.name, act),
       quantity,
       unit: item.unit,
       unitCost,
       lineTotal: round2(quantity * unitCost),
       kind: "material",
       category: item.category,
+      act,
     });
   }
 
@@ -294,7 +321,7 @@ export function buildEstimate(
   }
 
   const materialsSubtotal = round2(lineItems.reduce((sum, line) => sum + line.lineTotal, 0));
-  const laborSubtotal = round2(materialsSubtotal * (opPercent / 100));
+  const laborSubtotal = round2(opBaseFromLines(lineItems) * (opPercent / 100));
 
   return {
     lineItems,

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Hammer, RotateCcw, Trash2, Undo2 } from "lucide-react";
+import { ExternalLink, Hammer, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import { EvLegend, RoofDimFields } from "@/components/roof-ev-chrome";
 import { RoofMap } from "@/components/roof-map";
 import { RoofPhotoLab } from "@/components/roof-photo-lab";
@@ -14,6 +14,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BLUE_QUAIL } from "@/lib/blue-quail";
+import {
+  availableBasemaps,
+  esriWaybackAppUrl,
+  googleEarthNadirUrl,
+  googleMapsSatelliteUrl,
+  openTopographyUrl,
+  parseWaybackConfig,
+  roofMapBasemap,
+  WAYBACK_CONFIG_URL,
+  type BasemapId,
+  type WaybackRelease,
+} from "@/lib/roof-basemap";
 import { COMPANY } from "@/lib/estimator";
 import { geocodeAddress } from "@/lib/geocode";
 import {
@@ -27,7 +40,6 @@ import { useEstimatorStore } from "@/lib/estimator-store";
 import { cn } from "@/lib/utils";
 
 const TRACE_KEY = "flipfixer.roof-trace.v1";
-const SAN_ANTONIO = { lat: 29.4241, lng: -98.4936 };
 
 const DRAINS = [
   { value: "__none", label: "none" },
@@ -78,8 +90,8 @@ export function RoofTracerApp() {
   const navigate = useNavigate();
   const applyRoofTrace = useEstimatorStore((s) => s.applyRoofTrace);
   const hydrate = useEstimatorStore((s) => s.hydrate);
-  const [address, setAddress] = useState("");
-  const [center, setCenter] = useState(SAN_ANTONIO);
+  const [address, setAddress] = useState(BLUE_QUAIL.address);
+  const [center, setCenter] = useState(BLUE_QUAIL.center);
   const [zoom, setZoom] = useState(19);
   const [facets, setFacets] = useState<RoofFacet[]>([]);
   const [draft, setDraft] = useState<LatLng[]>([]);
@@ -89,26 +101,83 @@ export function RoofTracerApp() {
   const [looking, setLooking] = useState(false);
   const [sent, setSent] = useState(false);
   const [mode, setMode] = useState<"map" | "photos">("photos");
-  const [garageWidth, setGarageWidth] = useState("");
-  const [eaveOverhang, setEaveOverhang] = useState("");
-  const [rakeOverhang, setRakeOverhang] = useState("");
+  const [mapSeen, setMapSeen] = useState(false);
+  const mapApiRef = useRef<{ invalidate: () => void } | null>(null);
+  const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
+  const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
+  const [rakeOverhang, setRakeOverhang] = useState(BLUE_QUAIL.rakeOverhangIn);
+  const [traceReady, setTraceReady] = useState(false);
+  const [photoClearTick, setPhotoClearTick] = useState(0);
+  const maptilerKey = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
+  const basemapChoices = availableBasemaps(maptilerKey);
+  const [basemapId, setBasemapId] = useState<BasemapId>("esri");
+  const [waybackRelease, setWaybackRelease] = useState("26334");
+  const [waybackDates, setWaybackDates] = useState<WaybackRelease[]>([]);
+  const mapBasemap = useMemo(
+    () => roofMapBasemap(basemapId, { waybackRelease, maptilerKey }),
+    [basemapId, maptilerKey, waybackRelease],
+  );
 
   useEffect(() => {
     hydrate();
     const saved = loadTrace();
-    if (!saved) return;
-    setAddress(saved.address);
-    setCenter(saved.center);
-    setFacets(saved.facets);
-    setGarageWidth(saved.garageWidth ?? "");
-    setEaveOverhang(saved.eaveOverhang ?? "");
-    setRakeOverhang(saved.rakeOverhang ?? "");
-    setZoom(20);
+    if (saved?.facets?.length || saved?.garageWidth) {
+      setAddress(saved.address);
+      setCenter(saved.center);
+      setFacets(saved.facets);
+      setGarageWidth(saved.garageWidth ?? "");
+      setEaveOverhang(saved.eaveOverhang ?? "");
+      setRakeOverhang(saved.rakeOverhang ?? "");
+      setZoom(20);
+    } else {
+      setAddress(BLUE_QUAIL.address);
+      setCenter(BLUE_QUAIL.center);
+      setGarageWidth(BLUE_QUAIL.garageWidthFt);
+      setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
+      setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
+      setZoom(20);
+    }
+    setTraceReady(true);
   }, [hydrate]);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(WAYBACK_CONFIG_URL);
+        if (!res.ok) return;
+        const raw = (await res.json()) as Record<string, { itemTitle?: string }>;
+        if (cancelled) return;
+        const rows = parseWaybackConfig(raw);
+        if (!rows.length) return;
+        setWaybackDates(rows);
+        setWaybackRelease((current) =>
+          rows.some((row) => row.release === current) ? current : rows[0].release,
+        );
+      } catch {
+        /* Esri aerial still works without the date list. */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "map") return;
+    setMapSeen(true);
+    const t = window.setTimeout(() => mapApiRef.current?.invalidate(), 80);
+    const t2 = window.setTimeout(() => mapApiRef.current?.invalidate(), 280);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
+  }, [mode]);
+
+  useEffect(() => {
+    if (!traceReady) return;
     saveTrace({ address, center, facets, garageWidth, eaveOverhang, rakeOverhang });
-  }, [address, center, facets, garageWidth, eaveOverhang, rakeOverhang]);
+  }, [traceReady, address, center, facets, garageWidth, eaveOverhang, rakeOverhang]);
 
   const summary = useMemo(() => summarizeFacets(facets), [facets]);
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
@@ -193,7 +262,10 @@ export function RoofTracerApp() {
               </button>
               <button
                 type="button"
-                onClick={() => setMode("map")}
+                onClick={() => {
+                  setMapSeen(true);
+                  setMode("map");
+                }}
                 className={cn(
                   "h-8 rounded-full px-3 text-xs",
                   mode === "map" ? "bg-ink text-ink-foreground" : "text-muted",
@@ -215,6 +287,7 @@ export function RoofTracerApp() {
                 setSelectedId(null);
                 setDrawing(false);
                 setSent(false);
+                setPhotoClearTick((n) => n + 1);
               }}
             >
               <RotateCcw className="size-4" />
@@ -224,27 +297,112 @@ export function RoofTracerApp() {
         </div>
       </header>
 
-      {mode === "photos" ? (
-        <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 px-4 py-4 sm:px-6">
-          <RoofPhotoLab />
-        </main>
-      ) : (
-      <main className="mx-auto grid w-full min-w-0 max-w-6xl flex-1 gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,22rem)]">
+      <main
+        className={cn(
+          "mx-auto flex min-h-0 w-full min-w-0 max-w-6xl flex-1 px-4 py-4 sm:px-6",
+          mode === "photos" ? "" : "hidden",
+        )}
+      >
+        <RoofPhotoLab clearTick={photoClearTick} />
+      </main>
+      {mapSeen ? (
+      <main
+        className={cn(
+          "mx-auto grid w-full min-w-0 max-w-6xl flex-1 gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,22rem)]",
+          mode === "map" ? "" : "hidden",
+        )}
+      >
         <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-border">
-          <form onSubmit={onPin} className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <Label htmlFor="roof-address">Address</Label>
-              <Input
-                id="roof-address"
-                value={address}
-                onChange={(event) => setAddress(event.target.value)}
-                placeholder="7627 Meadow Lawn, San Antonio, TX"
-                autoComplete="street-address"
-              />
+          <form onSubmit={onPin} className="flex flex-col gap-2 border-b border-border px-4 py-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label htmlFor="roof-address">Address</Label>
+                <Input
+                  id="roof-address"
+                  value={address}
+                  onChange={(event) => setAddress(event.target.value)}
+                  placeholder="2519 Blue Quail St, San Antonio, TX"
+                  autoComplete="street-address"
+                />
+              </div>
+              <Button type="submit" disabled={looking}>
+                {looking ? "Finding-" : "Pin house"}
+              </Button>
             </div>
-            <Button type="submit" disabled={looking}>
-              {looking ? "Finding-" : "Pin house"}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label>Top view</Label>
+                <Select
+                  value={basemapId}
+                  onValueChange={(value) => setBasemapId(value as BasemapId)}
+                >
+                  <SelectTrigger className="h-10" aria-label="Top view source">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {basemapChoices.map((row) => (
+                      <SelectItem key={row.id} value={row.id}>
+                        {row.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {basemapId === "wayback" ? (
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Label>Wayback date</Label>
+                  <Select value={waybackRelease} onValueChange={setWaybackRelease}>
+                    <SelectTrigger className="h-10" aria-label="Wayback imagery date">
+                      <SelectValue placeholder="Date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(waybackDates.length
+                        ? waybackDates
+                        : [{ release: waybackRelease, date: "2026-08-05", title: "Wayback" }]
+                      ).map((row) => (
+                        <SelectItem key={row.release} value={row.release}>
+                          {row.date}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+            </div>
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+              <a
+                className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                href={googleEarthNadirUrl(center.lat, center.lng)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Google Earth <ExternalLink className="size-3" />
+              </a>
+              <a
+                className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                href={googleMapsSatelliteUrl(center.lat, center.lng)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Maps satellite <ExternalLink className="size-3" />
+              </a>
+              <a
+                className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                href={esriWaybackAppUrl(center.lat, center.lng)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Esri Wayback <ExternalLink className="size-3" />
+              </a>
+              <a
+                className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
+                href={openTopographyUrl(center.lat, center.lng)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                OpenTopography <ExternalLink className="size-3" />
+              </a>
+            </p>
           </form>
           {lookupError ? <p className="px-4 pt-2 text-xs text-primary">{lookupError}</p> : null}
           <div className="relative min-h-[22rem] flex-1">
@@ -256,6 +414,10 @@ export function RoofTracerApp() {
               selectedId={selectedId}
               drawing={drawing}
               edges={summary.edges}
+              basemap={mapBasemap}
+              onReady={(api) => {
+                mapApiRef.current = api;
+              }}
               onClick={onMapClick}
               onSelect={(id) => {
                 if (drawing) return;
@@ -316,8 +478,9 @@ export function RoofTracerApp() {
             </div>
           </div>
           <p className="px-4 py-2 text-xs text-muted">
-            Satellite is for looking. Tap the roof edge, not the slab. Pitch comes from the house or a
-            gauge, not from Google 3D.
+            Top view is nadir aerial, not Google 3D. Esri and USGS are current overhead. Wayback is
+            the same imagery on older dates. OpenTopoMap is a topo map. Tap the roof edge, not the
+            slab. Pitch still comes from the house or a gauge.
           </p>
         </section>
 
@@ -486,7 +649,7 @@ export function RoofTracerApp() {
           </div>
         </aside>
       </main>
-      )}
+      ) : null}
     </div>
   );
 }

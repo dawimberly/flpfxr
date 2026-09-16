@@ -1,10 +1,15 @@
 import { useEffect, useRef } from "react";
+import { esriAerialUrl, type RoofMapBasemap } from "@/lib/roof-basemap";
 import type { LatLng, NamedEdge, RoofFacet } from "@/lib/roof-math";
 import { EV_EDGE_COLOR, EV_FILL, evLengthLabel } from "@/lib/roof-style";
 import "leaflet/dist/leaflet.css";
 
-const ESRI =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const DEFAULT_BASEMAP: RoofMapBasemap = {
+  url: esriAerialUrl(),
+  attribution: "Tiles \u00a9 Esri",
+  maxZoom: 20,
+  maxNativeZoom: 19,
+};
 
 export type RoofMapProps = {
   center: { lat: number; lng: number };
@@ -14,6 +19,7 @@ export type RoofMapProps = {
   selectedId: string | null;
   drawing: boolean;
   edges: NamedEdge[];
+  basemap?: RoofMapBasemap;
   onReady?: (map: { invalidate: () => void }) => void;
   onClick: (latlng: LatLng) => void;
   onSelect: (id: string | null) => void;
@@ -28,6 +34,7 @@ export function RoofMap({
   selectedId,
   drawing,
   edges,
+  basemap = DEFAULT_BASEMAP,
   onReady,
   onClick,
   onSelect,
@@ -35,17 +42,20 @@ export function RoofMap({
 }: RoofMapProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
+  const tilesRef = useRef<import("leaflet").TileLayer | null>(null);
   const layersRef = useRef<import("leaflet").LayerGroup | null>(null);
   const centerRef = useRef(center);
   const zoomRef = useRef(zoom);
   const clickRef = useRef(onClick);
   const selectRef = useRef(onSelect);
   const moveRef = useRef(onMoveVertex);
+  const basemapRef = useRef(basemap);
   centerRef.current = center;
   zoomRef.current = zoom;
   clickRef.current = onClick;
   selectRef.current = onSelect;
   moveRef.current = onMoveVertex;
+  basemapRef.current = basemap;
 
   useEffect(() => {
     if (!hostRef.current || mapRef.current) return;
@@ -53,16 +63,19 @@ export function RoofMap({
     void (async () => {
       const L = await import("leaflet");
       if (cancelled || !hostRef.current) return;
+      const start = basemapRef.current;
       const map = L.map(hostRef.current, {
         zoomControl: true,
         attributionControl: true,
-        maxZoom: 20,
+        maxZoom: start.maxZoom,
       }).setView([centerRef.current.lat, centerRef.current.lng], zoomRef.current);
-      L.tileLayer(ESRI, {
-        maxZoom: 20,
-        maxNativeZoom: 19,
-        attribution: "Tiles \u00a9 Esri",
+      const tiles = L.tileLayer(start.url, {
+        maxZoom: start.maxZoom,
+        maxNativeZoom: start.maxNativeZoom,
+        attribution: start.attribution,
+        ...(start.subdomains ? { subdomains: start.subdomains } : {}),
       }).addTo(map);
+      tilesRef.current = tiles;
       const layers = L.layerGroup().addTo(map);
       map.on("click", (event) => {
         clickRef.current([event.latlng.lat, event.latlng.lng]);
@@ -78,10 +91,37 @@ export function RoofMap({
       mapRef.current?.remove();
       mapRef.current = null;
       layersRef.current = null;
+      tilesRef.current = null;
     };
     // Center/zoom after first mount are handled in the next effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    let cancelled = false;
+    void (async () => {
+      const L = await import("leaflet");
+      if (cancelled || !mapRef.current) return;
+      tilesRef.current?.remove();
+      map.setMaxZoom(basemap.maxZoom);
+      const tiles = L.tileLayer(basemap.url, {
+        maxZoom: basemap.maxZoom,
+        maxNativeZoom: basemap.maxNativeZoom,
+        attribution: basemap.attribution,
+        ...(basemap.subdomains ? { subdomains: basemap.subdomains } : {}),
+      }).addTo(map);
+      tiles.bringToBack();
+      tilesRef.current = tiles;
+      if (map.getZoom() > basemap.maxNativeZoom) {
+        map.setZoom(basemap.maxNativeZoom);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [basemap.attribution, basemap.maxNativeZoom, basemap.maxZoom, basemap.subdomains, basemap.url]);
 
   useEffect(() => {
     const map = mapRef.current;

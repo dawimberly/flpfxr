@@ -43,6 +43,7 @@ import { CabinetPicker } from "@/components/cabinet-picker";
 import { EstimateLogButton, SaveEstimateButton } from "@/components/estimate-log";
 import { FinishCard } from "@/components/finish-card";
 import { isCabinetCategory } from "@/lib/cabinets";
+import { lineTakesOp } from "@/lib/op";
 import { cn, money, qtyLabel } from "@/lib/utils";
 
 function Section({
@@ -352,6 +353,7 @@ function EstimateRail({ job, activeRoomId }: { job: JobEstimate; activeRoomId: s
   const selectRoom = useEstimatorStore((s) => s.selectRoom);
   const [listMode, setListMode] = useState<"room" | "complete">("complete");
   const active = job.rooms.find((entry) => entry.room.id === activeRoomId) ?? job.rooms[0];
+  const roofingOnJob = job.completeLineItems.some((line) => !lineTakesOp(line.category));
   const shownItems =
     listMode === "complete"
       ? job.completeLineItems
@@ -380,7 +382,9 @@ function EstimateRail({ job, activeRoomId }: { job: JobEstimate; activeRoomId: s
             <p className="mt-1 font-mono text-sm tabular-nums">{money(job.materialsSubtotal)}</p>
           </div>
           <div className="rounded-md bg-ink-foreground/10 px-3 py-3">
-            <p className="text-[11px] tracking-wide text-ink-foreground/55 uppercase">O&P {laborRate}%</p>
+            <p className="text-[11px] tracking-wide text-ink-foreground/55 uppercase">
+              O&P {laborRate}%{roofingOnJob ? " · no roofs" : ""}
+            </p>
             <p className="mt-1 font-mono text-sm tabular-nums">{money(job.laborSubtotal)}</p>
           </div>
         </div>
@@ -415,6 +419,7 @@ function EstimateRail({ job, activeRoomId }: { job: JobEstimate; activeRoomId: s
             onChange={(event) => setOpPercent(Number(event.target.value))}
             className="bg-ink-foreground/10 font-mono tabular-nums text-ink-foreground shadow-none ring-1 ring-ink-foreground/15"
           />
+          <p className="text-[11px] text-ink-foreground/55">Roofing stays installed-only. No O&P on those lines.</p>
         </div>
         <div className="mt-5 flex flex-col gap-3">
           <SaveEstimateButton />
@@ -659,6 +664,9 @@ export function EstimatorApp() {
             </Section>
 
             <Section kicker="The finishes" title={`What goes in ${room.label}?`}>
+              <p className="mb-3 text-xs text-muted">
+                {"R&R"} is remove and replace. R is remove only. + is install only.
+              </p>
               <div className="grid gap-3">
                 {showCabinets ? <CabinetPicker room={room} /> : null}
                 {visibleCategories
