@@ -65,9 +65,9 @@ export function EvLinePalette({
 }
 
 export function RoofDimFields({
-  garageWidth,
-  eaveOverhang,
-  rakeOverhang,
+  garageWidth = "",
+  eaveOverhang = "",
+  rakeOverhang = "",
   onGarageWidth,
   onEaveOverhang,
   onRakeOverhang,
@@ -76,18 +76,20 @@ export function RoofDimFields({
   onCorniceStrip,
   onCorniceReturn,
   variant = "card",
+  showScaleFields = false,
 }: {
-  garageWidth: string;
-  eaveOverhang: string;
-  rakeOverhang: string;
-  onGarageWidth: (value: string) => void;
-  onEaveOverhang: (value: string) => void;
-  onRakeOverhang: (value: string) => void;
+  garageWidth?: string;
+  eaveOverhang?: string;
+  rakeOverhang?: string;
+  onGarageWidth?: (value: string) => void;
+  onEaveOverhang?: (value: string) => void;
+  onRakeOverhang?: (value: string) => void;
   corniceStrip: string;
   corniceReturn: string;
   onCorniceStrip: (value: string) => void;
   onCorniceReturn: (value: string) => void;
   variant?: "card" | "ink";
+  showScaleFields?: boolean;
 }) {
   const gable = gableRoofFt(Number(garageWidth), Number(rakeOverhang));
   const eaveFt = inchesToFt(Number(eaveOverhang));
@@ -99,52 +101,56 @@ export function RoofDimFields({
   const hintClass = variant === "ink" ? "text-xs text-ink-foreground/60" : "text-xs text-muted";
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        <div className="space-y-1.5">
-          <Label className={labelClass} htmlFor="garage-width">
-            Garage width (ft)
-          </Label>
-          <Input
-            id="garage-width"
-            inputMode="decimal"
-            value={garageWidth}
-            placeholder="18.5"
-            onChange={(event) => onGarageWidth(event.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className={labelClass} htmlFor="eave-oh">
-            Eave OH (in)
-          </Label>
-          <Input
-            id="eave-oh"
-            inputMode="decimal"
-            value={eaveOverhang}
-            placeholder="23"
-            onChange={(event) => onEaveOverhang(event.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className={labelClass} htmlFor="rake-oh">
-            Rake OH (in)
-          </Label>
-          <Input
-            id="rake-oh"
-            inputMode="decimal"
-            value={rakeOverhang}
-            placeholder="12"
-            onChange={(event) => onRakeOverhang(event.target.value)}
-            className={inputClass}
-          />
-        </div>
-      </div>
-      <p className={hintClass}>
-        {gable
-          ? `Roof gable for scale: ${gable} ft (wall + 2 x rake). Eave overhang ${eaveFt || 0} ft soffit.`
-          : "Garage width is the wall. Rake is barge to drip. Eave is wall to drip (soffit)."}
-      </p>
+      {showScaleFields ? (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1.5">
+              <Label className={labelClass} htmlFor="garage-width">
+                Garage width (ft)
+              </Label>
+              <Input
+                id="garage-width"
+                inputMode="decimal"
+                value={garageWidth}
+                placeholder="18.5"
+                onChange={(event) => onGarageWidth?.(event.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className={labelClass} htmlFor="eave-oh">
+                Eave OH (in)
+              </Label>
+              <Input
+                id="eave-oh"
+                inputMode="decimal"
+                value={eaveOverhang}
+                placeholder="23"
+                onChange={(event) => onEaveOverhang?.(event.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className={labelClass} htmlFor="rake-oh">
+                Rake OH (in)
+              </Label>
+              <Input
+                id="rake-oh"
+                inputMode="decimal"
+                value={rakeOverhang}
+                placeholder="12"
+                onChange={(event) => onRakeOverhang?.(event.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <p className={hintClass}>
+            {gable
+              ? `Photo scale only: ${gable} ft gable (wall + 2 x rake). Eave overhang ${eaveFt || 0} ft soffit. Not a priced line.`
+              : "Photo scale: garage wall width and rake overhang. Not a priced line."}
+          </p>
+        </>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <Label className={labelClass} htmlFor="cornice-strip">

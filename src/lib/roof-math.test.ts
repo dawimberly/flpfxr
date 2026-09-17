@@ -14,6 +14,7 @@ import {
   geodesicSegmentFt,
   gableRoofFt,
   inchesToFt,
+  SEARCH_QUOTE_LINE,
   measureLengthFt,
   photoEdges,
   polygonAreaPx,
@@ -245,6 +246,11 @@ describe("roof-math", () => {
     const summary = summarizePhotoFacets([{ id: "a", points: square, pitch: "6/12" }], ftPerPx, 0);
     assert.equal(summary.total_flat_area_sqft, 1600);
     assert.equal(summary.total_area_with_pitch_multiplier_sqft, 1788.8);
+  });
+
+  it("sales Search copy is footprint-plus-photos, not a measured roof", () => {
+    assert.match(SEARCH_QUOTE_LINE, /not a measured roof/);
+    assert.match(SEARCH_QUOTE_LINE, /EagleView/);
   });
 
   it("adds rake overhang on both gables", () => {

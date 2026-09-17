@@ -24,6 +24,8 @@ export const SQFT_PER_SQM = FT_PER_M ** 2;
 export const DEFAULT_WASTE_PCT = 12;
 /** Sales quote band. Not an EagleView. */
 export const SALES_SQUARE_TOLERANCE = 2;
+export const SEARCH_QUOTE_LINE =
+  "This is a size estimate from your roof's footprint and what you tap off the photos — pitch, valleys, vents, solar — not a measured roof; the real number comes once we pull an EagleView.";
 
 export function salesSquares(squares: number) {
   if (!Number.isFinite(squares) || squares <= 0) return 0;

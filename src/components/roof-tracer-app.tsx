@@ -48,7 +48,7 @@ import { parseXactimateRoof, xactimateRoofPenetrations } from "@/lib/xactimate-r
 import {
   PITCH_OPTIONS,
   ROOF_VERTEX_SNAP_FT,
-  SALES_SQUARE_TOLERANCE,
+  SEARCH_QUOTE_LINE,
   alignRingToAnchors,
   closeRoofRing,
   geodesicSegmentFt,
@@ -82,9 +82,6 @@ type SavedTrace = {
   address: string;
   center: { lat: number; lng: number };
   facets: RoofFacet[];
-  garageWidth?: string;
-  eaveOverhang?: string;
-  rakeOverhang?: string;
   corniceStrip?: string;
   corniceReturn?: string;
 };
@@ -144,9 +141,6 @@ export function RoofTracerApp() {
   const [mode, setMode] = useState<"map" | "photos">("map");
   const [mapSeen, setMapSeen] = useState(true);
   const mapApiRef = useRef<{ invalidate: () => void } | null>(null);
-  const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
-  const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
-  const [rakeOverhang, setRakeOverhang] = useState(BLUE_QUAIL.rakeOverhangIn);
   const [corniceStrip, setCorniceStrip] = useState(BLUE_QUAIL.corniceStripLf);
   const [corniceReturn, setCorniceReturn] = useState(BLUE_QUAIL.corniceReturnEa);
   const [traceReady, setTraceReady] = useState(false);
@@ -175,13 +169,10 @@ export function RoofTracerApp() {
   useEffect(() => {
     hydrate();
     const saved = loadTrace();
-    if (saved?.facets?.length || saved?.garageWidth) {
+    if (saved?.facets?.length) {
       setAddress(saved.address);
       setCenter(saved.center);
       setFacets(saved.facets);
-      setGarageWidth(saved.garageWidth ?? "");
-      setEaveOverhang(saved.eaveOverhang ?? "");
-      setRakeOverhang(saved.rakeOverhang ?? "");
       setCorniceStrip(saved.corniceStrip ?? "");
       setCorniceReturn(saved.corniceReturn ?? "");
       setZoom(19);
@@ -189,9 +180,6 @@ export function RoofTracerApp() {
       setAddress(BLUE_QUAIL.address);
       setCenter(BLUE_QUAIL.center);
       setFacets(blueQuailMapTrace());
-      setGarageWidth(BLUE_QUAIL.garageWidthFt);
-      setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
-      setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
       setCorniceStrip(BLUE_QUAIL.corniceStripLf);
       setCorniceReturn(BLUE_QUAIL.corniceReturnEa);
       setZoom(19);
@@ -243,13 +231,10 @@ export function RoofTracerApp() {
       address,
       center,
       facets,
-      garageWidth,
-      eaveOverhang,
-      rakeOverhang,
       corniceStrip,
       corniceReturn,
     });
-  }, [traceReady, address, center, facets, garageWidth, eaveOverhang, rakeOverhang, corniceStrip, corniceReturn]);
+  }, [traceReady, address, center, facets, corniceStrip, corniceReturn]);
 
   const summary = useMemo(() => summarizeFacets(facets), [facets]);
   const quoteSummary = useMemo(() => {
@@ -306,9 +291,6 @@ export function RoofTracerApp() {
     setDraft([]);
     setDrawing(false);
     setSelectedId("bq-sw");
-    setGarageWidth(BLUE_QUAIL.garageWidthFt);
-    setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
-    setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
     setCorniceStrip(BLUE_QUAIL.corniceStripLf);
     setCorniceReturn(BLUE_QUAIL.corniceReturnEa);
     setPinSeq((n) => n + 1);
@@ -347,9 +329,7 @@ export function RoofTracerApp() {
       const result = await fetchAutoRoofQuote(lat, lng, classPitch);
       if (result.quote) {
         setAutoQuote(result.quote);
-        setPinHint(
-          `Auto quote ${result.quote.squares} ± ${SALES_SQUARE_TOLERANCE}. Draw only if that looks wrong.`,
-        );
+        setPinHint(SEARCH_QUOTE_LINE);
         return;
       }
       setAutoQuote(null);
@@ -525,9 +505,7 @@ export function RoofTracerApp() {
               <p className="truncate font-display text-base font-medium tracking-tight sm:text-lg">
                 Roof trace
               </p>
-                  <p className="truncate text-xs text-muted">
-                    Drop an EagleView for an estimate. Search is still a ±{SALES_SQUARE_TOLERANCE} square quote.
-                  </p>
+                  <p className="truncate text-xs text-muted">{SEARCH_QUOTE_LINE}</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -860,7 +838,7 @@ export function RoofTracerApp() {
             ) : null}
             {autoQuote && !facets.length && !evReport ? (
               <p className="mt-1 text-xs text-ink-foreground/55">
-                Auto quote. Set pitch, valleys, and solar from the photos. No trace.
+                Auto quote. {SEARCH_QUOTE_LINE}
               </p>
             ) : null}
             {evReport ? (
@@ -918,12 +896,6 @@ export function RoofTracerApp() {
             <div className="mt-4">
               <RoofDimFields
                 variant="ink"
-                garageWidth={garageWidth}
-                eaveOverhang={eaveOverhang}
-                rakeOverhang={rakeOverhang}
-                onGarageWidth={setGarageWidth}
-                onEaveOverhang={setEaveOverhang}
-                onRakeOverhang={setRakeOverhang}
                 corniceStrip={corniceStrip}
                 corniceReturn={corniceReturn}
                 onCorniceStrip={setCorniceStrip}
@@ -999,10 +971,7 @@ export function RoofTracerApp() {
           <div className="rounded-xl bg-card p-4 shadow-border">
             <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Planes</p>
             {facets.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">
-                Search fills a ±{SALES_SQUARE_TOLERANCE} square quote. EagleView PDF fills the estimate. Draw
-                only if you need to change the picture.
-              </p>
+              <p className="mt-3 text-sm text-muted">{SEARCH_QUOTE_LINE}</p>
             ) : (
               <ul className="mt-3 space-y-3">
                 {facets.map((facet, index) => {
@@ -1084,7 +1053,7 @@ export function RoofTracerApp() {
             <p className="mt-3 text-xs text-muted">
               {evReport
                 ? "EagleView lengths are on the estimate. Draw only if you need to move a plane."
-                : `Sales quote ±${SALES_SQUARE_TOLERANCE} squares. Drop an EagleView for the estimate.`}
+                : SEARCH_QUOTE_LINE}
             </p>
           </div>
         </aside>

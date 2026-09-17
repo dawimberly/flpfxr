@@ -905,6 +905,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
           <div className="mt-4 space-y-3">
             <RoofDimFields
               variant="ink"
+              showScaleFields
               garageWidth={garageWidth}
               eaveOverhang={eaveOverhang}
               rakeOverhang={rakeOverhang}
