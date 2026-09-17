@@ -45,9 +45,18 @@ export type RoofSendExtras = {
 
 export const ROOF_PENETRATION_OPTIONS = ROOF_OPTIONS.filter((row) => {
   if (row.unit !== "each") return false;
-  if (/steep|high roof|patch|cornice return/i.test(row.name)) return false;
+  if (/steep|high roof|patch|cornice return|mounting hardware|paint roof vent/i.test(row.name)) return false;
   return true;
 }).map((row) => row.name);
+
+export function mergeRoofPenetrations(current: RoofLineItem[], incoming: RoofLineItem[]): RoofLineItem[] {
+  const byName = new Map(current.map((row) => [row.name, row]));
+  for (const row of incoming) {
+    if (!row.name || !roundLf(row.quantity)) continue;
+    byName.set(row.name, row);
+  }
+  return [...byName.values()];
+}
 
 const VENT_NAMES = new Set([ROOF_TURTLE, ROOF_TURBINE]);
 

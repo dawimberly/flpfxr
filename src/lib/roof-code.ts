@@ -6,9 +6,9 @@ export function roofCodeNote(zip?: string | null): string {
   const city = sa ? "San Antonio" : "this city";
   return [
     `${city} ${z || "zip"}: box/turtle vents and pipe jacks are replaced with the reroof.`,
-    "Gutter apron at the eaves stays (underlayment code does not require replacing it). Drip edge at the rakes is R&R so felt can run underneath.",
+    "Gutter apron at the eaves is left in place (MRC practice: underlayment laps over eave metal). Drip edge at the rakes is R&R so felt can run underneath, per IRC R905.2.8.5 drip-edge lap.",
     sa
-      ? "IRC R905.2 (asphalt shingles) and R905.2.8.2 closed-valley liner, same language used on MRC San Antonio Xactimates."
+      ? "IRC R905.2 (asphalt shingles), R905.2.8.5 drip edge, and R905.2.8.2 closed-valley liner, same chapters MRC San Antonio Xactimates cite."
       : "Use the adopted IRC roofing chapter for this zip; MRC Xactimates cite the local IRC when the AHJ requires it.",
   ].join(" ");
 }

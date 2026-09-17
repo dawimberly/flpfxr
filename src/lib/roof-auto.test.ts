@@ -1,10 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   autoRoofSummary,
   pitchLabelFromDegrees,
   quoteFromPlanSqft,
-  quoteFromSolarInsights,
 } from "./roof-auto.ts";
 
 describe("roof-auto", () => {
@@ -14,23 +14,11 @@ describe("roof-auto", () => {
     assert.equal(pitchLabelFromDegrees(45), "12/12");
   });
 
-  it("quotes a house-sized Solar roof near 29 squares", () => {
-    const quote = quoteFromSolarInsights({
-      solarPotential: {
-        wholeRoofStats: { areaMeters2: 232, groundAreaMeters2: 214 },
-        buildingStats: { areaMeters2: 240, groundAreaMeters2: 220 },
-        roofSegmentStats: [
-          { pitchDegrees: 22.6, stats: { areaMeters2: 116 } },
-          { pitchDegrees: 22.6, stats: { areaMeters2: 116 } },
-        ],
-      },
-    });
-    assert.ok(quote);
-    assert.equal(quote?.source, "google-solar");
-    assert.equal(quote?.pitch, "5/12");
-    assert.ok((quote?.squares ?? 0) >= 24);
-    assert.ok((quote?.squares ?? 0) <= 28);
-    assert.equal(autoRoofSummary(quote!).incomplete, null);
+  it("does not size Search quotes from Google Solar Building Insights", () => {
+    const src = readFileSync(new URL("./roof-auto.ts", import.meta.url), "utf8");
+    assert.equal(src.includes("solar.googleapis.com"), false);
+    assert.equal(src.includes("quoteFromSolarInsights"), false);
+    assert.equal(src.includes("google-solar"), false);
   });
 
   it("builds a 5/12 quote from a plan footprint", () => {

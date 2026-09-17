@@ -34,11 +34,16 @@ import {
 } from "@/lib/roof-basemap";
 import { COMPANY } from "@/lib/estimator";
 import { autoRoofSummary, fetchAutoRoofQuote, type AutoRoofQuote } from "@/lib/roof-auto";
-import { parseRoofQty, roofBallpark, ROOF_PIPE, ROOF_SOLAR_PANEL, ROOF_TURBINE, ROOF_TURTLE, type RoofLineItem } from "@/lib/roof-line-items";
+import {
+  mergeRoofPenetrations,
+  parseRoofQty,
+  roofBallpark,
+  type RoofLineItem,
+} from "@/lib/roof-line-items";
 import { geocodeHouseAddress } from "@/lib/roof-geocode";
 import { parseEagleViewText, type EagleViewReport } from "@/lib/eagleview-parse";
 import { extractPdfText } from "@/lib/pdf-text";
-import { parseXactimateRoof } from "@/lib/xactimate-roof";
+import { parseXactimateRoof, xactimateRoofPenetrations } from "@/lib/xactimate-roof";
 import {
   PITCH_OPTIONS,
   ROOF_VERTEX_SNAP_FT,
@@ -470,12 +475,8 @@ export function RoofTracerApp() {
         }
       }
       if (xact) {
-        const extras: RoofLineItem[] = [];
-        if (xact.solarPanels) extras.push({ name: ROOF_SOLAR_PANEL, quantity: xact.solarPanels, act: "rr" });
-        if (xact.turtleVents) extras.push({ name: ROOF_TURTLE, quantity: xact.turtleVents, act: "rr" });
-        if (xact.turbineVents) extras.push({ name: ROOF_TURBINE, quantity: xact.turbineVents, act: "rr" });
-        if (xact.pipeJacks) extras.push({ name: ROOF_PIPE, quantity: xact.pipeJacks, act: "rr" });
-        if (extras.length) setPenetrations(extras);
+        const extras = xactimateRoofPenetrations(xact);
+        if (extras.length) setPenetrations((current) => mergeRoofPenetrations(current, extras));
         if (!ev && xact.address) setAddress(xact.address);
         if (!ev) {
           setPinHint(

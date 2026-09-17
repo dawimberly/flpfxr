@@ -1,3 +1,12 @@
+import {
+  ROOF_PIPE,
+  ROOF_SOLAR_HARDWARE,
+  ROOF_SOLAR_PANEL,
+  ROOF_TURBINE,
+  ROOF_TURTLE,
+  type RoofLineItem,
+} from "./roof-line-items.ts";
+
 export type XactimateRoofExtras = {
   address: string;
   insured: string;
@@ -23,6 +32,8 @@ export function isXactimateText(text: string): boolean {
   return /Xactimate|Price List:|Restoration\/Service\/Remodel|Number of Squares/i.test(text);
 }
 
+const DASH = String.raw`[-–—]?`;
+
 export function parseXactimateRoof(text: string): XactimateRoofExtras | null {
   if (!isXactimateText(text) && !/Solar electric panel/i.test(text)) return null;
   const squares =
@@ -38,8 +49,18 @@ export function parseXactimateRoof(text: string): XactimateRoofExtras | null {
     squares: squares && squares > 1 ? squares : null,
     solarPanels: qty(/Solar electric panel[^\n]{0,40}?([\d.]+)\s+EA/i, text),
     solarHardware: qty(/Solar panel[- ]+mounting[^\n]{0,40}?([\d.]+)\s+EA/i, text),
-    turtleVents: qty(/Roof vent\s*[-–—]?\s*turtle[^\n]{0,40}?([\d.]+)\s+EA/i, text),
-    turbineVents: qty(/Roof vent\s*[-–—]?\s*turbine[^\n]{0,40}?([\d.]+)\s+EA/i, text),
+    turtleVents: qty(new RegExp(String.raw`Roof vent\s*${DASH}\s*turtle[^\n]{0,40}?([\d.]+)\s+EA`, "i"), text),
+    turbineVents: qty(new RegExp(String.raw`Roof vent\s*${DASH}\s*turbine[^\n]{0,40}?([\d.]+)\s+EA`, "i"), text),
     pipeJacks: qty(/(?:Pipe jack|Pipe flashing|Pipe jack flashing)[^\n]{0,40}?([\d.]+)\s+EA/i, text),
   };
+}
+
+export function xactimateRoofPenetrations(xact: XactimateRoofExtras): RoofLineItem[] {
+  const extras: RoofLineItem[] = [];
+  if (xact.solarPanels) extras.push({ name: ROOF_SOLAR_PANEL, quantity: xact.solarPanels, act: "rr" });
+  if (xact.solarHardware) extras.push({ name: ROOF_SOLAR_HARDWARE, quantity: xact.solarHardware, act: "plus" });
+  if (xact.turtleVents) extras.push({ name: ROOF_TURTLE, quantity: xact.turtleVents, act: "rr" });
+  if (xact.turbineVents) extras.push({ name: ROOF_TURBINE, quantity: xact.turbineVents, act: "rr" });
+  if (xact.pipeJacks) extras.push({ name: ROOF_PIPE, quantity: xact.pipeJacks, act: "rr" });
+  return extras;
 }

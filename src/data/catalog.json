@@ -912,7 +912,8 @@
       {
         "name": "Solar electric panel",
         "unit": "each",
-        "cost_per_unit": 276.56
+        "cost_per_unit": 276.56,
+        "remove_cost_per_unit": 0
       },
       {
         "name": "Solar panel mounting hardware",
