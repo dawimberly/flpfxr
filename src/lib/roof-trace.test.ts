@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { summarizeFacets, feetRing } from "./roof-math.ts";
+import { feetRing, roofTraceReadyToBid, summarizeFacets, withFootprintSanity } from "./roof-math.ts";
 import {
   ROOF_SHINGLE,
   ROOF_TEAROFF,
@@ -48,5 +48,27 @@ describe("roof-trace", () => {
     const tearoff = items.find((item) => item.name === ROOF_TEAROFF);
     assert.equal(tearoff?.act, "r");
     assert.ok((shingles?.quantity ?? 0) > 0);
+    assert.equal(roofTraceReadyToBid(summary), true);
+  });
+
+  it("does not bid overlapping 39 squares on a 1,700 sf ranch", () => {
+    const living = feetRing([
+      [0, 0],
+      [66, 0],
+      [66, 1673 / 66],
+      [0, 1673 / 66],
+    ]);
+    const summary = withFootprintSanity(
+      summarizeFacets([
+        { id: "n", pitch: "4/12", slopeDeg: 180, latlngs: living },
+        { id: "s", pitch: "4/12", slopeDeg: 0, latlngs: living },
+      ]),
+      1673,
+      620,
+      1,
+      "4/12",
+    );
+    assert.ok(summary.incomplete);
+    assert.equal(roofTraceReadyToBid(summary), false);
   });
 });

@@ -22,6 +22,10 @@ export const BLUE_QUAIL = {
   },
 } as const;
 
+export function isBlueQuailAddress(value: string): boolean {
+  return /blue\s*quail/i.test(String(value || ""));
+}
+
 /**
  * South 20+20 on plan-diagram.jpg are green rakes. EV prints 3D lengths, so those
  * 40 ft are not a plan scale. Seeded planes still use this span as a pixel origin.

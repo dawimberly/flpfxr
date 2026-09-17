@@ -4,7 +4,7 @@ import {
   type ClientInfo,
   type JobRoom,
 } from "@/lib/estimator";
-import type { RoofSummary } from "@/lib/roof-math";
+import { roofTraceReadyToBid, type RoofSummary } from "@/lib/roof-math";
 import { roofingSelectionsFromSummary } from "@/lib/roof-line-items";
 
 export const ROOF_ROOM_TYPE = "exterior_outdoor";
@@ -26,10 +26,13 @@ export function applyRoofTraceToJob(
   address: string,
   summary: RoofSummary,
 ): { rooms: JobRoom[]; client: ClientInfo; roomId: string } {
-  const selections = { roofing: roofingSelectionsFromSummary(summary) };
   const existing = rooms.find(
     (room) => room.roomTypeId === ROOF_ROOM_TYPE && room.label === ROOF_ROOM_LABEL,
   );
+  if (!roofTraceReadyToBid(summary)) {
+    return { rooms, client, roomId: existing?.id ?? rooms[0]?.id ?? "" };
+  }
+  const selections = { roofing: roofingSelectionsFromSummary(summary) };
   let nextRooms: JobRoom[];
   let roomId: string;
   if (existing) {

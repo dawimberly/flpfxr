@@ -122,6 +122,133 @@ export function applyWasteFactor(sqft: number, wastePct = DEFAULT_WASTE_PCT): nu
   return Math.round(sqft * (1 + wastePct / 100) * 10) / 10;
 }
 
+/** Perimeter of a rectangle with this floor area. Ranch roofs are ~1.8–2.0:1. */
+export function rectanglePerimeterFt(areaSqft: number, aspect = 1.9): number {
+  if (areaSqft <= 0 || aspect <= 0) return 0;
+  const length = Math.sqrt(areaSqft * aspect);
+  const width = areaSqft / length;
+  return 2 * (length + width);
+}
+
+/**
+ * Ballpark squares for a simple 1-story house + attached garage.
+ * Footprint plus a drip-edge band, then pitch. Not a bid.
+ */
+export function oneStoryExpectedSquares(
+  livingSqft: number,
+  garageSqft = 0,
+  pitch = "4/12",
+  overhangFt = 1.5,
+  wastePct = 0,
+  aspect = 1.9,
+): number {
+  const footprint = Math.max(livingSqft, 0) + Math.max(garageSqft, 0);
+  const peri = rectanglePerimeterFt(footprint, aspect);
+  const plan = footprint + peri * Math.max(overhangFt, 0);
+  let sloped = slopedAreaSqft(plan, pitch);
+  if (wastePct) sloped = sloped * (1 + wastePct / 100);
+  return Math.round((sloped / 100) * 100) / 100;
+}
+
+/**
+ * Flag a trace that is way off the building footprint.
+ * Returns "low", "ok", or "high".
+ */
+export function traceSanity(
+  measuredSquares: number,
+  livingSqft: number,
+  garageSqft = 0,
+  stories = 1,
+  _pitch = "4/12",
+): "low" | "ok" | "high" {
+  if (measuredSquares <= 0 || livingSqft <= 0) return "ok";
+  const storeys = stories && stories > 0 ? stories : 1;
+  const footprint = livingSqft / storeys + Math.max(garageSqft, 0);
+  if (footprint <= 0) return "ok";
+  const ratio = (measuredSquares * 100) / footprint;
+  if (ratio < 0.9) return "low";
+  if (ratio > 1.55) return "high";
+  return "ok";
+}
+
+/**
+ * Explain a bad square count. The 39-on-a-1,700-sf-ranch pattern is
+ * living plan × pitch × two slopes × waste. Pitch already converts plan
+ * to slope, so the second ×2 is wrong, and the garage never entered.
+ */
+export function diagnoseMeasuredSquares(
+  measuredSquares: number,
+  livingSqft: number,
+  garageSqft = 0,
+  stories = 1,
+  pitch = "4/12",
+  wastePct = DEFAULT_WASTE_PCT,
+): string {
+  const band = traceSanity(measuredSquares, livingSqft, garageSqft, stories, pitch);
+  const expected = oneStoryExpectedSquares(livingSqft, garageSqft, pitch);
+  const expectedWaste = oneStoryExpectedSquares(livingSqft, garageSqft, pitch, 1.5, wastePct);
+  const slopedLiving = slopedAreaSqft(livingSqft, pitch) / 100;
+  const doubledLivingWaste = slopedLiving * 2 * (1 + wastePct / 100);
+  if (Math.abs(measuredSquares - doubledLivingWaste) <= 2) {
+    return (
+      `high: living-area plan was counted twice for two slopes, then waste ` +
+      `was applied (~${doubledLivingWaste.toFixed(1)} sq). Pitch already converts ` +
+      `plan to slope — trace the drip edge once, include the garage. ` +
+      `Use ~${expected.toFixed(1)} sq net / ~${expectedWaste.toFixed(1)} with ${wastePct.toFixed(0)}% waste.`
+    );
+  }
+  if (band === "high") {
+    return (
+      `high: ${measuredSquares.toFixed(1)} sq is well above a 1-story ` +
+      `${(livingSqft + garageSqft).toFixed(0)} sf footprint (~${expected.toFixed(1)} sq). ` +
+      `Check for overlapping planes, a leftover scale length, or waste stacked ` +
+      `on an already-sloped number. Use ~${expectedWaste.toFixed(1)} with waste.`
+    );
+  }
+  if (band === "low") {
+    return (
+      `low: ${measuredSquares.toFixed(1)} sq looks like living area only. ` +
+      `Add the garage. Expect ~${expected.toFixed(1)} sq net.`
+    );
+  }
+  return (
+    `ok: ${measuredSquares.toFixed(1)} sq is in band for this footprint ` +
+    `(~${expected.toFixed(1)} net / ~${expectedWaste.toFixed(1)} with waste).`
+  );
+}
+
+/** Block a bid when the smell test fails. Overlap is flagged earlier on the summary. */
+export function roofTraceReadyToBid(summary: RoofSummary): boolean {
+  return !summary.incomplete && summary.squares_with_waste > 0;
+}
+
+export function withFootprintSanity(
+  summary: RoofSummary,
+  livingSqft: number,
+  garageSqft = 0,
+  stories = 1,
+  pitch = "4/12",
+): RoofSummary {
+  if (summary.incomplete) return summary;
+  if (!(livingSqft > 0)) return summary;
+  const measured = summary.squares_with_waste || summary.total_squares;
+  if (!(measured > 0)) return summary;
+  const msg = diagnoseMeasuredSquares(
+    measured,
+    livingSqft,
+    garageSqft,
+    stories,
+    pitch,
+    summary.waste_factor_pct,
+  );
+  if (msg.startsWith("ok")) return summary;
+  return { ...summary, incomplete: msg };
+}
+
+export const OVERLAP_PLANES_MESSAGE =
+  "Planes overlap. Trace the drip edge once — do not outline the whole house for each slope.";
+
+
 export function metersPerDegree(latDegrees: number): [number, number] {
   const lat = (latDegrees * Math.PI) / 180;
   const mPerDegLat = 111132.92 - 559.82 * Math.cos(2 * lat) + 1.175 * Math.cos(4 * lat);
@@ -181,6 +308,89 @@ function ringPoints(latlngs: LatLng[] | undefined): LatLng[] {
 function toLocalFt(latlngs: LatLng[], lat0: number): [number, number][] {
   const [mLat, mLng] = metersPerDegree(lat0);
   return latlngs.map(([lat, lng]) => [lng * mLng * FT_PER_M, lat * mLat * FT_PER_M]);
+}
+
+export type PlanPt = [number, number];
+
+function signedPlanArea(pts: PlanPt[]): number {
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[(i + 1) % pts.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  return area / 2;
+}
+
+function ensureCcw(pts: PlanPt[]): PlanPt[] {
+  return signedPlanArea(pts) < 0 ? [...pts].reverse() : pts;
+}
+
+function isLeftOf(a: PlanPt, b: PlanPt, p: PlanPt): boolean {
+  return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= -1e-9;
+}
+
+function lineHit(p1: PlanPt, p2: PlanPt, a: PlanPt, b: PlanPt): PlanPt {
+  const den = (p1[0] - p2[0]) * (a[1] - b[1]) - (p1[1] - p2[1]) * (a[0] - b[0]);
+  if (Math.abs(den) < 1e-12) return p2;
+  const t = ((p1[0] - a[0]) * (a[1] - b[1]) - (p1[1] - a[1]) * (a[0] - b[0])) / den;
+  return [p1[0] + t * (p2[0] - p1[0]), p1[1] + t * (p2[1] - p1[1])];
+}
+
+/** Convex clip. Roof planes and full-house outlines are convex. */
+export function clipPolygon(subject: PlanPt[], clip: PlanPt[]): PlanPt[] {
+  let output = ensureCcw(subject);
+  const clipCcw = ensureCcw(clip);
+  for (let i = 0; i < clipCcw.length; i++) {
+    const a = clipCcw[i];
+    const b = clipCcw[(i + 1) % clipCcw.length];
+    const input = output;
+    output = [];
+    if (!input.length) break;
+    for (let j = 0; j < input.length; j++) {
+      const p = input[j];
+      const q = input[(j + 1) % input.length];
+      const pIn = isLeftOf(a, b, p);
+      const qIn = isLeftOf(a, b, q);
+      if (pIn && qIn) output.push(q);
+      else if (pIn && !qIn) output.push(lineHit(p, q, a, b));
+      else if (!pIn && qIn) {
+        output.push(lineHit(p, q, a, b));
+        output.push(q);
+      }
+    }
+  }
+  return output;
+}
+
+/** Intersection / min(area). Two full-house outlines land near 1. Adjacent slopes near 0. */
+export function ringOverlapCoverage(a: PlanPt[], b: PlanPt[]): number {
+  const areaA = Math.abs(signedPlanArea(a));
+  const areaB = Math.abs(signedPlanArea(b));
+  if (areaA < 1e-6 || areaB < 1e-6) return 0;
+  const inter = Math.abs(signedPlanArea(clipPolygon(a, b)));
+  return inter / Math.min(areaA, areaB);
+}
+
+export const FULL_PLAN_OVERLAP = 0.5;
+
+export function hasOverlappingFullPlanRings(rings: PlanPt[][]): boolean {
+  for (let i = 0; i < rings.length; i++) {
+    if (rings[i].length < 3) continue;
+    for (let j = i + 1; j < rings.length; j++) {
+      if (rings[j].length < 3) continue;
+      if (ringOverlapCoverage(rings[i], rings[j]) >= FULL_PLAN_OVERLAP) return true;
+    }
+  }
+  return false;
+}
+
+function facetLocalRings(facets: RoofFacet[]): PlanPt[][] {
+  const prepared = facets.filter((facet) => ringPoints(facet.latlngs).length >= 3);
+  if (!prepared.length) return [];
+  const lats = prepared.flatMap((facet) => ringPoints(facet.latlngs).map((pt) => pt[0]));
+  const lat0 = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
+  return prepared.map((facet) => toLocalFt(ringPoints(facet.latlngs), lat0));
 }
 
 function descentEn(slopeDeg: number): [number, number] {
@@ -367,6 +577,7 @@ export function summarizeFacets(facets: RoofFacet[], wastePct = DEFAULT_WASTE_PC
   const edges = classifyEdges(facets);
   const slopedRounded = Math.round(sloped * 10) / 10;
   const withWaste = applyWasteFactor(slopedRounded, wastePct);
+  const overlap = hasOverlappingFullPlanRings(facetLocalRings(facets));
   return {
     facet_count: count,
     total_flat_area_sqft: Math.round(flat * 10) / 10,
@@ -376,7 +587,14 @@ export function summarizeFacets(facets: RoofFacet[], wastePct = DEFAULT_WASTE_PC
     final_area_sqft_with_waste: withWaste,
     squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
     perimeter_ft: edges.classified && edges.drip_ft != null ? edges.drip_ft : Math.round(perimeter * 10) / 10,
-    incomplete: count === 0 ? "Draw at least one roof plane." : missingPitch ? "Every facet needs a pitch." : null,
+    incomplete:
+      count === 0
+        ? "Draw at least one roof plane."
+        : overlap
+          ? OVERLAP_PLANES_MESSAGE
+          : missingPitch
+            ? "Every facet needs a pitch."
+            : null,
     eaves_ft: edges.eaves_ft,
     rakes_ft: edges.rakes_ft,
     ridges_ft: edges.ridges_ft,
@@ -584,6 +802,7 @@ export function summarizePhotoFacets(
   const withWaste = applyWasteFactor(slopedRounded, wastePct);
   const classified = classifyEdges(photoFacetsToRoof(facets, ftPerPx));
   const linePitch = pitch || facets.find((facet) => normalizePitch(facet.pitch))?.pitch || "5/12";
+  const overlap = hasOverlappingFullPlanRings(facets.map((facet) => facet.points));
   return applyDrawnLines(
     {
       facet_count: count,
@@ -595,7 +814,13 @@ export function summarizePhotoFacets(
       squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
       perimeter_ft: Math.round(peri * 10) / 10,
       incomplete:
-        count === 0 ? "Draw at least one roof plane on the plan photo." : missingPitch ? "Every facet needs a pitch." : null,
+        count === 0
+          ? "Draw at least one roof plane on the plan photo."
+          : overlap
+            ? OVERLAP_PLANES_MESSAGE
+            : missingPitch
+              ? "Every facet needs a pitch."
+              : null,
       eaves_ft: classified.eaves_ft,
       rakes_ft: classified.rakes_ft,
       ridges_ft: classified.ridges_ft,

@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { gableRoofFt, inchesToFt } from "@/lib/roof-math";
+import { gableRoofFt, inchesToFt, type RoofSummary } from "@/lib/roof-math";
 import { EV_LEGEND } from "@/lib/roof-style";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,20 @@ export function EvLegend({ className }: { className?: string }) {
   );
 }
 
+export function RoofSquaresReadout({ summary }: { summary: RoofSummary }) {
+  return (
+    <>
+      <p className="mt-2 font-display text-4xl font-medium tracking-tight tabular-nums">
+        {summary.total_squares.toFixed(2)}
+      </p>
+      <p className="mt-1 text-sm text-ink-foreground/70">squares net</p>
+      <p className="text-sm text-ink-foreground/70">
+        {summary.squares_with_waste.toFixed(2)} with {summary.waste_factor_pct}% waste
+      </p>
+    </>
+  );
+}
+
 export function RoofDimFields({
   garageWidth,
   eaveOverhang,
@@ -36,6 +50,10 @@ export function RoofDimFields({
   onGarageWidth,
   onEaveOverhang,
   onRakeOverhang,
+  livingSqft,
+  garageSqft,
+  onLivingSqft,
+  onGarageSqft,
   variant = "card",
 }: {
   garageWidth: string;
@@ -44,6 +62,10 @@ export function RoofDimFields({
   onGarageWidth: (value: string) => void;
   onEaveOverhang: (value: string) => void;
   onRakeOverhang: (value: string) => void;
+  livingSqft?: string;
+  garageSqft?: string;
+  onLivingSqft?: (value: string) => void;
+  onGarageSqft?: (value: string) => void;
   variant?: "card" | "ink";
 }) {
   const gable = gableRoofFt(Number(garageWidth), Number(rakeOverhang));
@@ -56,6 +78,36 @@ export function RoofDimFields({
   const hintClass = variant === "ink" ? "text-xs text-ink-foreground/60" : "text-xs text-muted";
   return (
     <div className="space-y-3">
+      {onLivingSqft && onGarageSqft ? (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5">
+            <Label className={labelClass} htmlFor="living-sqft">
+              Living (sf)
+            </Label>
+            <Input
+              id="living-sqft"
+              inputMode="decimal"
+              value={livingSqft ?? ""}
+              placeholder="1673"
+              onChange={(event) => onLivingSqft(event.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className={labelClass} htmlFor="garage-sqft">
+              Garage (sf)
+            </Label>
+            <Input
+              id="garage-sqft"
+              inputMode="decimal"
+              value={garageSqft ?? ""}
+              placeholder="620"
+              onChange={(event) => onGarageSqft(event.target.value)}
+              className={inputClass}
+            />
+          </div>
+        </div>
+      ) : null}
       <div className="grid grid-cols-3 gap-2">
         <div className="space-y-1.5">
           <Label className={labelClass} htmlFor="garage-width">
