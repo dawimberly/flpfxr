@@ -326,11 +326,21 @@ export function RoofGoogleMap({
       }
     }
 
+    add(
+      new maps.Marker({
+        map,
+        position: { lat: center.lat, lng: center.lng },
+        clickable: false,
+        title: "Pin",
+        zIndex: 7,
+      }),
+    );
+
     return () => {
       for (const layer of overlaysRef.current) layer.setMap(null);
       overlaysRef.current = [];
     };
-  }, [draft, drawing, edges, facets, selectedId]);
+  }, [center.lat, center.lng, draft, drawing, edges, facets, selectedId]);
 
   return (
     <div

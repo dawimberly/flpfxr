@@ -5,26 +5,61 @@ import { EV_LEGEND } from "@/lib/roof-style";
 import { cn } from "@/lib/utils";
 
 export function EvLegend({ className }: { className?: string }) {
+  return <EvLinePalette className={cn("pointer-events-none", className)} />;
+}
+
+export function EvLinePalette({
+  value,
+  onChange,
+  className,
+}: {
+  value?: string;
+  onChange?: (kind: string) => void;
+  className?: string;
+}) {
   return (
     <div
       className={cn(
-        "pointer-events-none rounded-md bg-white/92 px-2.5 py-1.5 text-[11px] leading-5 text-ink shadow",
+        "rounded-md bg-white/92 px-2.5 py-1.5 text-[11px] leading-5 text-ink shadow",
         className,
       )}
     >
-      {EV_LEGEND.map((row) => (
-        <div key={row.kind} className="flex items-center gap-2">
-          <span
-            className="inline-block h-0 w-5 shrink-0"
-            style={{
-              borderTopWidth: 3,
-              borderTopStyle: row.dash ? "dashed" : "solid",
-              borderTopColor: row.color,
-            }}
-          />
-          {row.label}
-        </div>
-      ))}
+      {EV_LEGEND.map((row) => {
+        const on = value === row.kind;
+        const inner = (
+          <>
+            <span
+              className="inline-block h-0 w-5 shrink-0"
+              style={{
+                borderTopWidth: 3,
+                borderTopStyle: row.dash ? "dashed" : "solid",
+                borderTopColor: row.color,
+              }}
+            />
+            {row.label}
+          </>
+        );
+        if (!onChange) {
+          return (
+            <div key={row.kind} className="flex items-center gap-2">
+              {inner}
+            </div>
+          );
+        }
+        return (
+          <button
+            key={row.kind}
+            type="button"
+            onClick={() => onChange(row.kind)}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-sm px-0.5 text-left",
+              on ? "bg-wash font-medium" : "hover:bg-surface",
+            )}
+          >
+            {inner}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -36,6 +71,10 @@ export function RoofDimFields({
   onGarageWidth,
   onEaveOverhang,
   onRakeOverhang,
+  corniceStrip,
+  corniceReturn,
+  onCorniceStrip,
+  onCorniceReturn,
   variant = "card",
 }: {
   garageWidth: string;
@@ -44,6 +83,10 @@ export function RoofDimFields({
   onGarageWidth: (value: string) => void;
   onEaveOverhang: (value: string) => void;
   onRakeOverhang: (value: string) => void;
+  corniceStrip: string;
+  corniceReturn: string;
+  onCorniceStrip: (value: string) => void;
+  onCorniceReturn: (value: string) => void;
   variant?: "card" | "ink";
 }) {
   const gable = gableRoofFt(Number(garageWidth), Number(rakeOverhang));
@@ -101,6 +144,37 @@ export function RoofDimFields({
         {gable
           ? `Roof gable for scale: ${gable} ft (wall + 2 x rake). Eave overhang ${eaveFt || 0} ft soffit.`
           : "Garage width is the wall. Rake is barge to drip. Eave is wall to drip (soffit)."}
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1.5">
+          <Label className={labelClass} htmlFor="cornice-strip">
+            Cornice strip (LF)
+          </Label>
+          <Input
+            id="cornice-strip"
+            inputMode="decimal"
+            value={corniceStrip}
+            placeholder="24"
+            onChange={(event) => onCorniceStrip(event.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className={labelClass} htmlFor="cornice-return">
+            Cornice return (EA)
+          </Label>
+          <Input
+            id="cornice-return"
+            inputMode="decimal"
+            value={corniceReturn}
+            placeholder="1"
+            onChange={(event) => onCorniceReturn(event.target.value)}
+            className={inputClass}
+          />
+        </div>
+      </div>
+      <p className={hintClass}>
+        Same Xactimate lines as Isabel Luna (strip LF) and Suzel Cruz / Gonzalez (return EA).
       </p>
     </div>
   );

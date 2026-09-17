@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { authMiddleware } from "@/lib/auth/middleware";
 
 export type GeocodeHit = {
   lat: number;
@@ -7,8 +6,8 @@ export type GeocodeHit = {
   label: string;
 };
 
+/** Public Nominatim lookup. Not per-user data, so this stays off authMiddleware. */
 export const geocodeAddress = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
   .validator((data: { query: string }) => data)
   .handler(async ({ data }): Promise<{ hit: GeocodeHit | null; error: string | null }> => {
     const query = data.query.trim();

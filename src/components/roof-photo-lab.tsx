@@ -13,16 +13,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RoofDimFields } from "@/components/roof-ev-chrome";
+import { parseRoofQty } from "@/lib/roof-line-items";
 import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE } from "@/lib/blue-quail";
 import { useEstimatorStore } from "@/lib/estimator-store";
 import { clientToImagePx, coverScale, imageFit, pointerAngle, wrapDeg } from "@/lib/photo-view";
 import {
-  DEFAULT_WASTE_PCT,
   PITCH_OPTIONS,
+  SALES_SQUARE_TOLERANCE,
   ftPerPxFromScale,
   gableRoofFt,
   measureLengthFt,
   photoEdges,
+  salesSquares,
   summarizePhotoFacets,
   type PhotoFacet,
   type PhotoMeasure,
@@ -184,6 +186,8 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
   const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
   const [rakeOverhang, setRakeOverhang] = useState(BLUE_QUAIL.rakeOverhangIn);
+  const [corniceStrip, setCorniceStrip] = useState(BLUE_QUAIL.corniceStripLf);
+  const [corniceReturn, setCorniceReturn] = useState(BLUE_QUAIL.corniceReturnEa);
   const [facets, setFacets] = useState<PhotoFacet[]>([]);
   const [measures, setMeasures] = useState<PhotoMeasure[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -238,6 +242,8 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
     setGarageWidth(BLUE_QUAIL.garageWidthFt);
     setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
     setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
+    setCorniceStrip(BLUE_QUAIL.corniceStripLf);
+    setCorniceReturn(BLUE_QUAIL.corniceReturnEa);
     setRoofPitch(BLUE_QUAIL.ev.pitch);
     setScaleFeet(String(BLUE_QUAIL_LENGTH_SCALE.feet));
     setScaleA(BLUE_QUAIL_LENGTH_SCALE.a);
@@ -335,7 +341,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
   const linePitch = roofPitch;
   const summary = useMemo(
-    () => summarizePhotoFacets(facets, ftPerPx, DEFAULT_WASTE_PCT, measures, linePitch),
+    () => summarizePhotoFacets(facets, ftPerPx, undefined, measures, linePitch),
     [facets, ftPerPx, measures, linePitch],
   );
   const drawingOnPlan = active?.role === "plan";
@@ -490,7 +496,13 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
 
   function send() {
     if (summary.incomplete) return;
-    applyRoofTrace(address.trim() || "Photo roof", summary);
+    applyRoofTrace(address.trim() || "Photo roof", {
+      ...summary,
+      squares_with_waste: salesSquares(summary.squares_with_waste),
+    }, {
+      corniceStripLf: parseRoofQty(corniceStrip),
+      corniceReturnEa: parseRoofQty(corniceReturn),
+    });
     void navigate({ to: "/estimator" });
   }
 
@@ -846,10 +858,11 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
             This roof
           </p>
           <p className="mt-2 font-display text-4xl font-medium tracking-tight tabular-nums">
-            {summary.squares_with_waste.toFixed(2)}
+            {salesSquares(summary.squares_with_waste)}
           </p>
           <p className="mt-1 text-sm text-ink-foreground/70">
-            squares with {summary.waste_factor_pct}% waste
+            ±{SALES_SQUARE_TOLERANCE} squares · {summary.waste_factor_pct}% waste
+            (8% gable / 10% 2nd gable + 1%/valley; extra at 7/12+)
           </p>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -898,6 +911,10 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
               onGarageWidth={setGarageWidth}
               onEaveOverhang={setEaveOverhang}
               onRakeOverhang={setRakeOverhang}
+              corniceStrip={corniceStrip}
+              corniceReturn={corniceReturn}
+              onCorniceStrip={setCorniceStrip}
+              onCorniceReturn={setCorniceReturn}
             />
             {gableFt && typedScale <= 0 ? null : (
               <div className="space-y-1.5">
@@ -930,7 +947,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
             </div>
             <p className="text-xs text-ink-foreground/60">
               {ftPerPx
-                ? `${(1 / ftPerPx).toFixed(1)} px = 1 ft. Scale is the 41 ft ridge. Rakes, hips, and valleys use ${linePitch} so they match EagleView’s 3D lengths.`
+                ? `${(1 / ftPerPx).toFixed(1)} px = 1 ft. Close enough for a ±${SALES_SQUARE_TOLERANCE} square quote.`
                 : gableFt
                   ? "Tap both ends of the garage gable, drip to drip."
                   : "Tap two ends of something you know, then type the feet."}
@@ -939,7 +956,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
           {summary.incomplete ? <p className="mt-3 text-sm text-primary">{summary.incomplete}</p> : null}
           <Button type="button" className="mt-5 w-full" disabled={Boolean(summary.incomplete)} onClick={send}>
             <Hammer className="size-4" />
-            Send squares to estimator
+            Send quote to estimator
           </Button>
         </div>
 
@@ -1055,7 +1072,9 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
               ))}
             </ul>
           )}
-          <p className="mt-3 text-xs text-muted">Waste is {DEFAULT_WASTE_PCT}%. Not an EagleView report.</p>
+          <p className="mt-3 text-xs text-muted">
+            Sales quote ±{SALES_SQUARE_TOLERANCE} squares. If they agree, buy an EagleView.
+          </p>
         </div>
       </aside>
     </div>

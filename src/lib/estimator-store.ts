@@ -36,6 +36,7 @@ import {
 import { DEFAULT_OP_PERCENT, effectiveOpPercent, rememberOpPercent } from "@/lib/op";
 import { applyRoofTraceToJob } from "@/lib/roof-trace";
 import type { RoofSummary } from "@/lib/roof-math";
+import type { RoofSendExtras } from "@/lib/roof-line-items";
 import { defaultLineAct, normalizeLineAct, type LineAct } from "@/lib/line-act";
 import { normalizeRooms, selectionList } from "@/lib/selections";
 
@@ -85,7 +86,7 @@ type EstimatorState = JobSlice & {
   saveToLog: (asNew?: boolean) => SavedEstimate | null;
   openSaved: (id: string) => boolean;
   deleteSaved: (id: string) => void;
-  applyRoofTrace: (address: string, summary: RoofSummary) => void;
+  applyRoofTrace: (address: string, summary: RoofSummary, extras?: RoofSendExtras) => void;
 };
 
 function patchActive(state: EstimatorState, patch: Partial<JobRoom>): Partial<EstimatorState> {
@@ -512,9 +513,9 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       lastSavedAt: state.currentSavedId === id ? null : state.lastSavedAt,
     });
   },
-  applyRoofTrace: (address, summary) => {
+  applyRoofTrace: (address, summary, extras) => {
     const state = get();
-    const next = applyRoofTraceToJob(state.rooms, state.client, address, summary);
+    const next = applyRoofTraceToJob(state.rooms, state.client, address, summary, extras);
     set({
       rooms: next.rooms,
       client: next.client,

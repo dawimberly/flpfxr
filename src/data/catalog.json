@@ -790,6 +790,16 @@
         "cost_per_unit": 4.45
       },
       {
+        "name": "Gable cornice strip",
+        "unit": "linear ft",
+        "cost_per_unit": 16.3
+      },
+      {
+        "name": "Gable cornice return",
+        "unit": "each",
+        "cost_per_unit": 96.6
+      },
+      {
         "name": "Valley metal",
         "unit": "linear ft",
         "cost_per_unit": 8.5

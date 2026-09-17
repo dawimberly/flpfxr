@@ -1,21 +1,27 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, blueQuailDiagramTrace } from "./blue-quail.ts";
+import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, blueQuailDiagramTrace, blueQuailMapTrace } from "./blue-quail.ts";
 import {
+  alignRingToAnchors,
   applyWasteFactor,
+  eagleViewWaste,
   classifyEdges,
+  closeRoofRing,
   feetRing,
   ftPerPxFromScale,
   geodesicRingAreaSqft,
   geodesicRingPerimeterFt,
+  geodesicSegmentFt,
   gableRoofFt,
   inchesToFt,
   measureLengthFt,
   photoEdges,
   polygonAreaPx,
+  snapRoofLatLng,
   slopedAreaSqft,
   summarizeFacets,
   summarizePhotoFacets,
+  salesSquares,
   type RoofFacet,
 } from "./roof-math.ts";
 
@@ -30,6 +36,30 @@ describe("roof-math", () => {
 
   it("applies 12% waste", () => {
     assert.equal(applyWasteFactor(1000), 1120);
+  });
+
+  it("puts EagleView waste in pitch and hips/valleys, not a stacked 12%", () => {
+    const map = summarizeFacets(blueQuailMapTrace());
+    assert.ok(map.total_squares > 24);
+    assert.ok(map.total_squares < 29);
+    assert.equal(eagleViewWaste({ pitch: "5/12", rakeCount: 2, valleyCount: 0 }).totalPct, 8);
+    assert.equal(eagleViewWaste({ pitch: "5/12", rakeCount: 4, valleyCount: 0 }).totalPct, 10);
+    assert.equal(
+      eagleViewWaste({
+        pitch: BLUE_QUAIL.ev.pitch,
+        rakeCount: 10,
+        valleyCount: 3,
+      }).totalPct,
+      13,
+    );
+    assert.equal(eagleViewWaste({ pitch: "7/12", rakeCount: 2, valleyCount: 0 }).totalPct, 10);
+    assert.equal(eagleViewWaste({ pitch: "9/12", rakeCount: 4, valleyCount: 4 }).totalPct, 18);
+    assert.equal(eagleViewWaste({ pitch: "12/12", rakeCount: 2, valleyCount: 0 }).totalPct, 14);
+  });
+
+  it("rounds a sales quote to whole squares", () => {
+    assert.equal(salesSquares(28.66), 29);
+    assert.equal(salesSquares(0), 0);
   });
 
   it("measures a 100 ft square in San Antonio", () => {
@@ -49,6 +79,66 @@ describe("roof-math", () => {
     const peri = geodesicRingPerimeterFt(ring);
     assert.ok(area > 9900 && area < 10100, String(area));
     assert.ok(peri > 395 && peri < 405, String(peri));
+    const side = geodesicSegmentFt(ring[0], ring[1]);
+    assert.ok(side > 99 && side < 101, String(side));
+  });
+
+  it("snaps a tap onto a nearby roof corner", () => {
+    const [a, b] = feetRing(
+      [
+        [0, 0],
+        [40, 0],
+      ],
+      29.4241,
+      -98.4936,
+    );
+    const near = feetRing([[1.2, 0.4]], 29.4241, -98.4936)[0];
+    const snapped = snapRoofLatLng(near, [a, b]);
+    assert.equal(snapped[0], a[0]);
+    assert.equal(snapped[1], a[1]);
+  });
+
+  it("lines a second plane onto the shared ridge", () => {
+    const first = feetRing(
+      [
+        [0, 0],
+        [40, 0],
+        [40, 12],
+        [0, 12],
+      ],
+      29.4241,
+      -98.4936,
+    );
+    const messy = feetRing(
+      [
+        [0.8, 12.4],
+        [39.2, 11.6],
+        [40, 24],
+        [0, 24],
+      ],
+      29.4241,
+      -98.4936,
+    );
+    const aligned = alignRingToAnchors(messy, first);
+    assert.equal(aligned[0][0], first[3][0]);
+    assert.equal(aligned[0][1], first[3][1]);
+    assert.equal(aligned[1][0], first[2][0]);
+    assert.equal(aligned[1][1], first[2][1]);
+  });
+
+  it("drops a closing tap on the first corner", () => {
+    const ring = feetRing(
+      [
+        [0, 0],
+        [40, 0],
+        [40, 12],
+        [0, 12],
+        [0.3, 0.2],
+      ],
+      29.4241,
+      -98.4936,
+    );
+    assert.equal(closeRoofRing(ring).length, 4);
   });
 
   it("names gable eaves, ridge, and rakes", () => {
@@ -171,6 +261,21 @@ describe("roof-math", () => {
     assert.equal(trace.facets.length, 5);
     assert.ok(summary.total_squares > 24);
     assert.ok(summary.total_squares < 32);
+  });
+
+  it("drops the Blue Quail EV planes on the real lot", () => {
+    const facets = blueQuailMapTrace();
+    assert.equal(facets.length, 5);
+    const summary = summarizeFacets(facets, 0);
+    assert.ok(summary.total_squares > 24);
+    assert.ok(summary.total_squares < 32);
+    for (const facet of facets) {
+      const lat = facet.latlngs[0][0];
+      const lng = facet.latlngs[0][1];
+      assert.ok(Math.abs(lat - BLUE_QUAIL.center.lat) < 0.001);
+      assert.ok(Math.abs(lng - BLUE_QUAIL.center.lng) < 0.001);
+      assert.equal(facet.pitch, "5/12");
+    }
   });
 
   it("scales Blue Quail from the level 41 ft ridge", () => {

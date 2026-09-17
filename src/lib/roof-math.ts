@@ -20,7 +20,15 @@ export const PITCH_OPTIONS = Object.keys(PITCH_MULTIPLIERS);
 
 export const FT_PER_M = 3.28084;
 export const SQFT_PER_SQM = FT_PER_M ** 2;
+/** Only for an explicit extra bundle pad. EagleView does not stack this on pitched squares. */
 export const DEFAULT_WASTE_PCT = 12;
+/** Sales quote band. Not an EagleView. */
+export const SALES_SQUARE_TOLERANCE = 2;
+
+export function salesSquares(squares: number) {
+  if (!Number.isFinite(squares) || squares <= 0) return 0;
+  return Math.round(squares);
+}
 
 export type LatLng = [number, number];
 
@@ -122,6 +130,71 @@ export function applyWasteFactor(sqft: number, wastePct = DEFAULT_WASTE_PCT): nu
   return Math.round(sqft * (1 + wastePct / 100) * 10) / 10;
 }
 
+export type EagleViewWaste = {
+  basePct: number;
+  valleyPct: number;
+  steepPct: number;
+  totalPct: number;
+};
+
+function countEdges(edges: NamedEdge[], kind: string): number {
+  return edges.filter((edge) => edge.kind === kind).length;
+}
+
+/**
+ * Suggested asphalt waste from EagleView summaries in the MRC set:
+ * 8% one gable, 10% if a 2nd gable/endwall (4+ rakes), +1% per valley,
+ * then extra when pitch is 7/12+ (cutoffs will not stay on the roof) and more at 9/12 and 12/12.
+ */
+export function eagleViewWaste(opts: {
+  pitch?: string | null;
+  rakeCount?: number | null;
+  valleyCount?: number | null;
+}): EagleViewWaste {
+  const rakes = Math.max(0, Math.round(opts.rakeCount ?? 0));
+  const valleys = Math.max(0, Math.round(opts.valleyCount ?? 0));
+  const rise = pitchRisePerRun(opts.pitch || "0/12");
+  const basePct = rakes >= 4 ? 10 : 8;
+  let steepPct = 0;
+  if (rise >= 7 / 12) steepPct += 2;
+  if (rise >= 9 / 12) steepPct += 2;
+  if (rise >= 12 / 12) steepPct += 2;
+  const totalPct = Math.min(30, basePct + valleys + steepPct);
+  return { basePct, valleyPct: valleys, steepPct, totalPct };
+}
+
+function attachSquareWaste(
+  summary: RoofSummary,
+  wastePct: number | undefined,
+  pitch: string,
+): RoofSummary {
+  if (wastePct != null) {
+    const withWaste = applyWasteFactor(summary.total_area_with_pitch_multiplier_sqft, wastePct);
+    return {
+      ...summary,
+      waste_factor_pct: wastePct,
+      final_area_sqft_with_waste: withWaste,
+      squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
+    };
+  }
+  const ev = eagleViewWaste({
+    pitch,
+    rakeCount: countEdges(summary.edges, "rake"),
+    valleyCount: countEdges(summary.edges, "valley"),
+  });
+  const withWaste = applyWasteFactor(summary.total_area_with_pitch_multiplier_sqft, ev.totalPct);
+  return {
+    ...summary,
+    waste_factor_pct: ev.totalPct,
+    final_area_sqft_with_waste: withWaste,
+    squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
+  };
+}
+
+function predominantPitch(facets: Array<{ pitch: string }>, fallback = "5/12"): string {
+  return normalizePitch(facets.find((facet) => normalizePitch(facet.pitch))?.pitch) || fallback;
+}
+
 export function metersPerDegree(latDegrees: number): [number, number] {
   const lat = (latDegrees * Math.PI) / 180;
   const mPerDegLat = 111132.92 - 559.82 * Math.cos(2 * lat) + 1.175 * Math.cos(4 * lat);
@@ -155,19 +228,62 @@ export function geodesicRingAreaSqft(latlngs: LatLng[]): number {
   return (Math.abs(areaM2) / 2) * SQFT_PER_SQM;
 }
 
+export function geodesicSegmentFt(a: LatLng, b: LatLng): number {
+  const [mLat, mLng] = metersPerDegree(a[0]);
+  const dx = (b[1] - a[1]) * mLng;
+  const dy = (b[0] - a[0]) * mLat;
+  return Math.hypot(dx, dy) * FT_PER_M;
+}
+
 export function geodesicRingPerimeterFt(latlngs: LatLng[]): number {
   const ring = closeRing(latlngs);
   if (ring.length < 2) return 0;
-  const [mLat, mLng] = metersPerDegree(ring[0][0]);
-  let totalM = 0;
+  let total = 0;
   for (let i = 0; i < ring.length - 1; i++) {
-    const [lat1, lng1] = ring[i];
-    const [lat2, lng2] = ring[i + 1];
-    const dx = (lng2 - lng1) * mLng;
-    const dy = (lat2 - lat1) * mLat;
-    totalM += Math.hypot(dx, dy);
+    total += geodesicSegmentFt(ring[i], ring[i + 1]);
   }
-  return totalM * FT_PER_M;
+  return total;
+}
+
+export const ROOF_VERTEX_SNAP_FT = 2.5;
+
+export function snapRoofLatLng(
+  pt: LatLng,
+  anchors: LatLng[],
+  maxFt = ROOF_VERTEX_SNAP_FT,
+): LatLng {
+  let best = pt;
+  let bestFt = maxFt;
+  for (const anchor of anchors) {
+    const ft = geodesicSegmentFt(pt, anchor);
+    if (ft <= bestFt) {
+      best = [anchor[0], anchor[1]];
+      bestFt = ft;
+    }
+  }
+  return best;
+}
+
+export function roofSnapAnchors(facets: RoofFacet[], draft: LatLng[] = []): LatLng[] {
+  return [...facets.flatMap((facet) => ringPoints(facet.latlngs)), ...draft];
+}
+
+/** Drop a closing tap that is already on the first corner. */
+export function closeRoofRing(latlngs: LatLng[], maxFt = ROOF_VERTEX_SNAP_FT): LatLng[] {
+  if (latlngs.length < 3) return latlngs;
+  const first = latlngs[0];
+  const last = latlngs[latlngs.length - 1];
+  if (geodesicSegmentFt(first, last) <= maxFt) return latlngs.slice(0, -1);
+  return latlngs;
+}
+
+/** Pull this plane’s corners onto existing planes so a shared ridge is one line. */
+export function alignRingToAnchors(
+  ring: LatLng[],
+  anchors: LatLng[],
+  maxFt = ROOF_VERTEX_SNAP_FT,
+): LatLng[] {
+  return ring.map((pt) => snapRoofLatLng(pt, anchors, maxFt));
 }
 
 function ringPoints(latlngs: LatLng[] | undefined): LatLng[] {
@@ -346,7 +462,7 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
   };
 }
 
-export function summarizeFacets(facets: RoofFacet[], wastePct = DEFAULT_WASTE_PCT): RoofSummary {
+export function summarizeFacets(facets: RoofFacet[], wastePct?: number): RoofSummary {
   let flat = 0;
   let sloped = 0;
   let perimeter = 0;
@@ -368,29 +484,32 @@ export function summarizeFacets(facets: RoofFacet[], wastePct = DEFAULT_WASTE_PC
   }
   const edges = classifyEdges(facets);
   const slopedRounded = Math.round(sloped * 10) / 10;
-  const withWaste = applyWasteFactor(slopedRounded, wastePct);
-  return {
-    facet_count: count,
-    total_flat_area_sqft: Math.round(flat * 10) / 10,
-    total_area_with_pitch_multiplier_sqft: slopedRounded,
-    total_squares: Math.round((slopedRounded / 100) * 100) / 100,
-    waste_factor_pct: wastePct,
-    final_area_sqft_with_waste: withWaste,
-    squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
-    perimeter_ft: edges.classified && edges.drip_ft != null ? edges.drip_ft : Math.round(perimeter * 10) / 10,
-    incomplete: count === 0 ? "Draw at least one roof plane." : missingPitch ? "Every facet needs a pitch." : null,
-    eaves_ft: edges.eaves_ft,
-    rakes_ft: edges.rakes_ft,
-    ridges_ft: edges.ridges_ft,
-    hips_ft: edges.hips_ft,
-    valleys_ft: edges.valleys_ft,
-    steps_ft: edges.steps_ft,
-    ridges_hips_ft: edges.ridges_hips_ft,
-    drip_ft: edges.drip_ft,
-    shared_edges: edges.shared_edges,
-    edges: edges.edges,
-    steep_squares: Math.round((steepSloped / 100) * 100) / 100,
-  };
+  return attachSquareWaste(
+    {
+      facet_count: count,
+      total_flat_area_sqft: Math.round(flat * 10) / 10,
+      total_area_with_pitch_multiplier_sqft: slopedRounded,
+      total_squares: Math.round((slopedRounded / 100) * 100) / 100,
+      waste_factor_pct: 0,
+      final_area_sqft_with_waste: slopedRounded,
+      squares_with_waste: Math.round((slopedRounded / 100) * 100) / 100,
+      perimeter_ft: edges.classified && edges.drip_ft != null ? edges.drip_ft : Math.round(perimeter * 10) / 10,
+      incomplete: count === 0 ? "Draw at least one roof plane." : missingPitch ? "Every facet needs a pitch." : null,
+      eaves_ft: edges.eaves_ft,
+      rakes_ft: edges.rakes_ft,
+      ridges_ft: edges.ridges_ft,
+      hips_ft: edges.hips_ft,
+      valleys_ft: edges.valleys_ft,
+      steps_ft: edges.steps_ft,
+      ridges_hips_ft: edges.ridges_hips_ft,
+      drip_ft: edges.drip_ft,
+      shared_edges: edges.shared_edges,
+      edges: edges.edges,
+      steep_squares: Math.round((steepSloped / 100) * 100) / 100,
+    },
+    wastePct,
+    predominantPitch(facets),
+  );
 }
 
 export const PHOTO_LAT0 = 29.4417;
@@ -533,7 +652,7 @@ export type PhotoMeasure = {
 export function summarizePhotoFacets(
   facets: PhotoFacet[],
   ftPerPx: number | null,
-  wastePct = DEFAULT_WASTE_PCT,
+  wastePct?: number,
   lines: PhotoMeasure[] = [],
   pitch?: string,
 ): RoofSummary {
@@ -544,7 +663,7 @@ export function summarizePhotoFacets(
       total_flat_area_sqft: 0,
       total_area_with_pitch_multiplier_sqft: 0,
       total_squares: 0,
-      waste_factor_pct: wastePct,
+      waste_factor_pct: wastePct ?? 0,
       final_area_sqft_with_waste: 0,
       squares_with_waste: 0,
       perimeter_ft: 0,
@@ -583,18 +702,17 @@ export function summarizePhotoFacets(
     if (pitchRisePerRun(pitch) >= 7 / 12) steepSloped += facetSloped;
   }
   const slopedRounded = Math.round(sloped * 10) / 10;
-  const withWaste = applyWasteFactor(slopedRounded, wastePct);
   const classified = classifyEdges(photoFacetsToRoof(facets, ftPerPx));
   const linePitch = pitch || facets.find((facet) => normalizePitch(facet.pitch))?.pitch || "5/12";
-  return applyDrawnLines(
+  const lined = applyDrawnLines(
     {
       facet_count: count,
       total_flat_area_sqft: Math.round(flat * 10) / 10,
       total_area_with_pitch_multiplier_sqft: slopedRounded,
       total_squares: Math.round((slopedRounded / 100) * 100) / 100,
-      waste_factor_pct: wastePct,
-      final_area_sqft_with_waste: withWaste,
-      squares_with_waste: Math.round((withWaste / 100) * 100) / 100,
+      waste_factor_pct: 0,
+      final_area_sqft_with_waste: slopedRounded,
+      squares_with_waste: Math.round((slopedRounded / 100) * 100) / 100,
       perimeter_ft: Math.round(peri * 10) / 10,
       incomplete:
         count === 0 ? "Draw at least one roof plane on the plan photo." : missingPitch ? "Every facet needs a pitch." : null,
@@ -614,6 +732,7 @@ export function summarizePhotoFacets(
     ftPerPx,
     linePitch,
   );
+  return attachSquareWaste(lined, wastePct, linePitch);
 }
 
 /** Plan length from the photo. EagleView prints 3D (along-the-roof) lengths instead. */

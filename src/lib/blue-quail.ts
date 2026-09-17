@@ -1,6 +1,6 @@
 /** 2519 Blue Quail St (Anderson). St, not Way. */
 
-import type { PhotoFacet, Px } from "./roof-math";
+import { feetRing, type PhotoFacet, type Px, type RoofFacet } from "./roof-math.ts";
 
 export const BLUE_QUAIL = {
   address: "2519 Blue Quail St, San Antonio, TX 78232",
@@ -10,6 +10,9 @@ export const BLUE_QUAIL = {
   /** Vinyl soffit 220 SF / 115 LF fascia. Front and rear called oversized. */
   eaveOverhangIn: "23",
   rakeOverhangIn: "12",
+  /** Isabel Luna laminated gable: R&R Gable cornice strip 24 LF. */
+  corniceStripLf: "24",
+  corniceReturnEa: "",
   ev: {
     squares: 28.66,
     pitch: "5/12",
@@ -61,6 +64,20 @@ function plane(
 }
 
 /** First-pass trace of the EV length diagram. Four main 5/12 planes plus the east porch. */
+export function blueQuailDiagramPlanes(): Array<{
+  id: string;
+  feet: [number, number][];
+  slopeDeg: number;
+}> {
+  return [
+    { id: "bq-sw", feet: [[0, 0], [20, 0], [20, 22], [0, 22]], slopeDeg: 270 },
+    { id: "bq-se", feet: [[20, 0], [40, 0], [40, 20], [20, 22]], slopeDeg: 90 },
+    { id: "bq-nw", feet: [[0, 22], [20, 22], [20, 63], [0, 63]], slopeDeg: 270 },
+    { id: "bq-ne", feet: [[20, 22], [39, 22], [39, 63], [20, 63]], slopeDeg: 90 },
+    { id: "bq-east-porch", feet: [[39, 24], [43.5, 24], [43.5, 38], [39, 38]], slopeDeg: 90 },
+  ];
+}
+
 export function blueQuailDiagramTrace(): {
   scaleA: Px;
   scaleB: Px;
@@ -71,12 +88,37 @@ export function blueQuailDiagramTrace(): {
     scaleA: DIAGRAM_SCALE.a,
     scaleB: DIAGRAM_SCALE.b,
     scaleFeet: String(DIAGRAM_SCALE.feet),
-    facets: [
-      plane("bq-sw", [[0, 0], [20, 0], [20, 22], [0, 22]], 270),
-      plane("bq-se", [[20, 0], [40, 0], [40, 20], [20, 22]], 90),
-      plane("bq-nw", [[0, 22], [20, 22], [20, 63], [0, 63]], 270),
-      plane("bq-ne", [[20, 22], [39, 22], [39, 63], [20, 63]], 90),
-      plane("bq-east-porch", [[39, 24], [43.5, 24], [43.5, 38], [39, 38]], 90),
-    ],
+    facets: blueQuailDiagramPlanes().map((row) => plane(row.id, row.feet, row.slopeDeg)),
   };
+}
+
+/**
+ * Street from 2511→2527 Blue Quail is about 115°. Diagram +east is the street
+ * face, so diagram +north is 25° east of true north.
+ */
+export const BLUE_QUAIL_HEADING_DEG = 25;
+
+function rotateLocalFt(east: number, north: number, headingDeg: number): [number, number] {
+  const rad = (headingDeg * Math.PI) / 180;
+  const s = Math.sin(rad);
+  const c = Math.cos(rad);
+  return [east * c + north * s, -east * s + north * c];
+}
+
+/** EV diagram planes on the real lot, for the map tracer. */
+export function blueQuailMapTrace(): RoofFacet[] {
+  const planes = blueQuailDiagramPlanes();
+  const verts = planes.flatMap((row) => row.feet);
+  const cx = verts.reduce((sum, pt) => sum + pt[0], 0) / verts.length;
+  const cy = verts.reduce((sum, pt) => sum + pt[1], 0) / verts.length;
+  const heading = BLUE_QUAIL_HEADING_DEG;
+  return planes.map((row) => {
+    const local = row.feet.map(([east, north]) => rotateLocalFt(east - cx, north - cy, heading));
+    return {
+      id: row.id,
+      latlngs: feetRing(local, BLUE_QUAIL.center.lat, BLUE_QUAIL.center.lng),
+      pitch: BLUE_QUAIL.ev.pitch,
+      slopeDeg: (row.slopeDeg + heading) % 360,
+    };
+  });
 }

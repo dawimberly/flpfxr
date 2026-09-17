@@ -229,6 +229,13 @@ export function RoofMap({
           }).addTo(layers);
         }
       }
+      L.circleMarker([center.lat, center.lng], {
+        radius: 7,
+        color: "#fff",
+        weight: 2,
+        fillColor: "#c2410c",
+        fillOpacity: 1,
+      }).addTo(layers);
       if (hostRef.current) {
         hostRef.current.style.cursor = drawing ? "crosshair" : "";
       }
@@ -236,7 +243,7 @@ export function RoofMap({
     return () => {
       cancelled = true;
     };
-  }, [draft, drawing, edges, facets, selectedId]);
+  }, [center.lat, center.lng, draft, drawing, edges, facets, selectedId]);
 
   return <div ref={hostRef} className="h-full min-h-[22rem] w-full bg-ink" />;
 }

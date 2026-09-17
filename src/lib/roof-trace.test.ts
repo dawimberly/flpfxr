@@ -34,7 +34,6 @@ describe("roof-trace", () => {
           ]),
         },
       ],
-      12,
     );
     const items = roofingSelectionsFromSummary(summary);
     const names = items.map((item) => item.name);
@@ -52,6 +51,34 @@ describe("roof-trace", () => {
     const tearoff = items.find((item) => item.name === ROOF_TEAROFF);
     assert.equal(tearoff?.act, "r");
     assert.ok((shingles?.quantity ?? 0) > 0);
+  });
+
+  it("adds Luna-style gable cornice strip and Cruz-style return", () => {
+    const summary = summarizeFacets(
+      [
+        {
+          id: "a",
+          pitch: "5/12",
+          slopeDeg: 180,
+          latlngs: feetRing([
+            [0, 0],
+            [40, 0],
+            [40, 12],
+            [0, 12],
+          ]),
+        },
+      ],
+      0,
+    );
+    const items = roofingSelectionsFromSummary(summary, {
+      corniceStripLf: 24,
+      corniceReturnEa: 1,
+    });
+    const strip = items.find((item) => item.name === "Gable cornice strip");
+    const corniceReturn = items.find((item) => item.name === "Gable cornice return");
+    assert.equal(strip?.quantity, 24);
+    assert.equal(strip?.act, "plus");
+    assert.equal(corniceReturn?.quantity, 1);
   });
 
   it("writes step flashing when a roof dies into a wall", () => {
