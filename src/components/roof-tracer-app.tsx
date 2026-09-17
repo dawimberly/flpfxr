@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ExternalLink, Hammer, RotateCcw, Trash2, Undo2 } from "lucide-react";
-import { EvLegend, RoofDimFields } from "@/components/roof-ev-chrome";
+import { EvLegend, RoofDimFields, RoofSquaresReadout } from "@/components/roof-ev-chrome";
 import { RoofMap } from "@/components/roof-map";
 import { RoofPhotoLab } from "@/components/roof-photo-lab";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BLUE_QUAIL } from "@/lib/blue-quail";
+import { BLUE_QUAIL, isBlueQuailAddress } from "@/lib/blue-quail";
 import {
   availableBasemaps,
   esriWaybackAppUrl,
@@ -33,6 +33,8 @@ import {
   DEFAULT_WASTE_PCT,
   PITCH_OPTIONS,
   summarizeFacets,
+  withFootprintSanity,
+  roofTraceReadyToBid,
   type LatLng,
   type RoofFacet,
 } from "@/lib/roof-math";
@@ -60,6 +62,8 @@ type SavedTrace = {
   garageWidth?: string;
   eaveOverhang?: string;
   rakeOverhang?: string;
+  livingSqft?: string;
+  garageSqft?: string;
 };
 
 function newFacetId() {
@@ -106,6 +110,8 @@ export function RoofTracerApp() {
   const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
   const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
   const [rakeOverhang, setRakeOverhang] = useState(BLUE_QUAIL.rakeOverhangIn);
+  const [livingSqft, setLivingSqft] = useState("");
+  const [garageSqft, setGarageSqft] = useState("");
   const [traceReady, setTraceReady] = useState(false);
   const [photoClearTick, setPhotoClearTick] = useState(0);
   const maptilerKey = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
@@ -128,6 +134,8 @@ export function RoofTracerApp() {
       setGarageWidth(saved.garageWidth ?? "");
       setEaveOverhang(saved.eaveOverhang ?? "");
       setRakeOverhang(saved.rakeOverhang ?? "");
+      setLivingSqft(saved.livingSqft ?? "");
+      setGarageSqft(saved.garageSqft ?? "");
       setZoom(20);
     } else {
       setAddress(BLUE_QUAIL.address);
@@ -176,10 +184,14 @@ export function RoofTracerApp() {
 
   useEffect(() => {
     if (!traceReady) return;
-    saveTrace({ address, center, facets, garageWidth, eaveOverhang, rakeOverhang });
-  }, [traceReady, address, center, facets, garageWidth, eaveOverhang, rakeOverhang]);
+    saveTrace({ address, center, facets, garageWidth, eaveOverhang, rakeOverhang, livingSqft, garageSqft });
+  }, [traceReady, address, center, facets, garageWidth, eaveOverhang, rakeOverhang, livingSqft, garageSqft]);
 
-  const summary = useMemo(() => summarizeFacets(facets), [facets]);
+  const summary = useMemo(() => {
+    const raw = summarizeFacets(facets);
+    const pitch = facets.find((facet) => facet.pitch)?.pitch || "4/12";
+    return withFootprintSanity(raw, Number(livingSqft), Number(garageSqft) || 0, 1, pitch);
+  }, [facets, livingSqft, garageSqft]);
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
 
   function patchFacet(id: string, patch: Partial<RoofFacet>) {
@@ -199,6 +211,11 @@ export function RoofTracerApp() {
       setCenter({ lat: result.hit.lat, lng: result.hit.lng });
       setZoom(20);
       setAddress(result.hit.label);
+      if (!isBlueQuailAddress(result.hit.label)) {
+        setGarageWidth("");
+        setEaveOverhang("");
+        setRakeOverhang("");
+      }
     } catch {
       setLookupError("Address lookup failed.");
     } finally {
@@ -227,7 +244,7 @@ export function RoofTracerApp() {
   }
 
   function sendToEstimator() {
-    if (summary.incomplete) return;
+    if (!roofTraceReadyToBid(summary)) return;
     applyRoofTrace(address, summary);
     setSent(true);
     void navigate({ to: "/estimator" });
@@ -320,7 +337,15 @@ export function RoofTracerApp() {
                 <Input
                   id="roof-address"
                   value={address}
-                  onChange={(event) => setAddress(event.target.value)}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (isBlueQuailAddress(address) && !isBlueQuailAddress(next)) {
+                      setGarageWidth("");
+                      setEaveOverhang("");
+                      setRakeOverhang("");
+                    }
+                    setAddress(next);
+                  }}
                   placeholder="2519 Blue Quail St, San Antonio, TX"
                   autoComplete="street-address"
                 />
@@ -489,12 +514,7 @@ export function RoofTracerApp() {
             <p className="text-[11px] font-medium tracking-[0.18em] text-ink-foreground/60 uppercase">
               This roof
             </p>
-            <p className="mt-2 font-display text-4xl font-medium tracking-tight tabular-nums">
-              {summary.squares_with_waste.toFixed(2)}
-            </p>
-            <p className="mt-1 text-sm text-ink-foreground/70">
-              squares with {summary.waste_factor_pct}% waste
-            </p>
+            <RoofSquaresReadout summary={summary} />
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-ink-foreground/55">Plan</dt>
@@ -542,6 +562,10 @@ export function RoofTracerApp() {
                 onGarageWidth={setGarageWidth}
                 onEaveOverhang={setEaveOverhang}
                 onRakeOverhang={setRakeOverhang}
+                livingSqft={livingSqft}
+                garageSqft={garageSqft}
+                onLivingSqft={setLivingSqft}
+                onGarageSqft={setGarageSqft}
               />
             </div>
             {summary.incomplete ? (
@@ -550,7 +574,7 @@ export function RoofTracerApp() {
             <Button
               type="button"
               className="mt-5 w-full"
-              disabled={Boolean(summary.incomplete)}
+              disabled={!roofTraceReadyToBid(summary)}
               onClick={sendToEstimator}
             >
               <Hammer className="size-4" />

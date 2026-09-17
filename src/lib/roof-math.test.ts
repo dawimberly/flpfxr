@@ -1,9 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, blueQuailDiagramTrace } from "./blue-quail.ts";
+import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, blueQuailDiagramTrace, isBlueQuailAddress } from "./blue-quail.ts";
 import {
   applyWasteFactor,
   classifyEdges,
+  diagnoseMeasuredSquares,
   feetRing,
   ftPerPxFromScale,
   geodesicRingAreaSqft,
@@ -11,11 +12,16 @@ import {
   gableRoofFt,
   inchesToFt,
   measureLengthFt,
+  oneStoryExpectedSquares,
+  OVERLAP_PLANES_MESSAGE,
   photoEdges,
   polygonAreaPx,
   slopedAreaSqft,
   summarizeFacets,
   summarizePhotoFacets,
+  traceSanity,
+  withFootprintSanity,
+  roofTraceReadyToBid,
   type RoofFacet,
 } from "./roof-math.ts";
 
@@ -170,6 +176,7 @@ describe("roof-math", () => {
     assert.equal(trace.facets.length, 5);
     assert.ok(summary.total_squares > 24);
     assert.ok(summary.total_squares < 32);
+    assert.equal(summary.incomplete, null);
   });
 
   it("scales Blue Quail from the level 41 ft ridge", () => {
@@ -264,5 +271,112 @@ describe("roof-math", () => {
     assert.equal(rake, 13);
     assert.equal(hip, 10.4);
     assert.equal(eave, 20);
+  });
+
+  it("diagnoses 39 as doubled living plus waste, and lets ~28 pass", () => {
+    const msg = diagnoseMeasuredSquares(39, 1673, 620, 1, "4/12");
+    assert.match(msg, /counted twice/);
+    assert.match(msg, /garage/);
+    assert.equal(traceSanity(39, 1673, 620, 1, "4/12"), "high");
+    assert.equal(traceSanity(28, 1673, 620, 1, "4/12"), "ok");
+    assert.equal(traceSanity(31, 1673, 620, 1, "4/12"), "ok");
+    const ok = diagnoseMeasuredSquares(28, 1673, 620, 1, "4/12");
+    assert.match(ok, /^ok:/);
+    const expected = oneStoryExpectedSquares(1673, 620, "4/12");
+    assert.ok(expected > 24 && expected < 30, String(expected));
+    const livingSloped = slopedAreaSqft(1673, "4/12") / 100;
+    assert.ok(Math.abs(livingSloped * 2 * 1.12 - 39.5) < 0.05);
+  });
+
+  it("rejects two overlapping full-plan living rectangles that sum to 39", () => {
+    const living = feetRing([
+      [0, 0],
+      [66, 0],
+      [66, 1673 / 66],
+      [0, 1673 / 66],
+    ]);
+    const facets: RoofFacet[] = [
+      { id: "n", pitch: "4/12", slopeDeg: 180, latlngs: living },
+      { id: "s", pitch: "4/12", slopeDeg: 0, latlngs: living },
+    ];
+    const summary = summarizeFacets(facets);
+    assert.equal(summary.incomplete, OVERLAP_PLANES_MESSAGE);
+    assert.ok(Math.abs(summary.squares_with_waste - 39.5) < 1.5, String(summary.squares_with_waste));
+    const guarded = withFootprintSanity(summary, 1673, 620, 1, "4/12");
+    assert.match(guarded.incomplete ?? "", /overlap|counted twice/i);
+    assert.equal(roofTraceReadyToBid(guarded), false);
+  });
+
+  it("does not reject adjacent gable planes that tile the roof", () => {
+    const facets: RoofFacet[] = [
+      {
+        id: "a",
+        pitch: "4/12",
+        slopeDeg: 180,
+        latlngs: feetRing([
+          [0, 0],
+          [40, 0],
+          [40, 12],
+          [0, 12],
+        ]),
+      },
+      {
+        id: "b",
+        pitch: "4/12",
+        slopeDeg: 0,
+        latlngs: feetRing([
+          [0, 12],
+          [40, 12],
+          [40, 24],
+          [0, 24],
+        ]),
+      },
+    ];
+    const summary = summarizeFacets(facets, 0);
+    assert.equal(summary.incomplete, null);
+    assert.ok(summary.total_squares > 0);
+  });
+
+  it("lets a living-plus-garage ranch plane pass", () => {
+    const ring = feetRing([
+      [0, 0],
+      [66, 0],
+      [66, 35],
+      [0, 35],
+    ]);
+    const summary = withFootprintSanity(
+      summarizeFacets([{ id: "a", pitch: "4/12", slopeDeg: 180, latlngs: ring }]),
+      1673,
+      620,
+      1,
+      "4/12",
+    );
+    assert.equal(summary.incomplete, null);
+    assert.equal(roofTraceReadyToBid(summary), true);
+    assert.ok(summary.total_squares > 22 && summary.total_squares < 30, String(summary.total_squares));
+    assert.ok(summary.squares_with_waste < 35, String(summary.squares_with_waste));
+  });
+
+  it("rejects overlapping photo planes", () => {
+    const house: [number, number][] = [
+      [0, 0],
+      [66, 0],
+      [66, 25],
+      [0, 25],
+    ];
+    const summary = summarizePhotoFacets(
+      [
+        { id: "a", points: house, pitch: "4/12" },
+        { id: "b", points: house, pitch: "4/12" },
+      ],
+      1,
+      12,
+    );
+    assert.equal(summary.incomplete, OVERLAP_PLANES_MESSAGE);
+  });
+
+  it("treats Blue Quail as the sample address and Stonehaven as not", () => {
+    assert.equal(isBlueQuailAddress(BLUE_QUAIL.address), true);
+    assert.equal(isBlueQuailAddress("3407 Stonehaven Dr, San Antonio, TX 78230"), false);
   });
 });

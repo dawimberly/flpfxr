@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RoofDimFields } from "@/components/roof-ev-chrome";
-import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE } from "@/lib/blue-quail";
+import { RoofDimFields, RoofSquaresReadout } from "@/components/roof-ev-chrome";
+import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, isBlueQuailAddress } from "@/lib/blue-quail";
 import { useEstimatorStore } from "@/lib/estimator-store";
 import {
   DEFAULT_WASTE_PCT,
@@ -22,6 +22,8 @@ import {
   measureLengthFt,
   photoEdges,
   summarizePhotoFacets,
+  withFootprintSanity,
+  roofTraceReadyToBid,
   type PhotoFacet,
   type PhotoMeasure,
   type Px,
@@ -179,6 +181,8 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const [garageWidth, setGarageWidth] = useState(BLUE_QUAIL.garageWidthFt);
   const [eaveOverhang, setEaveOverhang] = useState(BLUE_QUAIL.eaveOverhangIn);
   const [rakeOverhang, setRakeOverhang] = useState(BLUE_QUAIL.rakeOverhangIn);
+  const [livingSqft, setLivingSqft] = useState("");
+  const [garageSqft, setGarageSqft] = useState("");
   const [facets, setFacets] = useState<PhotoFacet[]>([]);
   const [measures, setMeasures] = useState<PhotoMeasure[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -236,6 +240,8 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
     setScaleFeet(String(BLUE_QUAIL_LENGTH_SCALE.feet));
     setScaleA(BLUE_QUAIL_LENGTH_SCALE.a);
     setScaleB(BLUE_QUAIL_LENGTH_SCALE.b);
+    setLivingSqft("");
+    setGarageSqft("");
     setFacets([]);
     setSelectedId(null);
     setMeasures([]);
@@ -267,16 +273,30 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
         garageWidth?: string;
         eaveOverhang?: string;
         rakeOverhang?: string;
+        livingSqft?: string;
+        garageSqft?: string;
       }) => void;
       __ffRoofAddShots?: (
         items: { name: string; url: string; role?: PhotoRole }[],
       ) => Promise<number>;
     };
     host.__ffRoofSim = (raw) => {
-      if (raw.address) setAddress(raw.address);
+      if (raw.address) {
+        setAddress(raw.address);
+        if (!isBlueQuailAddress(raw.address) && raw.scaleA == null) {
+          setScaleA(null);
+          setScaleB(null);
+          setScaleFeet("");
+          if (!raw.garageWidth) setGarageWidth("");
+          if (!raw.eaveOverhang) setEaveOverhang("");
+          if (!raw.rakeOverhang) setRakeOverhang("");
+        }
+      }
       if (raw.garageWidth) setGarageWidth(raw.garageWidth);
       if (raw.eaveOverhang) setEaveOverhang(raw.eaveOverhang);
       if (raw.rakeOverhang) setRakeOverhang(raw.rakeOverhang);
+      if (raw.livingSqft) setLivingSqft(raw.livingSqft);
+      if (raw.garageSqft) setGarageSqft(raw.garageSqft);
       if (raw.scaleFeet) setScaleFeet(raw.scaleFeet);
       if (raw.scaleA) setScaleA(raw.scaleA);
       if (raw.scaleB) setScaleB(raw.scaleB);
@@ -328,10 +348,10 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const ftPerPx = scaleA && scaleB ? ftPerPxFromScale(scaleA, scaleB, scaleLen) : null;
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
   const linePitch = roofPitch;
-  const summary = useMemo(
-    () => summarizePhotoFacets(facets, ftPerPx, DEFAULT_WASTE_PCT, measures, linePitch),
-    [facets, ftPerPx, measures, linePitch],
-  );
+  const summary = useMemo(() => {
+    const raw = summarizePhotoFacets(facets, ftPerPx, DEFAULT_WASTE_PCT, measures, linePitch);
+    return withFootprintSanity(raw, Number(livingSqft), Number(garageSqft) || 0, 1, linePitch);
+  }, [facets, ftPerPx, measures, linePitch, livingSqft, garageSqft]);
   const drawingOnPlan = active?.role === "plan";
 
   async function addFiles(list: FileList | null, forcedRole?: PhotoRole) {
@@ -443,7 +463,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   }
 
   function send() {
-    if (summary.incomplete) return;
+    if (!roofTraceReadyToBid(summary)) return;
     applyRoofTrace(address.trim() || "Photo roof", summary);
     void navigate({ to: "/estimator" });
   }
@@ -481,7 +501,18 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
             <Input
               id="photo-job"
               value={address}
-              onChange={(event) => setAddress(event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (isBlueQuailAddress(address) && !isBlueQuailAddress(next)) {
+                  setScaleA(null);
+                  setScaleB(null);
+                  setScaleFeet("");
+                  setGarageWidth("");
+                  setEaveOverhang("");
+                  setRakeOverhang("");
+                }
+                setAddress(next);
+              }}
               placeholder="2519 Blue Quail St, San Antonio, TX"
             />
           </div>
@@ -780,12 +811,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
           <p className="text-[11px] font-medium tracking-[0.18em] text-ink-foreground/60 uppercase">
             This roof
           </p>
-          <p className="mt-2 font-display text-4xl font-medium tracking-tight tabular-nums">
-            {summary.squares_with_waste.toFixed(2)}
-          </p>
-          <p className="mt-1 text-sm text-ink-foreground/70">
-            squares with {summary.waste_factor_pct}% waste
-          </p>
+          <RoofSquaresReadout summary={summary} />
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div>
               <dt className="text-[11px] uppercase tracking-wide text-ink-foreground/55">Plan</dt>
@@ -827,6 +853,10 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
               onGarageWidth={setGarageWidth}
               onEaveOverhang={setEaveOverhang}
               onRakeOverhang={setRakeOverhang}
+              livingSqft={livingSqft}
+              garageSqft={garageSqft}
+              onLivingSqft={setLivingSqft}
+              onGarageSqft={setGarageSqft}
             />
             {gableFt && typedScale <= 0 ? null : (
               <div className="space-y-1.5">
@@ -859,14 +889,20 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
             </div>
             <p className="text-xs text-ink-foreground/60">
               {ftPerPx
-                ? `${(1 / ftPerPx).toFixed(1)} px = 1 ft. Scale is the 41 ft ridge. Rakes, hips, and valleys use ${linePitch} so they match EagleView’s 3D lengths.`
+                ? `${(1 / ftPerPx).toFixed(1)} px = 1 ft.${
+                    isBlueQuailAddress(address) && scaleFeet === String(BLUE_QUAIL_LENGTH_SCALE.feet)
+                      ? " Scale is the 41 ft ridge."
+                      : scaleLen
+                        ? ` Scale is ${scaleLen} ft.`
+                        : ""
+                  } Rakes, hips, and valleys use ${linePitch} so they match printed 3D lengths.`
                 : gableFt
                   ? "Tap both ends of the garage gable, drip to drip."
                   : "Tap two ends of something you know, then type the feet."}
             </p>
           </div>
           {summary.incomplete ? <p className="mt-3 text-sm text-primary">{summary.incomplete}</p> : null}
-          <Button type="button" className="mt-5 w-full" disabled={Boolean(summary.incomplete)} onClick={send}>
+          <Button type="button" className="mt-5 w-full" disabled={!roofTraceReadyToBid(summary)} onClick={send}>
             <Hammer className="size-4" />
             Send squares to estimator
           </Button>
