@@ -126,24 +126,40 @@ export function autoRoofSummary(quote: AutoRoofQuote, klass: RoofFastClass = {})
   };
 }
 
-async function fetchOsmPlanSqft(lat: number, lng: number): Promise<number | null> {
+async function fetchOsmPlanSqft(
+  lat: number,
+  lng: number,
+): Promise<{ planSqft: number | null; status: "ok" | "overpass" | "empty" }> {
   const body = `[out:json][timeout:12];way["building"](around:40,${lat},${lng});out geom;`;
   const res = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
-    headers: { "Content-Type": "text/plain" },
+    headers: {
+      "Content-Type": "text/plain",
+      "User-Agent": "FlipFixerRoof/1.0 (https://theflipfixer.com; jon@theflipfixer.com)",
+    },
     body,
   });
-  if (!res.ok) return null;
+  if (!res.ok) return { planSqft: null, status: "overpass" };
   const text = await res.text();
-  if (!text.trim().startsWith("{")) return null;
+  if (!text.trim().startsWith("{")) return { planSqft: null, status: "overpass" };
   const json = JSON.parse(text) as {
     elements?: Array<{ geometry?: Array<{ lat: number; lon: number }> }>;
   };
-  const way = json.elements?.find((row) => (row.geometry?.length ?? 0) >= 4);
-  if (!way?.geometry) return null;
-  const ring = way.geometry.map((pt) => [pt.lat, pt.lon] as [number, number]);
-  const plan = geodesicRingAreaSqft(ring);
-  return plan > 0 ? plan : null;
+  const planSqft = pickLargestBuildingPlanSqft(json.elements ?? []);
+  return { planSqft, status: planSqft ? "ok" : "empty" };
+}
+
+export function pickLargestBuildingPlanSqft(
+  elements: Array<{ geometry?: Array<{ lat: number; lon: number }> }>,
+): number | null {
+  let best = 0;
+  for (const row of elements) {
+    if ((row.geometry?.length ?? 0) < 4 || !row.geometry) continue;
+    const ring = row.geometry.map((pt) => [pt.lat, pt.lon] as [number, number]);
+    const plan = geodesicRingAreaSqft(ring);
+    if (plan > best) best = plan;
+  }
+  return best > 0 ? Math.round(best) : null;
 }
 
 export async function fetchAutoRoofQuote(
@@ -152,8 +168,14 @@ export async function fetchAutoRoofQuote(
   pitch = "5/12",
 ): Promise<{ quote: AutoRoofQuote | null; error: string | null }> {
   try {
-    const plan = await fetchOsmPlanSqft(lat, lng);
-    const quote = plan ? quoteFromPlanSqft(plan, pitch) : null;
+    const osm = await fetchOsmPlanSqft(lat, lng);
+    if (osm.status === "overpass") {
+      return {
+        quote: null,
+        error: "Map footprint is busy. Search again in a minute, or draw a plane.",
+      };
+    }
+    const quote = osm.planSqft ? quoteFromPlanSqft(osm.planSqft, pitch) : null;
     if (quote && quote.squares > 0) return { quote, error: null };
   } catch {
     /* no footprint */

@@ -7,6 +7,7 @@ import {
   type JobEstimate,
 } from "@/lib/estimator";
 import { TRADE_NOTE, costPerItemRows, tradeTotals } from "@/lib/trade-groups";
+import { jobHasRoofing, roofCodeNote, zipFromAddress } from "@/lib/roof-code";
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -442,6 +443,11 @@ function writeRoomTotal(pdf: PdfWriter, amount: number) {
   pdf.paragraph(`Room total  ${money(amount)}`, 10, INK);
 }
 
+function writeRoofCodeNote(pdf: PdfWriter, job: JobEstimate, client: ClientInfo) {
+  if (!jobHasRoofing(job)) return;
+  pdf.paragraph(roofCodeNote(zipFromAddress(client.propertyAddress || client.address)), 8, MUTED);
+}
+
 function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfKind) {
   const trades = tradeTotals(job);
   const items = costPerItemRows(job.completeLineItems);
@@ -555,6 +561,7 @@ export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
     8,
     MUTED,
   );
+  writeRoofCodeNote(pdf, job, client);
   pdf.paragraph(`${COMPANY.email}  ·  ${COMPANY.region}`, 8, MUTED);
 
   pdf.stampFooters();
@@ -608,6 +615,7 @@ export async function buildCustomerPdf(job: JobEstimate, client: ClientInfo) {
     8,
     MUTED,
   );
+  writeRoofCodeNote(pdf, job, client);
   pdf.paragraph(`${COMPANY.email}  ·  ${COMPANY.region}`, 8, MUTED);
 
   pdf.stampFooters();

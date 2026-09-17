@@ -34,6 +34,7 @@ import {
 } from "@/lib/roof-basemap";
 import { COMPANY } from "@/lib/estimator";
 import { autoRoofSummary, fetchAutoRoofQuote, type AutoRoofQuote } from "@/lib/roof-auto";
+import { roofCodeNote, zipFromAddress } from "@/lib/roof-code";
 import {
   mergeRoofPenetrations,
   parseRoofQty,
@@ -278,6 +279,7 @@ export function RoofTracerApp() {
     penetrations,
   };
   const ballpark = roofBallpark(quoteSummary, roofExtras);
+  const codeNote = roofCodeNote(zipFromAddress(address));
   const mapEdges = mapLines.length ? mapLines : summary.edges;
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
 
@@ -866,6 +868,7 @@ export function RoofTracerApp() {
                 EagleView {evReport.facets} facets · {evReport.rakeCount} rakes · {evReport.valleyCount} valleys
               </p>
             ) : null}
+            <p className="mt-3 text-[11px] leading-snug text-ink-foreground/55">{codeNote}</p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-ink-foreground/55">Plan</dt>
@@ -945,7 +948,7 @@ export function RoofTracerApp() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {["4/12", "5/12", "7/12", "9/12"].map((pitch) => (
+                      {["4/12", "5/12", "7/12", "9/12", "12/12"].map((pitch) => (
                         <SelectItem key={pitch} value={pitch}>
                           {pitch}
                         </SelectItem>
