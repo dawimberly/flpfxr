@@ -32,7 +32,7 @@ export function isXactimateText(text: string): boolean {
   return /Xactimate|Price List:|Restoration\/Service\/Remodel|Number of Squares/i.test(text);
 }
 
-const DASH = String.raw`[-–—]?`;
+const DASH = `[-${"\u2013"}${"\u2014"}]?`;
 
 export function parseXactimateRoof(text: string): XactimateRoofExtras | null {
   if (!isXactimateText(text) && !/Solar electric panel/i.test(text)) return null;
@@ -49,8 +49,8 @@ export function parseXactimateRoof(text: string): XactimateRoofExtras | null {
     squares: squares && squares > 1 ? squares : null,
     solarPanels: qty(/Solar electric panel[^\n]{0,40}?([\d.]+)\s+EA/i, text),
     solarHardware: qty(/Solar panel[- ]+mounting[^\n]{0,40}?([\d.]+)\s+EA/i, text),
-    turtleVents: qty(new RegExp(String.raw`Roof vent\s*${DASH}\s*turtle[^\n]{0,40}?([\d.]+)\s+EA`, "i"), text),
-    turbineVents: qty(new RegExp(String.raw`Roof vent\s*${DASH}\s*turbine[^\n]{0,40}?([\d.]+)\s+EA`, "i"), text),
+    turtleVents: qty(new RegExp(`Roof vent\\s*${DASH}\\s*turtle[^\\n]{0,40}?([\\d.]+)\\s+EA`, "i"), text),
+    turbineVents: qty(new RegExp(`Roof vent\\s*${DASH}\\s*turbine[^\\n]{0,40}?([\\d.]+)\\s+EA`, "i"), text),
     pipeJacks: qty(/(?:Pipe jack|Pipe flashing|Pipe jack flashing)[^\n]{0,40}?([\d.]+)\s+EA/i, text),
   };
 }

@@ -13,11 +13,13 @@ Restoration/Service/Remodel
 19.  Solar panel- mounting hardware- 22.00 EA 0.00 29.16
 `;
 
+const EM = "\u2014";
+const EN = "\u2013";
 const VENTS = `
 Price List: TXSA8X_MAY25
 Restoration/Service/Remodel
-Roof vent — turtle type  9.00 EA
-Roof vent – turbine  2.00 EA
+Roof vent ${EM} turtle type  9.00 EA
+Roof vent ${EN} turbine  2.00 EA
 Pipe jack flashing  6.00 EA
 `;
 
