@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Clock, ExternalLink, Hammer, RotateCcw, Search, Trash2, Undo2 } from "lucide-react";
+import { Clock, ExternalLink, FileUp, Hammer, RotateCcw, Search, Trash2, Undo2 } from "lucide-react";
 import { EvLinePalette, RoofDimFields } from "@/components/roof-ev-chrome";
+import { RoofPenetrationPicker } from "@/components/roof-penetration-picker";
 import { RoofGoogle3DMap } from "@/components/roof-google-3d-map";
 import { RoofMap } from "@/components/roof-map";
 import { RoofPhotoLab } from "@/components/roof-photo-lab";
@@ -33,8 +34,11 @@ import {
 } from "@/lib/roof-basemap";
 import { COMPANY } from "@/lib/estimator";
 import { autoRoofSummary, fetchAutoRoofQuote, type AutoRoofQuote } from "@/lib/roof-auto";
+import { parseRoofQty, roofBallpark, ROOF_PIPE, ROOF_SOLAR_PANEL, ROOF_TURBINE, ROOF_TURTLE, type RoofLineItem } from "@/lib/roof-line-items";
 import { geocodeHouseAddress } from "@/lib/roof-geocode";
-import { parseRoofQty } from "@/lib/roof-line-items";
+import { parseEagleViewText, type EagleViewReport } from "@/lib/eagleview-parse";
+import { extractPdfText } from "@/lib/pdf-text";
+import { parseXactimateRoof } from "@/lib/xactimate-roof";
 import {
   PITCH_OPTIONS,
   ROOF_VERTEX_SNAP_FT,
@@ -122,6 +126,14 @@ export function RoofTracerApp() {
   const [looking, setLooking] = useState(false);
   const [pinSeq, setPinSeq] = useState(0);
   const [autoQuote, setAutoQuote] = useState<AutoRoofQuote | null>(null);
+  const [evReport, setEvReport] = useState<EagleViewReport | null>(null);
+  const [readingPdf, setReadingPdf] = useState(false);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [penetrations, setPenetrations] = useState<RoofLineItem[]>([]);
+  const [twoStory, setTwoStory] = useState(false);
+  const [classPitch, setClassPitch] = useState("5/12");
+  const [cutUp, setCutUp] = useState(false);
+  const [valleyCount, setValleyCount] = useState("0");
   const [sent, setSent] = useState(false);
   const [mode, setMode] = useState<"map" | "photos">("map");
   const [mapSeen, setMapSeen] = useState(true);
@@ -234,10 +246,33 @@ export function RoofTracerApp() {
   }, [traceReady, address, center, facets, garageWidth, eaveOverhang, rakeOverhang, corniceStrip, corniceReturn]);
 
   const summary = useMemo(() => summarizeFacets(facets), [facets]);
-  const quoteSummary = useMemo(
-    () => (facets.length ? summary : autoQuote ? autoRoofSummary(autoQuote) : summary),
-    [autoQuote, facets.length, summary],
+  const quoteSummary = useMemo(() => {
+    if (facets.length) return summary;
+    if (evReport) return evReport.summary;
+    if (autoQuote) {
+      return autoRoofSummary(autoQuote, {
+        pitch: classPitch,
+        rakeCount: cutUp ? 4 : 2,
+        valleyCount: Number(valleyCount) || 0,
+      });
+    }
+    return summary;
+  }, [autoQuote, classPitch, cutUp, evReport, facets.length, summary, valleyCount]);
+  const estimateReady = Boolean(
+    evReport || (facets.length && !summary.incomplete && summary.eaves_ft != null),
   );
+  const roofExtras = {
+    corniceStripLf: parseRoofQty(corniceStrip),
+    corniceReturnEa: parseRoofQty(corniceReturn),
+    turtleVents: null,
+    turbineVents: null,
+    pipeJacks: null,
+    solarPanels: null,
+    solarHardware: null,
+    highRoofSquares: twoStory ? quoteSummary.total_squares : null,
+    penetrations,
+  };
+  const ballpark = roofBallpark(quoteSummary, roofExtras);
   const mapEdges = mapLines.length ? mapLines : summary.edges;
   const selected = facets.find((facet) => facet.id === selectedId) ?? null;
 
@@ -302,7 +337,7 @@ export function RoofTracerApp() {
 
   async function quoteAt(lat: number, lng: number) {
     try {
-      const result = await fetchAutoRoofQuote(lat, lng);
+      const result = await fetchAutoRoofQuote(lat, lng, classPitch);
       if (result.quote) {
         setAutoQuote(result.quote);
         setPinHint(
@@ -335,6 +370,7 @@ export function RoofTracerApp() {
       setMapLines([]);
       setDraft([]);
       setAutoQuote(null);
+      setEvReport(null);
       setPinHint("Quoting the roof…");
       await quoteAt(result.hit.lat, result.hit.lng);
     } catch {
@@ -401,15 +437,75 @@ export function RoofTracerApp() {
     setSent(false);
   }
 
+  async function onRoofPdf(file: File | undefined) {
+    if (!file) return;
+    setReadingPdf(true);
+    setLookupError(null);
+    try {
+      const text = await extractPdfText(await file.arrayBuffer());
+      const ev = parseEagleViewText(text);
+      const xact = parseXactimateRoof(text);
+      if (!ev && !xact) {
+        setLookupError("That PDF is not an EagleView or a Xactimate roof.");
+        return;
+      }
+      if (ev) {
+        setEvReport(ev);
+        setAutoQuote(null);
+        setFacets([]);
+        setMapLines([]);
+        setTwoStory(ev.storiesOverOne);
+        if (ev.address) setAddress(ev.address);
+        setPinHint(
+          `EagleView ${ev.summary.total_squares} SQ · ${ev.pitch} · ${ev.wastePct}% waste. Estimate lines are ready.`,
+        );
+        const query = ev.address || address;
+        if (query.trim().length >= 5) {
+          const geo = await geocodeHouseAddress(query);
+          if (geo.hit) {
+            setCenter({ lat: geo.hit.lat, lng: geo.hit.lng });
+            setZoom(19);
+            setPinSeq((n) => n + 1);
+          }
+        }
+      }
+      if (xact) {
+        const extras: RoofLineItem[] = [];
+        if (xact.solarPanels) extras.push({ name: ROOF_SOLAR_PANEL, quantity: xact.solarPanels, act: "rr" });
+        if (xact.turtleVents) extras.push({ name: ROOF_TURTLE, quantity: xact.turtleVents, act: "rr" });
+        if (xact.turbineVents) extras.push({ name: ROOF_TURBINE, quantity: xact.turbineVents, act: "rr" });
+        if (xact.pipeJacks) extras.push({ name: ROOF_PIPE, quantity: xact.pipeJacks, act: "rr" });
+        if (extras.length) setPenetrations(extras);
+        if (!ev && xact.address) setAddress(xact.address);
+        if (!ev) {
+          setPinHint(
+            xact.solarPanels
+              ? `Xactimate extras: ${xact.solarPanels} solar panels. Drop the EagleView for squares and lengths.`
+              : "Xactimate extras loaded. Drop the EagleView for squares and lengths.",
+          );
+        }
+      }
+    } catch {
+      setLookupError("Could not read that PDF.");
+    } finally {
+      setReadingPdf(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+  }
+
   function sendToEstimator() {
     if (quoteSummary.incomplete) return;
-    applyRoofTrace(address, {
-      ...quoteSummary,
-      squares_with_waste: salesSquares(quoteSummary.squares_with_waste),
-    }, {
-      corniceStripLf: parseRoofQty(corniceStrip),
-      corniceReturnEa: parseRoofQty(corniceReturn),
-    });
+    const quoteOnly = !estimateReady;
+    applyRoofTrace(
+      address,
+      {
+        ...quoteSummary,
+        squares_with_waste: quoteOnly
+          ? salesSquares(quoteSummary.squares_with_waste)
+          : quoteSummary.squares_with_waste,
+      },
+      roofExtras,
+    );
     setSent(true);
     void navigate({ to: "/estimator" });
   }
@@ -426,7 +522,9 @@ export function RoofTracerApp() {
               <p className="truncate font-display text-base font-medium tracking-tight sm:text-lg">
                 Roof trace
               </p>
-                  <p className="truncate text-xs text-muted">Quote ±2 squares. EagleView if they take the job.</p>
+                  <p className="truncate text-xs text-muted">
+                    Drop an EagleView for an estimate. Search is still a ±{SALES_SQUARE_TOLERANCE} square quote.
+                  </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -512,6 +610,23 @@ export function RoofTracerApp() {
               <Button type="submit" disabled={looking} className="min-w-[8.75rem]">
                 <Search className="size-4" />
                 {looking ? "Quoting…" : "Search"}
+              </Button>
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="hidden"
+                onChange={(event) => void onRoofPdf(event.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="min-w-[8.75rem]"
+                disabled={readingPdf}
+                onClick={() => pdfInputRef.current?.click()}
+              >
+                <FileUp className="size-4" />
+                {readingPdf ? "Reading…" : "EagleView PDF"}
               </Button>
               <Button asChild type="button" variant="outline" className="min-w-[8.75rem]">
                 <a
@@ -731,12 +846,23 @@ export function RoofTracerApp() {
               {salesSquares(quoteSummary.squares_with_waste)}
             </p>
             <p className="mt-1 text-sm text-ink-foreground/70">
-              ±{SALES_SQUARE_TOLERANCE} squares · {quoteSummary.waste_factor_pct}% waste
-              (8% gable / 10% 2nd gable + 1%/valley; extra at 7/12+)
+              {quoteSummary.waste_factor_pct}% waste
+              (8% gable / 10% cut-up + 1%/valley; extra at 7/12+)
             </p>
-            {autoQuote && !facets.length ? (
+            {ballpark.mid > 0 ? (
+              <p className="mt-1 font-mono text-sm tabular-nums text-ink-foreground/85">
+                ${ballpark.low.toLocaleString()} – ${ballpark.high.toLocaleString()}
+                <span className="text-ink-foreground/55"> ±2.5% of this quote, not of EagleView</span>
+              </p>
+            ) : null}
+            {autoQuote && !facets.length && !evReport ? (
               <p className="mt-1 text-xs text-ink-foreground/55">
-                Auto from the house{autoQuote.pitch ? ` · ${autoQuote.pitch}` : ""}. EagleView if they take the job.
+                Auto quote. Set pitch, valleys, and solar from the photos. No trace.
+              </p>
+            ) : null}
+            {evReport ? (
+              <p className="mt-1 text-xs text-ink-foreground/55">
+                EagleView {evReport.facets} facets · {evReport.rakeCount} rakes · {evReport.valleyCount} valleys
               </p>
             ) : null}
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -779,7 +905,7 @@ export function RoofTracerApp() {
                 </>
               ) : (
                 <p className="col-span-2 text-xs text-ink-foreground/60">
-                  {autoQuote && !facets.length
+                  {autoQuote && !facets.length && !evReport
                     ? "Lengths stay off until you draw. Squares are enough for the sales quote."
                     : "Add a drain direction on each plane. Roof into a wall is headwall, not a ridge."}
                 </p>
@@ -799,6 +925,57 @@ export function RoofTracerApp() {
                 onCorniceStrip={setCorniceStrip}
                 onCorniceReturn={setCorniceReturn}
               />
+              <div className="mt-3">
+                <RoofPenetrationPicker variant="ink" value={penetrations} onChange={setPenetrations} />
+              </div>
+              <label className="mt-2 flex items-center gap-2 text-xs text-ink-foreground/80">
+                <input
+                  type="checkbox"
+                  checked={cutUp}
+                  onChange={(event) => setCutUp(event.target.checked)}
+                />
+                Cut-up roof (4+ rakes / 10% waste)
+              </label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-ink-foreground/60">Pitch</Label>
+                  <Select value={classPitch} onValueChange={setClassPitch}>
+                    <SelectTrigger className="h-10 bg-ink-foreground/10 text-ink-foreground shadow-none ring-1 ring-ink-foreground/15">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["4/12", "5/12", "7/12", "9/12"].map((pitch) => (
+                        <SelectItem key={pitch} value={pitch}>
+                          {pitch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-ink-foreground/60">Valleys</Label>
+                  <Select value={valleyCount} onValueChange={setValleyCount}>
+                    <SelectTrigger className="h-10 bg-ink-foreground/10 text-ink-foreground shadow-none ring-1 ring-ink-foreground/15">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["0", "2", "4", "6"].map((n) => (
+                        <SelectItem key={n} value={n}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <label className="mt-2 flex items-center gap-2 text-xs text-ink-foreground/80">
+                <input
+                  type="checkbox"
+                  checked={twoStory}
+                  onChange={(event) => setTwoStory(event.target.checked)}
+                />
+                Two stories or higher (high-roof charge)
+              </label>
             </div>
             {quoteSummary.incomplete ? (
               <p className="mt-4 text-sm text-primary">{quoteSummary.incomplete}</p>
@@ -810,7 +987,7 @@ export function RoofTracerApp() {
               onClick={sendToEstimator}
             >
               <Hammer className="size-4" />
-              Send quote to estimator
+              {estimateReady ? "Send estimate to estimator" : "Send quote to estimator"}
             </Button>
             {sent ? <p className="mt-2 text-xs text-ink-foreground/70">Wrote a Roof room on this job.</p> : null}
           </div>
@@ -819,7 +996,8 @@ export function RoofTracerApp() {
             <p className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">Planes</p>
             {facets.length === 0 ? (
               <p className="mt-3 text-sm text-muted">
-                Search fills a ±{SALES_SQUARE_TOLERANCE} square quote. Draw only if you need to change it.
+                Search fills a ±{SALES_SQUARE_TOLERANCE} square quote. EagleView PDF fills the estimate. Draw
+                only if you need to change the picture.
               </p>
             ) : (
               <ul className="mt-3 space-y-3">
@@ -900,8 +1078,9 @@ export function RoofTracerApp() {
               </ul>
             )}
             <p className="mt-3 text-xs text-muted">
-              Sales quote ±{SALES_SQUARE_TOLERANCE} squares. If they agree, buy an EagleView.
-              Search, tap the house if the pin is off, then Draw plane.
+              {evReport
+                ? "EagleView lengths are on the estimate. Draw only if you need to move a plane."
+                : `Sales quote ±${SALES_SQUARE_TOLERANCE} squares. Drop an EagleView for the estimate.`}
             </p>
           </div>
         </aside>

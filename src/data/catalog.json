@@ -745,79 +745,179 @@
       {
         "name": "Tear-off composition shingles — haul off",
         "unit": "square",
-        "cost_per_unit": 72
+        "cost_per_unit": 68.89
       },
       {
         "name": "3-tab composition shingles — 25 yr",
         "unit": "square",
-        "cost_per_unit": 268,
-        "remove_cost_per_unit": 72
+        "cost_per_unit": 247.7,
+        "remove_cost_per_unit": 65.53
       },
       {
         "name": "Laminated composition shingles",
         "unit": "square",
-        "cost_per_unit": 325,
-        "remove_cost_per_unit": 72
+        "cost_per_unit": 266.69,
+        "remove_cost_per_unit": 68.89
       },
       {
         "name": "Asphalt starter — universal",
         "unit": "linear ft",
-        "cost_per_unit": 2.85
+        "cost_per_unit": 1.82
       },
       {
         "name": "Ice & water barrier",
         "unit": "sq ft",
-        "cost_per_unit": 2.15
+        "cost_per_unit": 1.75
       },
       {
         "name": "Roofing felt — 15 lb",
         "unit": "square",
-        "cost_per_unit": 42
+        "cost_per_unit": 35.17
       },
       {
         "name": "Synthetic underlayment",
         "unit": "square",
-        "cost_per_unit": 48
+        "cost_per_unit": 48.91
       },
       {
         "name": "Hip / ridge cap — composition",
         "unit": "linear ft",
-        "cost_per_unit": 7.85
+        "cost_per_unit": 6.03,
+        "remove_cost_per_unit": 2.86
       },
       {
-        "name": "Drip edge / gutter apron",
+        "name": "Drip edge",
         "unit": "linear ft",
-        "cost_per_unit": 4.45
+        "cost_per_unit": 2.83,
+        "remove_cost_per_unit": 0.35
+      },
+      {
+        "name": "Gutter apron",
+        "unit": "linear ft",
+        "cost_per_unit": 3.11,
+        "remove_cost_per_unit": 0.35
       },
       {
         "name": "Gable cornice strip",
         "unit": "linear ft",
-        "cost_per_unit": 16.3
+        "cost_per_unit": 14.06,
+        "remove_cost_per_unit": 2.33
       },
       {
         "name": "Gable cornice return",
         "unit": "each",
-        "cost_per_unit": 96.6
+        "cost_per_unit": 83,
+        "remove_cost_per_unit": 13.59
       },
       {
         "name": "Valley metal",
         "unit": "linear ft",
-        "cost_per_unit": 8.5
+        "cost_per_unit": 6.24,
+        "remove_cost_per_unit": 0.64
+      },
+      {
+        "name": "Step flashing / roof-to-wall",
+        "unit": "linear ft",
+        "cost_per_unit": 10.67
       },
       {
         "name": "Pipe jack flashing",
         "unit": "each",
-        "cost_per_unit": 55
+        "cost_per_unit": 52.17,
+        "remove_cost_per_unit": 7.65
+      },
+      {
+        "name": "Pipe jack flashing — lead",
+        "unit": "each",
+        "cost_per_unit": 85.04,
+        "remove_cost_per_unit": 7.65
+      },
+      {
+        "name": "Pipe jack flashing — split",
+        "unit": "each",
+        "cost_per_unit": 87.97,
+        "remove_cost_per_unit": 8.61
+      },
+      {
+        "name": "Rain cap — 4 to 5 in",
+        "unit": "each",
+        "cost_per_unit": 50.07,
+        "remove_cost_per_unit": 5.44
+      },
+      {
+        "name": "Rain diverter",
+        "unit": "each",
+        "cost_per_unit": 45.96,
+        "remove_cost_per_unit": 9.59
       },
       {
         "name": "Roof vent — turbine",
         "unit": "each",
-        "cost_per_unit": 145
+        "cost_per_unit": 156.31,
+        "remove_cost_per_unit": 9.76
+      },
+      {
+        "name": "Roof vent — turtle type",
+        "unit": "each",
+        "cost_per_unit": 68.39,
+        "remove_cost_per_unit": 9.76
+      },
+      {
+        "name": "Exhaust cap — through roof",
+        "unit": "each",
+        "cost_per_unit": 104.79,
+        "remove_cost_per_unit": 9.76
+      },
+      {
+        "name": "Roof mount power attic vent",
+        "unit": "each",
+        "cost_per_unit": 248.59,
+        "remove_cost_per_unit": 27.16
+      },
+      {
+        "name": "Attic vent — gable end",
+        "unit": "each",
+        "cost_per_unit": 137.54,
+        "remove_cost_per_unit": 9.06
+      },
+      {
+        "name": "Chimney flashing — small",
+        "unit": "each",
+        "cost_per_unit": 341.32,
+        "remove_cost_per_unit": 13.58
+      },
+      {
+        "name": "Chimney flashing — large",
+        "unit": "each",
+        "cost_per_unit": 586.49,
+        "remove_cost_per_unit": 27.17
+      },
+      {
+        "name": "Prime & paint roof vent",
+        "unit": "each",
+        "cost_per_unit": 41.68
       },
       {
         "name": "Steep roof charge — 7/12 to 9/12",
         "unit": "square",
-        "cost_per_unit": 48
+        "cost_per_unit": 46.66,
+        "remove_cost_per_unit": 15.19
+      },
+      {
+        "name": "High roof charge — 2 stories or greater",
+        "unit": "square",
+        "cost_per_unit": 20.61,
+        "remove_cost_per_unit": 5.74
+      },
+      {
+        "name": "Solar electric panel",
+        "unit": "each",
+        "cost_per_unit": 276.56
+      },
+      {
+        "name": "Solar panel mounting hardware",
+        "unit": "each",
+        "cost_per_unit": 29.16
       },
       {
         "name": "Roof patch — garage gable eave, missing shingles (not a reroof)",

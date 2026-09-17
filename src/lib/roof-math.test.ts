@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, blueQuailDiagramTrace, blueQuailMapTrace } from "./blue-quail.ts";
+import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, BLUE_QUAIL_MAP_ORIGIN, blueQuailDiagramTrace, blueQuailMapTrace } from "./blue-quail.ts";
 import {
   alignRingToAnchors,
   applyWasteFactor,
@@ -269,6 +269,8 @@ describe("roof-math", () => {
     const summary = summarizeFacets(facets, 0);
     assert.ok(summary.total_squares > 24);
     assert.ok(summary.total_squares < 32);
+    assert.equal(BLUE_QUAIL_MAP_ORIGIN[0], 20);
+    assert.equal(BLUE_QUAIL_MAP_ORIGIN[1], 31.5);
     for (const facet of facets) {
       const lat = facet.latlngs[0][0];
       const lng = facet.latlngs[0][1];

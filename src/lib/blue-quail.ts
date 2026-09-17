@@ -98,6 +98,12 @@ export function blueQuailDiagramTrace(): {
  */
 export const BLUE_QUAIL_HEADING_DEG = 25;
 
+/**
+ * Mid of the 40×63 main mass / 41 ft ridge. Averaging every seed vertex
+ * sat south-east of that and dropped the overlay on the neighbor.
+ */
+export const BLUE_QUAIL_MAP_ORIGIN: [number, number] = [20, 31.5];
+
 function rotateLocalFt(east: number, north: number, headingDeg: number): [number, number] {
   const rad = (headingDeg * Math.PI) / 180;
   const s = Math.sin(rad);
@@ -108,9 +114,7 @@ function rotateLocalFt(east: number, north: number, headingDeg: number): [number
 /** EV diagram planes on the real lot, for the map tracer. */
 export function blueQuailMapTrace(): RoofFacet[] {
   const planes = blueQuailDiagramPlanes();
-  const verts = planes.flatMap((row) => row.feet);
-  const cx = verts.reduce((sum, pt) => sum + pt[0], 0) / verts.length;
-  const cy = verts.reduce((sum, pt) => sum + pt[1], 0) / verts.length;
+  const [cx, cy] = BLUE_QUAIL_MAP_ORIGIN;
   const heading = BLUE_QUAIL_HEADING_DEG;
   return planes.map((row) => {
     const local = row.feet.map(([east, north]) => rotateLocalFt(east - cx, north - cy, heading));
