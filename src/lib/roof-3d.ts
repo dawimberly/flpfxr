@@ -24,7 +24,7 @@ export function roof3dHouseCamera(
 ): Roof3dCamera {
   const top = Boolean(opts.top);
   return {
-    // Lat/lng only. Do not set altitude 0 ù that is sea level, not the roof.
+    // Lat/lng only. Do not set altitude 0 -- that is sea level, not the roof.
     center: { lat, lng },
     range: top ? 550 : 480,
     tilt: top ? 8 : 52,

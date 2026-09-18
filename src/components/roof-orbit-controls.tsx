@@ -41,7 +41,7 @@ export function RoofOrbitControls({
           onClick={onNorth}
         >
           <Compass className="size-3.5" />
-          {Math.round(deg)}°
+          {Math.round(deg)} deg
         </Button>
         <Button
           type="button"
