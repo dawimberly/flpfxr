@@ -33,6 +33,31 @@ function noopSelect(_id: string | null) {}
 function noopClick(_latlng: LatLng) {}
 function noopMove(_id: string, _index: number, _latlng: LatLng) {}
 
+/** Gable silhouette at the bucket pitch: 4/12, 6/12, 9/12. Same 12-run base so slope is the only change. */
+const PITCH_RISE: Record<PublicPitchId, number> = { low: 4, medium: 6.5, steep: 10 };
+
+function PitchGlyph({ id }: { id: PublicPitchId }) {
+  const rise = PITCH_RISE[id];
+  const base = 11;
+  const peakY = base - rise;
+  return (
+    <svg
+      viewBox="0 0 24 12"
+      className="mx-auto mb-0.5 h-8 w-14 overflow-visible"
+      aria-hidden
+    >
+      <polygon
+        points={`1,${base} 12,${peakY} 23,${base}`}
+        fill="currentColor"
+        fillOpacity="0.18"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function RoofPublicQuote({
   embedded = false,
   hideCta = false,
@@ -209,14 +234,15 @@ export function RoofPublicQuote({
             type="button"
             onClick={() => setPitchId(id)}
             className={cn(
-              "h-14 rounded-lg px-2 text-sm font-medium transition-[background-color,color] duration-150",
+              "flex min-h-20 flex-col items-center justify-center rounded-lg px-2 py-2 text-sm font-medium transition-[background-color,color] duration-150",
               pitchId === id
                 ? "bg-cream text-cream-fg"
                 : "bg-bg text-muted shadow-[var(--shadow-border)] hover:text-fg",
             )}
           >
-            <span className="block">{PUBLIC_PITCH[id].label}</span>
-            <span className="block text-[11px] font-normal opacity-80">
+            <PitchGlyph id={id} />
+            <span className="block leading-tight">{PUBLIC_PITCH[id].label}</span>
+            <span className="block text-[11px] font-normal leading-tight opacity-80">
               {PUBLIC_PITCH[id].hint}
             </span>
           </button>
