@@ -36,15 +36,17 @@ function roomsFromService(service: ServiceId | "", scope: EstimateScope): {
 
 export function QuoteEstimator({
   compact = false,
+  embedded = false,
   initialService,
   hideCta = false,
   onQuoteChange,
   onServiceChange,
 }: {
   compact?: boolean;
+  embedded?: boolean;
   initialService?: ServiceId;
   hideCta?: boolean;
-  onQuoteChange?: (quote: QuoteSelection) => void;
+  onQuoteChange?: (quote: QuoteSelection | null) => void;
   onServiceChange?: (id: ServiceId) => void;
 }) {
   const mapped =
@@ -105,26 +107,27 @@ export function QuoteEstimator({
         ? `I'm looking at a ${summary.toLowerCase()}.${range ? ` Rough planning range ${formatUsdRange(range[0], range[1])}.` : ""}`
         : "",
     });
-    void navigate({ to: "/contact", search: { service: serviceId || undefined } });
+    void navigate({
+      to: "/contact",
+      search: { service: serviceId || undefined, side: "interior" },
+    });
   };
 
-  return (
-    <div
-      id="ballpark"
-      className={cn(
-        "scroll-mt-28 rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8",
-        compact && "p-5 md:p-6",
+  const body = (
+    <>
+      {embedded ? null : (
+        <>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            Ballpark
+          </p>
+          <h2 className="mt-2 font-display text-2xl text-fg md:text-3xl">
+            What's the job?
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            Ballpark for San Antonio. Not a bid. We'll walk the job.
+          </p>
+        </>
       )}
-    >
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-        Ballpark
-      </p>
-      <h2 className="mt-2 font-display text-2xl text-fg md:text-3xl">
-        What's the job?
-      </h2>
-      <p className="mt-2 text-sm text-muted">
-        Ballpark for San Antonio. Not a bid. We'll walk the job.
-      </p>
 
       <div className="mt-6 grid gap-2 sm:grid-cols-2">
         {ESTIMATE_TYPES.map((type) => (
@@ -183,6 +186,20 @@ export function QuoteEstimator({
           <ArrowRight className="size-4" />
         </Button>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <div
+      id="ballpark"
+      className={cn(
+        "scroll-mt-28 rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8",
+        compact && "p-5 md:p-6",
+      )}
+    >
+      {body}
     </div>
   );
 }

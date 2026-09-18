@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { AddressSuggestField } from "@/components/address-suggest-field";
@@ -23,11 +23,25 @@ import { cn, formatUsdRange } from "@/lib/utils";
 const SA_CENTER = { lat: 29.4241, lng: -98.4936 };
 const ADDRESS_PLACEHOLDER = "3407 Stonehaven Dr, San Antonio, TX 78230";
 
+export type RoofQuotePayload = {
+  range: [number, number];
+  includes: string;
+  message: string;
+};
+
 function noopSelect(_id: string | null) {}
 function noopClick(_latlng: LatLng) {}
 function noopMove(_id: string, _index: number, _latlng: LatLng) {}
 
-export function RoofPublicQuote() {
+export function RoofPublicQuote({
+  embedded = false,
+  hideCta = false,
+  onQuoteChange,
+}: {
+  embedded?: boolean;
+  hideCta?: boolean;
+  onQuoteChange?: (quote: RoofQuotePayload | null) => void;
+}) {
   const navigate = useNavigate();
   const [address, setAddress] = useState("");
   const [center, setCenter] = useState(SA_CENTER);
@@ -47,6 +61,28 @@ export function RoofPublicQuote() {
 
   const quote = planSqft != null ? publicRoofQuote(planSqft, pitchId, shingleId) : null;
   const rangeLabel = quote ? formatUsdRange(quote.low, quote.high) : "";
+  const includes = quote
+    ? `About ${quote.squaresWithWaste.toFixed(0)} squares, ${pitch.label.toLowerCase()} pitch, ${PUBLIC_SHINGLE[shingleId].label.toLowerCase()}`
+    : "";
+
+  useEffect(() => {
+    if (!quote) {
+      onQuoteChange?.(null);
+      return;
+    }
+    onQuoteChange?.({
+      range: [quote.low, quote.high],
+      includes,
+      message: publicRoofLeadMessage({
+        address: address.trim(),
+        pitchId,
+        shingleId,
+        quote,
+        rangeLabel,
+      }),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- parent only needs the current range
+  }, [quote?.low, quote?.high, quote?.squaresWithWaste, address, pitchId, shingleId, rangeLabel, includes]);
 
   async function measureAddress(query: string) {
     if (!looksLikeStreetAddress(query)) {
@@ -109,24 +145,29 @@ export function RoofPublicQuote() {
         rangeLabel,
       }),
     });
-    void navigate({ to: "/contact", search: { service: "roofing" } });
+    void navigate({
+      to: "/contact",
+      search: { service: "roofing", side: "exterior" },
+      hash: "ballpark",
+    });
   }
 
-  return (
-    <div
-      id="ballpark"
-      className="scroll-mt-28 rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8"
-    >
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-        Ballpark
-      </p>
-      <h2 className="mt-2 font-display text-2xl text-fg md:text-3xl">
-        Type the house
-      </h2>
-      <p className="mt-2 text-sm text-muted">
-        We outline that roof. You pick pitch and shingles. Planning range for
-        San Antonio. Not a bid.
-      </p>
+  const body = (
+    <>
+      {embedded ? null : (
+        <>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            Ballpark
+          </p>
+          <h2 className="mt-2 font-display text-2xl text-fg md:text-3xl">
+            Type the house
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            We outline that roof. You pick pitch and shingles. Planning range for
+            San Antonio. Not a bid.
+          </p>
+        </>
+      )}
 
       <form className="relative z-50 mt-6 flex flex-col gap-2 sm:flex-row" onSubmit={onSearch}>
         <AddressSuggestField
@@ -219,16 +260,29 @@ export function RoofPublicQuote() {
             About 2 squares either way on this outline. Cut-up roofs can land
             about 10-15% off. We'll walk it free.
           </p>
-          <Button type="button" size="lg" className="mt-6 w-full" onClick={goToContact}>
-            Send this range
-            <ArrowRight className="size-4" />
-          </Button>
+          {hideCta ? null : (
+            <Button type="button" size="lg" className="mt-6 w-full" onClick={goToContact}>
+              Send this range
+              <ArrowRight className="size-4" />
+            </Button>
+          )}
         </div>
       ) : (
         <p className="mt-6 text-sm text-muted">
           Measure a house to see the range.
         </p>
       )}
+    </>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <div
+      id="ballpark"
+      className="scroll-mt-28 rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8"
+    >
+      {body}
     </div>
   );
 }

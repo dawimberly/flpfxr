@@ -1,4 +1,4 @@
-/** Public /roof ballpark: one building outline x pitch bucket x shingle grade. */
+/** Public roof ballpark: one building outline x pitch bucket x shingle grade. */
 
 import { CUSTOMER_PER_SQ } from "./home-depot-roof.ts";
 import {

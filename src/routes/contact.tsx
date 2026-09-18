@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CallLink } from "@/components/call-link";
-import { QuoteEstimator, type QuoteSelection } from "@/components/quote-estimator";
+import { JobBallpark, type BallparkSide } from "@/components/job-ballpark";
+import { type QuoteSelection } from "@/components/quote-estimator";
 import { PageIntro } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { formatUsdRange } from "@/lib/utils";
 type Search = {
   service?: ServiceId;
   sent?: boolean;
+  side?: BallparkSide;
 };
 
 export const Route = createFileRoute("/contact")({
@@ -34,7 +36,13 @@ export const Route = createFileRoute("/contact")({
         ? (search.service as ServiceId)
         : undefined;
     const sent = search.sent === "1" || search.sent === true;
-    return sent ? { service, sent: true } : { service };
+    const side: BallparkSide | undefined =
+      search.side === "exterior" || search.side === "interior"
+        ? search.side
+        : service === "roofing"
+          ? "exterior"
+          : undefined;
+    return { service, ...(sent ? { sent: true } : {}), ...(side ? { side } : {}) };
   },
   head: () => ({
     meta: [
@@ -48,11 +56,13 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
-  const { service: serviceFromUrl, sent: sentFromUrl } = Route.useSearch();
+  const { service: serviceFromUrl, sent: sentFromUrl, side: sideFromUrl } =
+    Route.useSearch();
+  const navigate = useNavigate({ from: "/contact" });
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [service, setService] = useState<string>("");
+  const [service, setService] = useState<string>(serviceFromUrl || "");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [blocked, setBlocked] = useState(false);
@@ -60,6 +70,12 @@ function ContactPage() {
   const [kitchen, setKitchen] = useState<RoomScope>("medium");
   const [bathroom, setBathroom] = useState<RoomScope>("none");
   const [quote, setQuote] = useState<QuoteSelection | null>(null);
+  const [side, setSide] = useState<BallparkSide>(
+    sideFromUrl === "exterior" || serviceFromUrl === "roofing"
+      ? "exterior"
+      : "interior",
+  );
+  const lastInteriorService = useRef<ServiceId>("kitchen");
 
   const estimateService =
     serviceFromUrl === "kitchen-bath"
@@ -76,18 +92,39 @@ function ContactPage() {
     setService(serviceFromUrl || draft.service || "");
     setMessage(draft.message ?? "");
     setNextUrl(`${window.location.origin}/contact?sent=1`);
-  }, [serviceFromUrl]);
+    // Hydrate the form once. Tab changes update the URL and must not wipe fields.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (estimateService) lastInteriorService.current = estimateService;
+  }, [estimateService]);
+
+  useEffect(() => {
+    if (side === "interior" && ESTIMATE_TYPES.some((t) => t.id === service)) {
+      lastInteriorService.current = service as ServiceId;
+    }
+  }, [side, service]);
 
   useEffect(() => {
     if (sentFromUrl) trackContactFormSubmit();
   }, [sentFromUrl]);
+
+  useEffect(() => {
+    const next: BallparkSide =
+      sideFromUrl === "exterior" || serviceFromUrl === "roofing"
+        ? "exterior"
+        : "interior";
+    setSide(next);
+  }, [sideFromUrl, serviceFromUrl]);
 
   const serviceLabel =
     ESTIMATE_TYPES.find((t) => t.id === service)?.label ||
     SERVICES.find((t) => t.id === service)?.title ||
     service;
 
-  const sizeLabel = quote ? SCOPE_LABELS[quote.scope] : "";
+  const sizeLabel =
+    quote && quote.service !== "roofing" ? SCOPE_LABELS[quote.scope] : "";
   const kitchenLabel =
     (quote?.service || service) === "kitchen" ? sizeLabel : "n/a";
   const bathroomLabel =
@@ -109,11 +146,38 @@ function ContactPage() {
 
   const subjectLine = `The Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
 
-  const onQuoteChange = (next: QuoteSelection) => {
+  const onQuoteChange = (next: QuoteSelection | null) => {
     setQuote(next);
-    if (next.service) setService(next.service);
-    setKitchen(next.kitchen);
-    setBathroom(next.bathroom);
+    if (next?.service) setService(next.service);
+    if (next) {
+      setKitchen(next.kitchen);
+      setBathroom(next.bathroom);
+    }
+  };
+
+  const onSideChange = (next: BallparkSide) => {
+    setSide(next);
+    if (next === "exterior") {
+      setService("roofing");
+      setQuote(null);
+      void navigate({
+        search: (prev) => ({ ...prev, service: "roofing", side: "exterior" }),
+        hash: "ballpark",
+        replace: true,
+      });
+      return;
+    }
+    const interiorService = lastInteriorService.current;
+    setService(interiorService);
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        service: interiorService,
+        side: "interior",
+      }),
+      hash: "ballpark",
+      replace: true,
+    });
   };
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -159,16 +223,19 @@ function ContactPage() {
         <p>Call or send photos of the job.</p>
       </PageIntro>
 
-      {serviceFromUrl === "roofing" ? null : (
-        <section className="mx-auto max-w-6xl px-4 pb-12">
-          <QuoteEstimator
-            initialService={estimateService}
-            hideCta
-            onServiceChange={(id) => setService(id)}
-            onQuoteChange={onQuoteChange}
-          />
-        </section>
-      )}
+      <section className="mx-auto max-w-6xl px-4 pb-12">
+        <JobBallpark
+          side={side}
+          onSideChange={onSideChange}
+          initialService={
+            estimateService ??
+            (side === "interior" ? lastInteriorService.current : undefined)
+          }
+          hideCta
+          onServiceChange={(id) => setService(id)}
+          onQuoteChange={onQuoteChange}
+        />
+      </section>
 
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
         <aside className="space-y-6 md:col-span-2">
@@ -281,7 +348,11 @@ function ContactPage() {
                   rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Neighborhood, the room, when you want to start."
+                  placeholder={
+                    side === "exterior"
+                      ? "Neighborhood, when you want to start."
+                      : "Neighborhood, the room, when you want to start."
+                  }
                 />
               </div>
               <Button type="submit" size="lg">

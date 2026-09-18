@@ -30,7 +30,6 @@ export const ESTIMATOR_APP_URL = "/estimator";
 export const NAV = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
-  { to: "/roof", label: "Roof" },
   { to: "/gallery", label: "Gallery" },
   { to: "/about", label: "About" },
   { to: "/community", label: "Community" },
@@ -846,7 +845,7 @@ export const FAQS = [
   },
   {
     q: "How do I get a price?",
-    a: "Call (210) 436-9117. For a roof, type the address on the Roof page. Pictures help. We'll walk the job if we need to and give you a number.",
+    a: "Call (210) 436-9117. For a roof, open Exterior on Contact and type the address. Pictures help. We'll walk the job if we need to and give you a number.",
   },
   {
     q: "Do you design the work?",
