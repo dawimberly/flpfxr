@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trackContactFormSubmit } from "@/lib/google-ads";
 import {
   AREA_LINE,
+  CONTACT_AFFILIATIONS,
   ESTIMATE_TYPES,
   SCOPE_LABELS,
   SERVICES,
@@ -62,6 +63,10 @@ function ContactPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [affiliation, setAffiliation] = useState("");
+  const [address, setAddress] = useState("");
+  const [pitch, setPitch] = useState("");
+  const [roofSize, setRoofSize] = useState("");
   const [service, setService] = useState<string>(serviceFromUrl || "");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
@@ -89,8 +94,14 @@ function ContactPage() {
     setName(draft.name ?? "");
     setEmail(draft.email ?? "");
     setPhone(draft.phone ?? "");
+    setAffiliation(draft.affiliation ?? "");
     setService(serviceFromUrl || draft.service || "");
     setMessage(draft.message ?? "");
+    if (sideFromUrl === "exterior" || serviceFromUrl === "roofing") {
+      setAddress(draft.address ?? "");
+      setPitch(draft.pitch ?? "");
+      setRoofSize(draft.roofSize ?? "");
+    }
     setNextUrl(`${window.location.origin}/contact?sent=1`);
     // Hydrate the form once. Tab changes update the URL and must not wipe fields.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,28 +134,35 @@ function ContactPage() {
     SERVICES.find((t) => t.id === service)?.title ||
     service;
 
-  const sizeLabel =
+  const interiorSize =
     quote && quote.service !== "roofing" ? SCOPE_LABELS[quote.scope] : "";
+  const sizeLabel =
+    (quote?.service || service) === "roofing"
+      ? roofSize
+      : interiorSize;
   const kitchenLabel =
-    (quote?.service || service) === "kitchen" ? sizeLabel : "n/a";
+    (quote?.service || service) === "kitchen" ? interiorSize : "n/a";
   const bathroomLabel =
-    (quote?.service || service) === "bathroom" ? sizeLabel : "n/a";
+    (quote?.service || service) === "bathroom" ? interiorSize : "n/a";
   const ballpark =
     quote?.range ? formatUsdRange(quote.range[0], quote.range[1]) : "";
 
   const quoteBlock = [
     "Ballpark from the website:",
     serviceLabel ? `Job: ${serviceLabel}` : null,
+    address ? `Address: ${address}` : null,
     sizeLabel ? `Size: ${sizeLabel}` : null,
+    pitch ? `Pitch: ${pitch}` : null,
     kitchenLabel !== "n/a" ? `Kitchen size: ${kitchenLabel}` : null,
     bathroomLabel !== "n/a" ? `Bathroom size: ${bathroomLabel}` : null,
     ballpark ? `Planning range: ${ballpark}` : null,
+    affiliation ? `Affiliation: ${affiliation}` : null,
     quote?.includes ? quote.includes : null,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const subjectLine = `The Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
+  const subjectLine = `The Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${pitch ? `, ${pitch}` : ""}${ballpark ? ` (${ballpark})` : ""}${affiliation ? ` — ${affiliation}` : ""}`;
 
   const onQuoteChange = (next: QuoteSelection | null) => {
     setQuote(next);
@@ -152,6 +170,17 @@ function ContactPage() {
     if (next) {
       setKitchen(next.kitchen);
       setBathroom(next.bathroom);
+    }
+    if (next?.service === "roofing") {
+      if (next.address) setAddress(next.address);
+      if (next.pitch) setPitch(next.pitch);
+      if (next.sizeDetail) setRoofSize(next.sizeDetail);
+      return;
+    }
+    if (next) {
+      setAddress("");
+      setPitch("");
+      setRoofSize("");
     }
   };
 
@@ -169,6 +198,9 @@ function ContactPage() {
     }
     const interiorService = lastInteriorService.current;
     setService(interiorService);
+    setAddress("");
+    setPitch("");
+    setRoofSize("");
     void navigate({
       search: (prev) => ({
         ...prev,
@@ -194,7 +226,10 @@ function ContactPage() {
     setField("Kitchen_size", kitchenLabel);
     setField("Bathroom_size", bathroomLabel);
     setField("Planning_range", ballpark || "n/a");
-    setField("Size", sizeLabel || serviceLabel || "n/a");
+    setField("Address", address || "n/a");
+    setField("Size", sizeLabel || "n/a");
+    setField("Pitch", pitch || "n/a");
+    setField("Affiliation", affiliation || "n/a");
 
     const body = message.trim();
     setField("message", quote?.range && body ? `${body}\n\n${quoteBlock}` : body || quoteBlock);
@@ -207,6 +242,10 @@ function ContactPage() {
       kitchenScope: kitchen,
       bathroomScope: bathroom,
       scope: quote?.scope ?? "",
+      affiliation,
+      address,
+      pitch,
+      roofSize,
       message,
     });
     if (honeypot) {
@@ -250,7 +289,7 @@ function ContactPage() {
           </a>
           <p className="text-muted">{AREA_LINE}</p>
           <p className="text-sm leading-relaxed text-subtle">
-            Military, CASA, or a group home?{" "}
+            CASA or a group home?{" "}
             <Link to="/community" className="font-medium text-primary">
               Use the Community form
             </Link>{" "}
@@ -284,7 +323,9 @@ function ContactPage() {
               <input type="hidden" name="Kitchen_size" value={kitchenLabel} />
               <input type="hidden" name="Bathroom_size" value={bathroomLabel} />
               <input type="hidden" name="Planning_range" value={ballpark || "n/a"} />
+              <input type="hidden" name="Address" value={address || "n/a"} />
               <input type="hidden" name="Size" value={sizeLabel || "n/a"} />
+              <input type="hidden" name="Pitch" value={pitch || "n/a"} />
               <div className="hidden" aria-hidden="true">
                 <Label htmlFor="company">Company</Label>
                 <Input
@@ -330,13 +371,37 @@ function ContactPage() {
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-              {ballpark ? (
+              <div className="space-y-2">
+                <Label htmlFor="affiliation">
+                  Military, first responder, or educator
+                </Label>
+                <select
+                  id="affiliation"
+                  name="Affiliation"
+                  value={affiliation}
+                  onChange={(e) => setAffiliation(e.target.value)}
+                  className="flex h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+                >
+                  {CONTACT_AFFILIATIONS.map((item) => (
+                    <option key={item.label} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {ballpark || address || pitch || sizeLabel ? (
                 <p className="rounded-xl bg-bg px-4 py-3 text-sm text-muted">
                   <span className="font-medium text-fg">
                     {serviceLabel}
                     {sizeLabel ? ` · ${sizeLabel}` : ""}
+                    {pitch ? ` · ${pitch}` : ""}
                   </span>
-                  <span className="mt-1 block tabular-nums">Ballpark {ballpark}</span>
+                  {address ? (
+                    <span className="mt-1 block">{address}</span>
+                  ) : null}
+                  {ballpark ? (
+                    <span className="mt-1 block tabular-nums">Ballpark {ballpark}</span>
+                  ) : null}
                 </p>
               ) : null}
               <div className="space-y-2">

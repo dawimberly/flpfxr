@@ -23,6 +23,9 @@ export type QuoteSelection = {
   summary: string;
   range: [number, number] | null;
   includes: string;
+  address?: string;
+  pitch?: string;
+  sizeDetail?: string;
 };
 
 function roomsFromService(service: ServiceId | "", scope: EstimateScope): {

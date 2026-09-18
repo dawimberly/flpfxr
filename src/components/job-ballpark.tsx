@@ -38,6 +38,9 @@ export function JobBallpark({
       summary: payload.includes,
       range: payload.range,
       includes: payload.message,
+      address: payload.address,
+      pitch: payload.pitch,
+      sizeDetail: payload.size,
     });
   };
 

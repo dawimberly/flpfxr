@@ -257,6 +257,13 @@ export const COMMUNITY = {
   ],
 } as const;
 
+export const CONTACT_AFFILIATIONS = [
+  { value: "", label: "Doesn't apply" },
+  { value: "Military or veteran", label: "Military or veteran" },
+  { value: "First responder", label: "First responder" },
+  { value: "Educator", label: "Educator" },
+] as const;
+
 export const TESTIMONIALS = [
   {
     quote:
@@ -1049,6 +1056,12 @@ export type LeadDraft = {
   scope?: EstimateScope | "";
   kitchenScope?: RoomScope | "";
   bathroomScope?: RoomScope | "";
+  affiliation?: string;
+  address?: string;
+  pitch?: string;
+  pitchId?: string;
+  shingleId?: string;
+  roofSize?: string;
   message?: string;
 };
 

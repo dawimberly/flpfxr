@@ -17,14 +17,17 @@ import {
   type PublicPitchId,
   type PublicShingleId,
 } from "@/lib/roof-public-quote";
-import { saveLeadDraft } from "@/lib/site";
+import { loadLeadDraft, saveLeadDraft } from "@/lib/site";
 import { cn, formatUsdRange } from "@/lib/utils";
 
 const SA_CENTER = { lat: 29.4241, lng: -98.4936 };
 const ADDRESS_PLACEHOLDER = "3407 Stonehaven Dr, San Antonio, TX 78230";
 
 export type RoofQuotePayload = {
-  range: [number, number];
+  address: string;
+  pitch: string;
+  size: string;
+  range: [number, number] | null;
   includes: string;
   message: string;
 };
@@ -89,25 +92,47 @@ export function RoofPublicQuote({
   const includes = quote
     ? `About ${quote.squaresWithWaste.toFixed(0)} squares, ${pitch.label.toLowerCase()} pitch, ${PUBLIC_SHINGLE[shingleId].label.toLowerCase()}`
     : "";
+  const sizeLabel = quote
+    ? `${quote.squaresWithWaste.toFixed(1)} squares`
+    : "";
+  const pitchLabel = `${pitch.label} (${pitch.pitch})`;
 
   useEffect(() => {
-    if (!quote) {
-      onQuoteChange?.(null);
-      return;
+    const draft = loadLeadDraft();
+    if (draft.address) setAddress(draft.address);
+    if (draft.pitchId && PUBLIC_PITCH_IDS.includes(draft.pitchId as PublicPitchId)) {
+      setPitchId(draft.pitchId as PublicPitchId);
     }
+    if (
+      draft.shingleId &&
+      PUBLIC_SHINGLE_IDS.includes(draft.shingleId as PublicShingleId)
+    ) {
+      setShingleId(draft.shingleId as PublicShingleId);
+    }
+    // Hydrate the address and pitch once. Measuring is opt-in.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const trimmed = address.trim();
     onQuoteChange?.({
-      range: [quote.low, quote.high],
+      address: trimmed,
+      pitch: pitchLabel,
+      size: sizeLabel,
+      range: quote ? [quote.low, quote.high] : null,
       includes,
-      message: publicRoofLeadMessage({
-        address: address.trim(),
-        pitchId,
-        shingleId,
-        quote,
-        rangeLabel,
-      }),
+      message: quote
+        ? publicRoofLeadMessage({
+            address: trimmed,
+            pitchId,
+            shingleId,
+            quote,
+            rangeLabel,
+          })
+        : "",
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- parent only needs the current range
-  }, [quote?.low, quote?.high, quote?.squaresWithWaste, address, pitchId, shingleId, rangeLabel, includes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- parent only needs the current pick
+  }, [quote?.low, quote?.high, quote?.squaresWithWaste, address, pitchId, shingleId, rangeLabel, includes, sizeLabel, pitchLabel]);
 
   async function measureAddress(query: string) {
     if (!looksLikeStreetAddress(query)) {
@@ -139,6 +164,12 @@ export function RoofPublicQuote({
       }
       setRing(outline.ring);
       setPlanSqft(outline.planSqft);
+      saveLeadDraft({
+        service: "roofing",
+        address: result.hit.label || query.trim(),
+        pitchId,
+        shingleId,
+      });
     } catch {
       setRing(null);
       setPlanSqft(null);
@@ -158,18 +189,29 @@ export function RoofPublicQuote({
     void measureAddress(label);
   }
 
-  function goToContact() {
-    if (!quote) return;
+  function persistRoofDraft(nextMessage?: string) {
     saveLeadDraft({
       service: "roofing",
-      message: publicRoofLeadMessage({
+      address: address.trim(),
+      pitch: pitchLabel,
+      pitchId,
+      shingleId,
+      roofSize: sizeLabel,
+      ...(nextMessage ? { message: nextMessage } : {}),
+    });
+  }
+
+  function goToContact() {
+    if (!quote) return;
+    persistRoofDraft(
+      publicRoofLeadMessage({
         address: address.trim(),
         pitchId,
         shingleId,
         quote,
         rangeLabel,
       }),
-    });
+    );
     void navigate({
       to: "/contact",
       search: { service: "roofing", side: "exterior" },
