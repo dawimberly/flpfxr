@@ -249,11 +249,7 @@ export function geodesicRingPerimeterFt(latlngs: LatLng[]): number {
 
 export const ROOF_VERTEX_SNAP_FT = 2.5;
 
-export function snapRoofLatLng(
-  pt: LatLng,
-  anchors: LatLng[],
-  maxFt = ROOF_VERTEX_SNAP_FT,
-): LatLng {
+export function snapRoofLatLng(pt: LatLng, anchors: LatLng[], maxFt = ROOF_VERTEX_SNAP_FT): LatLng {
   let best = pt;
   let bestFt = maxFt;
   for (const anchor of anchors) {
@@ -290,7 +286,11 @@ export function alignRingToAnchors(
 
 function ringPoints(latlngs: LatLng[] | undefined): LatLng[] {
   const pts = (latlngs || []).map((pt) => [Number(pt[0]), Number(pt[1])] as LatLng);
-  if (pts.length >= 2 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]) {
+  if (
+    pts.length >= 2 &&
+    pts[0][0] === pts[pts.length - 1][0] &&
+    pts[0][1] === pts[pts.length - 1][1]
+  ) {
     return pts.slice(0, -1);
   }
   return pts;
@@ -375,7 +375,12 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
         else drains = "away";
       }
       const wallSide = wallEdges.has(i) || (facetWall && drains === "away");
-      const slot: EdgeSlot = groups.get(key) ?? { sides: [], plans: [], rises: [], ends: new Map() };
+      const slot: EdgeSlot = groups.get(key) ?? {
+        sides: [],
+        plans: [],
+        rises: [],
+        ends: new Map(),
+      };
       slot.sides.push({ drains, rise, wall: wallSide });
       slot.plans.push(plan);
       if (rise != null) slot.rises.push(rise);
@@ -396,7 +401,9 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
   const edges: NamedEdge[] = [];
   for (const slot of groups.values()) {
     const plan = slot.plans.reduce((sum, n) => sum + n, 0) / slot.plans.length;
-    const rise = slot.rises.length ? slot.rises.reduce((sum, n) => sum + n, 0) / slot.rises.length : 0;
+    const rise = slot.rises.length
+      ? slot.rises.reduce((sum, n) => sum + n, 0) / slot.rises.length
+      : 0;
     const level = rise <= Math.max(0.4, 0.03 * plan);
     const length = level ? plan : Math.hypot(plan, rise);
     const drains = slot.sides.map((side) => side.drains);
@@ -412,11 +419,17 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
         else kind = "rake";
       } else if (drains.length === 2) {
         const pair = new Set(drains);
-        if ((pair.size === 1 && pair.has("toward")) || (pair.has("toward") && pair.has("along") && pair.size === 2)) {
+        if (
+          (pair.size === 1 && pair.has("toward")) ||
+          (pair.has("toward") && pair.has("along") && pair.size === 2)
+        ) {
           kind = "valley";
         } else if (pair.size === 1 && pair.has("away") && level) {
           kind = "ridge";
-        } else if ((pair.size === 1 && pair.has("away")) || (pair.has("away") && pair.has("along") && pair.size === 2)) {
+        } else if (
+          (pair.size === 1 && pair.has("away")) ||
+          (pair.has("away") && pair.has("along") && pair.size === 2)
+        ) {
           kind = "hip";
         } else {
           kind = wallKind;
@@ -441,13 +454,17 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
   }
 
   const total = (kind: string) =>
-    Math.round(edges.filter((edge) => edge.kind === kind).reduce((sum, edge) => sum + edge.length_ft, 0) * 10) / 10;
+    Math.round(
+      edges.filter((edge) => edge.kind === kind).reduce((sum, edge) => sum + edge.length_ft, 0) *
+        10,
+    ) / 10;
   const eaves = total("eave");
   const rakes = total("rake");
   const ridges = total("ridge");
   const hips = total("hip");
   const valleys = total("valley");
-  const steps = Math.round((total("headwall") + total("sidewall") + total("step") + total("wall")) * 10) / 10;
+  const steps =
+    Math.round((total("headwall") + total("sidewall") + total("step") + total("wall")) * 10) / 10;
   const named = edges.some((edge) => edge.kind !== "unclassified");
   return {
     classified: named,
@@ -461,6 +478,38 @@ export function classifyEdges(facets: RoofFacet[], snapFt = 2): EdgeClass {
     drip_ft: Math.round((eaves + rakes) * 10) / 10,
     shared_edges: [...groups.values()].filter((slot) => slot.sides.length >= 2).length,
     edges,
+  };
+}
+
+/** Opposite-edge pairs on a 4-gon. Long pair = eaves/starter, short pair = rakes/drip, ridge = one long side. */
+export function quadEdgePairs(
+  latlngs: LatLng[],
+): { longFt: number; shortFt: number; ridgeFt: number } | null {
+  const ring = ringPoints(latlngs);
+  if (ring.length !== 4) return null;
+  const lengths = ring.map((pt, i) => geodesicSegmentFt(pt, ring[(i + 1) % 4]));
+  const pairA = lengths[0] + lengths[2];
+  const pairB = lengths[1] + lengths[3];
+  const longFt = Math.round(Math.max(pairA, pairB) * 10) / 10;
+  const shortFt = Math.round(Math.min(pairA, pairB) * 10) / 10;
+  const ridgeFt = Math.round((longFt / 2) * 10) / 10;
+  if (longFt <= 0 || shortFt <= 0) return null;
+  return { longFt, shortFt, ridgeFt };
+}
+
+function withQuadFallback(facets: RoofFacet[], edges: EdgeClass): EdgeClass {
+  if (edges.classified) return edges;
+  if (facets.length !== 1) return edges;
+  const quad = quadEdgePairs(facets[0].latlngs);
+  if (!quad) return edges;
+  return {
+    ...edges,
+    eaves_ft: quad.longFt,
+    rakes_ft: quad.shortFt,
+    ridges_ft: quad.ridgeFt,
+    hips_ft: 0,
+    ridges_hips_ft: quad.ridgeFt,
+    drip_ft: quad.shortFt,
   };
 }
 
@@ -484,7 +533,7 @@ export function summarizeFacets(facets: RoofFacet[], wastePct?: number): RoofSum
     perimeter += geodesicRingPerimeterFt(latlngs);
     if (pitchRisePerRun(pitch) >= 7 / 12) steepSloped += facetSloped;
   }
-  const edges = classifyEdges(facets);
+  const edges = withQuadFallback(facets, classifyEdges(facets));
   const slopedRounded = Math.round(sloped * 10) / 10;
   return attachSquareWaste(
     {
@@ -495,8 +544,14 @@ export function summarizeFacets(facets: RoofFacet[], wastePct?: number): RoofSum
       waste_factor_pct: 0,
       final_area_sqft_with_waste: slopedRounded,
       squares_with_waste: Math.round((slopedRounded / 100) * 100) / 100,
-      perimeter_ft: edges.classified && edges.drip_ft != null ? edges.drip_ft : Math.round(perimeter * 10) / 10,
-      incomplete: count === 0 ? "Draw at least one roof plane." : missingPitch ? "Every facet needs a pitch." : null,
+      perimeter_ft:
+        edges.classified && edges.drip_ft != null ? edges.drip_ft : Math.round(perimeter * 10) / 10,
+      incomplete:
+        count === 0
+          ? "Draw at least one roof plane."
+          : missingPitch
+            ? "Every facet needs a pitch."
+            : null,
       eaves_ft: edges.eaves_ft,
       rakes_ft: edges.rakes_ft,
       ridges_ft: edges.ridges_ft,
@@ -717,7 +772,11 @@ export function summarizePhotoFacets(
       squares_with_waste: Math.round((slopedRounded / 100) * 100) / 100,
       perimeter_ft: Math.round(peri * 10) / 10,
       incomplete:
-        count === 0 ? "Draw at least one roof plane on the plan photo." : missingPitch ? "Every facet needs a pitch." : null,
+        count === 0
+          ? "Draw at least one roof plane on the plan photo."
+          : missingPitch
+            ? "Every facet needs a pitch."
+            : null,
       eaves_ft: classified.eaves_ft,
       rakes_ft: classified.rakes_ft,
       ridges_ft: classified.ridges_ft,
@@ -737,6 +796,19 @@ export function summarizePhotoFacets(
   return attachSquareWaste(lined, wastePct, linePitch);
 }
 
+/** Convert an aerial plan length to EagleView-style 3D length. */
+export function roofEdgeTrueLengthFt(
+  plan: number,
+  kind: string | undefined,
+  pitch: string,
+): number {
+  const risePer = pitchRisePerRun(pitch);
+  if (!kind || risePer <= 0 || kind === "eave" || kind === "ridge" || kind === "headwall")
+    return plan;
+  if (kind === "rake" || kind === "sidewall") return Math.hypot(plan, plan * risePer);
+  return Math.hypot(plan, (plan * risePer) / Math.SQRT2);
+}
+
 /** Plan length from the photo. EagleView prints 3D (along-the-roof) lengths instead. */
 export function lineTrueLengthFt(
   a: Px,
@@ -746,10 +818,7 @@ export function lineTrueLengthFt(
   pitch: string,
 ): number {
   const plan = pixelDistance(a, b) * ftPerPx;
-  const risePer = pitchRisePerRun(pitch);
-  if (!kind || risePer <= 0 || kind === "eave" || kind === "ridge" || kind === "headwall") return plan;
-  if (kind === "rake" || kind === "sidewall") return Math.hypot(plan, plan * risePer);
-  return Math.hypot(plan, (plan * risePer) / Math.SQRT2);
+  return roofEdgeTrueLengthFt(plan, kind, pitch);
 }
 
 export function applyDrawnLines(
@@ -785,6 +854,47 @@ export function applyDrawnLines(
     steps_ft: steps,
     ridges_hips_ft: round(ridges + hips),
     drip_ft: round(eaves + rakes),
+  };
+}
+
+/**
+ * Apply georeferenced map lines to a roof summary.
+ * A drawn kind replaces that kind's inferred total; untouched kinds stay intact.
+ */
+export function applyNamedEdges(summary: RoofSummary, lines: NamedEdge[]): RoofSummary {
+  if (!lines.length) return summary;
+  const drawn = new Set(lines.map((line) => line.kind));
+  const total = (kind: string, fallback: number | null) =>
+    drawn.has(kind)
+      ? Math.round(
+          lines
+            .filter((line) => line.kind === kind)
+            .reduce((sum, line) => sum + line.length_ft, 0) * 10,
+        ) / 10
+      : (fallback ?? 0);
+  const eaves = total("eave", summary.eaves_ft);
+  const rakes = total("rake", summary.rakes_ft);
+  const ridges = total("ridge", summary.ridges_ft);
+  const hips = total("hip", summary.hips_ft);
+  const valleys = total("valley", summary.valleys_ft);
+  const headwalls = total("headwall", 0);
+  const sidewalls = total("sidewall", 0);
+  const steps =
+    drawn.has("headwall") || drawn.has("sidewall")
+      ? Math.round((headwalls + sidewalls) * 10) / 10
+      : (summary.steps_ft ?? 0);
+  const untouchedEdges = summary.edges.filter((edge) => !drawn.has(edge.kind));
+  return {
+    ...summary,
+    eaves_ft: eaves,
+    rakes_ft: rakes,
+    ridges_ft: ridges,
+    hips_ft: hips,
+    valleys_ft: valleys,
+    steps_ft: steps,
+    ridges_hips_ft: Math.round((ridges + hips) * 10) / 10,
+    drip_ft: Math.round((eaves + rakes) * 10) / 10,
+    edges: [...untouchedEdges, ...lines],
   };
 }
 

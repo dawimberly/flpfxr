@@ -9,6 +9,12 @@ import { roofingSelectionsFromSummary, type RoofSendExtras } from "@/lib/roof-li
 
 export const ROOF_ROOM_TYPE = "exterior_outdoor";
 export const ROOF_ROOM_LABEL = "Roof";
+
+function isEmptyLeftoverKitchen(room: JobRoom): boolean {
+  if (room.label !== "Kitchen") return false;
+  if ((room.cabinets ?? []).length) return false;
+  return Object.keys(room.selections ?? {}).length === 0;
+}
 export {
   ROOF_SHINGLE,
   ROOF_TEAROFF,
@@ -27,7 +33,11 @@ export function applyRoofTraceToJob(
   summary: RoofSummary,
   extras: RoofSendExtras = {},
 ): { rooms: JobRoom[]; client: ClientInfo; roomId: string } {
-  const selections = { roofing: roofingSelectionsFromSummary(summary, extras) };
+  const roofing = roofingSelectionsFromSummary(summary, extras);
+  const selections = {
+    roofing,
+    cleanup: { name: "Debris haul-off", quantity: 1, act: "plus" as const },
+  };
   const existing = rooms.find(
     (room) => room.roomTypeId === ROOF_ROOM_TYPE && room.label === ROOF_ROOM_LABEL,
   );
@@ -39,9 +49,7 @@ export function applyRoofTraceToJob(
       room.id === existing.id
         ? {
             ...room,
-            extraCategories: room.extraCategories.includes("roofing")
-              ? room.extraCategories
-              : [...room.extraCategories, "roofing"],
+            extraCategories: [...new Set([...room.extraCategories, "roofing", "cleanup"])],
             selections: { ...room.selections, ...selections },
           }
         : room,
@@ -53,14 +61,13 @@ export function applyRoofTraceToJob(
       label: uniqueRoomLabel(ROOF_ROOM_LABEL, rooms),
       doors: [],
       windows: [],
-      extraCategories: blank.extraCategories.includes("roofing")
-        ? blank.extraCategories
-        : [...blank.extraCategories, "roofing"],
+      extraCategories: [...new Set([...blank.extraCategories, "roofing", "cleanup"])],
       selections,
     };
     roomId = room.id;
     nextRooms = [...rooms, room];
   }
+  nextRooms = nextRooms.filter((room) => !isEmptyLeftoverKitchen(room));
   const trimmed = address.trim();
   return {
     rooms: nextRooms,

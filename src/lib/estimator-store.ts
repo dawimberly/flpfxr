@@ -515,7 +515,10 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
   },
   applyRoofTrace: (address, summary, extras) => {
     const state = get();
-    const next = applyRoofTraceToJob(state.rooms, state.client, address, summary, extras);
+    const keep = state.rooms.filter(
+      (room) => room.roomTypeId === "exterior_outdoor" && room.label === "Roof",
+    );
+    const next = applyRoofTraceToJob(keep, state.client, address, summary, extras);
     set({
       rooms: next.rooms,
       client: next.client,

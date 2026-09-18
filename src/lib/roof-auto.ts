@@ -32,6 +32,22 @@ function steepFromPitch(pitch: string | null | undefined, squares: number) {
   return rise >= 7 / 12 ? squares : 0;
 }
 
+/** SA reroofs: lower pitch is usually more gables/rakes; 7/12+ is usually hips. */
+export function rakesFromPitch(pitch?: string | null): number {
+  const rise = Number(String(pitch || "5/12").split("/")[0]);
+  if (!Number.isFinite(rise) || rise < 0) return 8;
+  return rise >= 7 ? 2 : 8;
+}
+
+/**
+ * Living plan × pitch × two slopes × waste double-counts slope.
+ * Pitch already converts plan area to slope area. Stonehaven's bogus 39 came from that overlap.
+ */
+export function doubleSlopeOverlapSquares(planSqft: number, pitch = "4/12", wastePct = 12): number {
+  const oneSlope = slopedAreaSqft(planSqft, pitch) / 100;
+  return salesSquares(oneSlope * 2 * (1 + wastePct / 100));
+}
+
 export function quoteFromPlanSqft(planSqft: number, pitch = "5/12"): AutoRoofQuote | null {
   if (!Number.isFinite(planSqft) || planSqft < 200) return null;
   const roofSqft = slopedAreaSqft(planSqft, pitch);
@@ -59,13 +75,30 @@ export const UNMEASURED_EV = {
   ridgeHipFtPerSquare: 6.8,
 } as const;
 
+export function tappedValleyLf(valleyCount: number | null | undefined): number {
+  const n = Math.max(0, Math.round(valleyCount ?? 0));
+  return Math.round(n * UNMEASURED_EV.valleyFtEach * 10) / 10;
+}
+
+/** Use drawn valley LF when we have it; otherwise the Valleys picker. */
+export function withTappedValleys(
+  summary: RoofSummary,
+  valleyCount: number | null | undefined,
+): RoofSummary {
+  if ((summary.valleys_ft ?? 0) > 0) return summary;
+  const valleys_ft = tappedValleyLf(valleyCount);
+  if (!valleys_ft) return summary;
+  return { ...summary, valleys_ft };
+}
+
 export function unmeasuredRoofEdges(opts: {
   squares: number;
+  pitch?: string | null;
   rakeCount?: number | null;
   valleyCount?: number | null;
 }) {
   const squares = Math.max(0, opts.squares);
-  const rakes = Math.max(0, Math.round(opts.rakeCount ?? 2));
+  const rakes = Math.max(0, Math.round(opts.rakeCount ?? rakesFromPitch(opts.pitch)));
   const valleys = Math.max(0, Math.round(opts.valleyCount ?? 0));
   const eaves_ft = Math.round(squares * UNMEASURED_EV.eaveFtPerSquare * 10) / 10;
   const rakes_ft = Math.round(rakes * UNMEASURED_EV.rakeFtEach * 10) / 10;
@@ -88,7 +121,7 @@ export function unmeasuredRoofEdges(opts: {
 
 export function autoRoofSummary(quote: AutoRoofQuote, klass: RoofFastClass = {}): RoofSummary {
   const next = applyFastClass(quote, klass);
-  const rakeCount = klass.rakeCount ?? 2;
+  const rakeCount = klass.rakeCount ?? rakesFromPitch(next.pitch);
   const valleyCount = klass.valleyCount ?? 0;
   const ev = eagleViewWaste({
     pitch: next.pitch,
@@ -99,6 +132,7 @@ export function autoRoofSummary(quote: AutoRoofQuote, klass: RoofFastClass = {})
   const totalSquares = Math.round((next.roofSqft / 100) * 100) / 100;
   const edges = unmeasuredRoofEdges({
     squares: totalSquares,
+    pitch: next.pitch,
     rakeCount,
     valleyCount,
   });

@@ -22,7 +22,7 @@ export function roofCodeNote(zip?: string | null): string {
     `${city} ${z || "zip"}: box/turtle vents and pipe jacks are replaced with the reroof.`,
     "Gutter apron at the eaves is left in place (MRC practice: underlayment laps over eave metal). Drip edge at the rakes is R&R so felt can run underneath, per IRC R905.2.8.5 drip-edge lap.",
     sa
-      ? "IRC R905.2 (asphalt shingles), R905.2.8.5 drip edge, and R905.2.8.2 valleys. This quote prices Valley metal (open/metal valley). Ice & water closed-valley liner is not auto-added. Steep uses the TXSA 7/12 to 9/12 charge for every 7/12 and steeper roof."
-      : "Use the adopted IRC roofing chapter for this zip; MRC Xactimates cite the local IRC when the AHJ requires it. This quote prices Valley metal, not ice-and-water closed liner.",
+      ? "IRC R905.2 (asphalt shingles), R905.2.8.5 drip edge, and R905.2.8.2 valleys. This quote prices Valley metal plus ice & water in the valleys only (3 ft wide x valley LF). Steep uses the TXSA 7/12 to 9/12 charge for every 7/12 and steeper roof. Unmeasured rake count follows pitch: more rakes on 4/12-6/12 gables, fewer on 7/12+ hips, unless you tap cut-up."
+      : "Use the adopted IRC roofing chapter for this zip; MRC Xactimates cite the local IRC when the AHJ requires it. Valleys get metal plus 3 ft ice & water x valley LF.",
   ].join(" ");
 }

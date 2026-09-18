@@ -8,6 +8,15 @@ import {
 } from "@/lib/estimator";
 import { TRADE_NOTE, costPerItemRows, tradeTotals } from "@/lib/trade-groups";
 import { jobHasRoofing, roofCodeNote, zipFromAddress } from "@/lib/roof-code";
+import { roofWorkOrderMaterials } from "@/lib/roof-line-items";
+import {
+  CREW_PER_SQ,
+  HD_AS_OF,
+  HD_DELIVERY,
+  customerRoofTask,
+  roofCrewBid,
+} from "@/lib/home-depot-roof";
+import { streetFileSlug } from "@/lib/roof-address";
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -30,10 +39,11 @@ function money(value: number) {
 
 function ascii(value: string) {
   return value
-    .replace(/[—–]/g, "-")
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/×/g, "x")
+    .replace(/[\u2013\u2014\u2212]/g, "-")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u00D7\u2715]/g, "x")
+    .replace(/[^\x20-\x7E]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -59,18 +69,15 @@ function estimateNumber(issued: Date) {
   return `${issued.getFullYear()}${String(issued.getMonth() + 1).padStart(2, "0")}${String(issued.getDate()).padStart(2, "0")}`;
 }
 
-function fileSlug(value: string) {
-  const slug = ascii(value)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || "estimate";
-}
-
-export function estimatePdfFilename(client: ClientInfo, kind: EstimatePdfKind, issued = new Date()) {
-  const label = client.propertyName || client.propertyAddress || client.name || "estimate";
+export function estimatePdfFilename(
+  client: ClientInfo,
+  kind: EstimatePdfKind,
+  issued = new Date(),
+) {
+  const label =
+    client.propertyAddress || client.address || client.propertyName || client.name || "estimate";
   const suffix = kind === "customer" ? "-customer" : "-contractor";
-  return `Flip-Fixer-${fileSlug(label)}${suffix}-${estimateNumber(issued)}.pdf`;
+  return `Flip-Fixer-${streetFileSlug(label)}${suffix}-${estimateNumber(issued)}.pdf`;
 }
 
 type Col = { key: string; label: string; width: number; align?: "left" | "right" };
@@ -230,12 +237,18 @@ class PdfWriter {
       client.email,
     ].filter(Boolean);
     const floorTotal = job.rooms.reduce((sum, entry) => sum + entry.scan.floorArea, 0);
-    const rightLines = [
-      client.propertyName || "Subject property",
-      client.propertyAddress,
-      `${job.rooms.length} ${job.rooms.length === 1 ? "room" : "rooms"}  ·  Floor ${floorTotal.toFixed(0)} sq ft`,
-      `Issued ${issuedLabel}  ·  Valid 30 days`,
-    ].filter(Boolean);
+    const rightLines = this.coverTitle.includes("CUSTOMER")
+      ? [
+          client.propertyName || "Subject property",
+          client.propertyAddress,
+          `Issued ${issuedLabel}  ·  Valid 30 days`,
+        ]
+      : [
+          client.propertyName || "Subject property",
+          client.propertyAddress,
+          `${job.rooms.length} ${job.rooms.length === 1 ? "room" : "rooms"}  ·  Floor ${floorTotal.toFixed(0)} sq ft`,
+          `Issued ${issuedLabel}  ·  Valid 30 days`,
+        ];
     const rows = Math.max(leftLines.length, rightLines.length);
     const boxH = 28 + rows * 12;
     this.ensure(boxH + 12);
@@ -359,9 +372,10 @@ class PdfWriter {
     this.y -= 8;
   }
 
-  drawTotalBox(job: JobEstimate, breakdown: boolean) {
-    const boxW = 220;
-    const boxH = breakdown ? 70 : 52;
+  drawTotalBox(total: number, rows?: Array<{ label: string; value: number }>) {
+    const extra = rows?.length ?? 0;
+    const boxW = 240;
+    const boxH = extra ? 24 + extra * 14 + 28 : 52;
     this.ensure(boxH + 16);
     const boxX = PAGE_W - MARGIN - boxW;
     this.page.drawRectangle({
@@ -395,14 +409,13 @@ class PdfWriter {
         color: big ? PRIMARY : CREAM,
       });
     };
-    if (breakdown) {
-      write("Installed", money(job.materialsSubtotal), 10);
-      write("Overhead & profit", money(job.laborSubtotal), 24);
-      write("Grand total", money(job.grandTotal), 46, true);
+    if (rows && rows.length) {
+      rows.forEach((row, index) => write(row.label, money(row.value), 12 + index * 14));
+      write("Grand total", money(total), 16 + rows.length * 14, true);
       this.y -= boxH + 4;
       return;
     }
-    write("Job total", money(job.grandTotal), 28, true);
+    write("Job total", money(total), 28, true);
     this.y -= boxH + 4;
   }
 }
@@ -448,6 +461,39 @@ function writeRoofCodeNote(pdf: PdfWriter, job: JobEstimate, client: ClientInfo)
   pdf.paragraph(roofCodeNote(zipFromAddress(client.propertyAddress || client.address)), 8, MUTED);
 }
 
+function writeRoofWorkOrder(pdf: PdfWriter, job: JobEstimate) {
+  const wo = roofWorkOrderMaterials(job.completeLineItems, job.grandTotal);
+  if (!wo) return;
+  pdf.kicker("Work order materials");
+  pdf.paragraph(
+    "Shingles use EagleView / cut-up waste. Felt and tear-off use measured roof squares with no waste (MRC WO: all numbers below are actual measurements). Synthetic felt is 10 SQ per roll. Starter is 100 lf per bundle. Ice and water is billed by sq ft in the valleys only: 3 ft wide roll x valley LF. Price per SQ is job total divided by shingle squares with waste.",
+    8,
+    MUTED,
+  );
+  pdf.table(
+    [
+      { key: "i", label: "Item", width: 280 },
+      { key: "q", label: "Qty", width: 80, align: "right" },
+      { key: "u", label: "Unit", width: 156 },
+    ],
+    [
+      ["Roof squares (no waste)", wo.pitchedSquares.toFixed(2), "SQ"],
+      ["Shingles (with waste)", wo.shingleSquares.toFixed(2), "SQ"],
+      ["Synthetic underlayment", wo.underlaymentSquares.toFixed(2), "SQ"],
+      ["Synthetic rolls", String(wo.underlaymentRolls), "roll (10 SQ)"],
+      ["Starter", wo.starterLf.toFixed(1), `LF / ${wo.starterBundles} bdl`],
+      ["Ridge cap", wo.ridgeLf.toFixed(1), "LF"],
+      ["Drip edge (rakes)", wo.dripLf.toFixed(1), `${wo.dripPcs} pc (10 ft)`],
+      ["Coil nails 1 1/4 in", String(wo.coilNailBoxes), "box (20 SQ)"],
+      ["Plastic cap nails 1 in", String(wo.capNailBoxes), "box (20 SQ)"],
+      ["Roofing caulk NP1", String(wo.caulkTubes), "tube (1/10 SQ)"],
+      ["Valley metal", wo.valleyLf.toFixed(1), "LF"],
+      ["Ice & water (valleys)", wo.iceSf.toFixed(1), "SF (3 ft x valley LF)"],
+      ["Ice & water rolls", String(wo.iceRolls), "roll (3 ft x 75 ft)"],
+    ],
+  );
+}
+
 function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfKind) {
   const trades = tradeTotals(job);
   const items = costPerItemRows(job.completeLineItems);
@@ -475,6 +521,13 @@ function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfK
   pdf.paragraph(TRADE_NOTE, 8, MUTED);
 
   pdf.kicker("Cost per item");
+  if (kind === "contractor") {
+    pdf.paragraph(
+      "Roof materials are Home Depot list (Oakridge, ProArmor, drip, coil nails, plastic caps, NP1, ice & water). Tear-off, steep, and haul stay labor/haul. Room totals above are installed prices.",
+      8,
+      MUTED,
+    );
+  }
   if (kind === "contractor") {
     pdf.table(
       [
@@ -518,106 +571,142 @@ function writeTradeSections(pdf: PdfWriter, job: JobEstimate, kind: EstimatePdfK
 
 export async function buildEstimatePdf(job: JobEstimate, client: ClientInfo) {
   const { pdf, doc } = await startPdf(job, client, "contractor");
+  const crew = jobHasRoofing(job) ? roofCrewBid(job.completeLineItems) : null;
+  const items = costPerItemRows(job.completeLineItems).filter(
+    (row) => row.source === "Home Depot" || /haul/i.test(row.source),
+  );
 
-  // 1) Rooms (incl. elevations, roof, etc.) with a total under each
-  for (const entry of job.rooms) {
-    pdf.ensure(54);
-    pdf.kicker(entry.room.label);
-    writeRoomMeasurements(pdf, entry);
-    if (entry.estimate.lineItems.length === 0) {
-      pdf.paragraph("No finishes selected for this room.", 9, MUTED);
-      writeRoomTotal(pdf, entry.estimate.grandTotal);
-      continue;
-    }
+  if (crew) {
+    pdf.kicker("Materials");
+    pdf.paragraph(
+      `Home Depot list (${HD_AS_OF}). Crew install is $${CREW_PER_SQ} per square.`,
+      8,
+      MUTED,
+    );
     pdf.table(
       [
-        { key: "n", label: "#", width: 28, align: "right" },
-        { key: "d", label: "Description", width: 238 },
-        { key: "q", label: "Qty", width: 54, align: "right" },
-        { key: "u", label: "Unit", width: 56 },
-        { key: "c", label: "Unit cost", width: 70, align: "right" },
-        { key: "a", label: "Amount", width: 70, align: "right" },
+        { key: "d", label: "Material", width: 250 },
+        { key: "q", label: "Qty", width: 70, align: "right" },
+        { key: "u", label: "Unit", width: 70 },
+        { key: "c", label: "Cost", width: 62, align: "right" },
+        { key: "a", label: "Amount", width: 64, align: "right" },
       ],
-      entry.estimate.lineItems.map((line, index) => [
-        String(index + 1),
-        line.description,
-        line.quantity.toFixed(2),
-        line.unit,
-        money(line.unitCost),
-        money(line.lineTotal),
+      items.map((row) => [
+        row.description.replace(/^(R&R|R|\+)\s+/i, ""),
+        row.quantity.toFixed(2),
+        row.unit,
+        money(row.unitCost),
+        money(row.amount),
       ]),
     );
-    writeRoomTotal(pdf, entry.estimate.grandTotal);
+    pdf.kicker("Crew");
+    pdf.table(
+      [
+        { key: "d", label: "Labor", width: 250 },
+        { key: "q", label: "Qty", width: 70, align: "right" },
+        { key: "u", label: "Unit", width: 70 },
+        { key: "c", label: "Rate", width: 62, align: "right" },
+        { key: "a", label: "Amount", width: 64, align: "right" },
+      ],
+      [
+        [
+          "Roofing crew install",
+          crew.squares.toFixed(2),
+          "square",
+          money(CREW_PER_SQ),
+          money(crew.crew),
+        ],
+      ],
+    );
+    pdf.kicker("Price per square");
+    pdf.table(
+      [
+        { key: "d", label: "Item", width: 320 },
+        { key: "a", label: "Per SQ", width: 196, align: "right" },
+      ],
+      [
+        ["Materials", money(crew.materialsPerSq)],
+        ["Labor (crew install)", money(crew.laborPerSq)],
+        ["Customer price", money(crew.customerPerSq)],
+      ],
+    );
+    writeRoofWorkOrder(pdf, job);
+    pdf.drawTotalBox(crew.total, [
+      { label: "Materials", value: crew.materials },
+      { label: `Crew @ $${CREW_PER_SQ}/SQ`, value: crew.crew },
+    ]);
+    pdf.paragraph(
+      `Contractor copy. Materials are Home Depot including $${HD_DELIVERY} bulk delivery. Crew is $${CREW_PER_SQ} per installed square. Customer copy is market installed. ${COMPANY.license}.`,
+      8,
+      MUTED,
+    );
+  } else {
+    for (const entry of job.rooms) {
+      pdf.ensure(54);
+      pdf.kicker(entry.room.label);
+      writeRoomMeasurements(pdf, entry);
+      if (entry.estimate.lineItems.length === 0) {
+        pdf.paragraph("No finishes selected for this room.", 9, MUTED);
+        continue;
+      }
+      pdf.table(
+        [
+          { key: "n", label: "#", width: 28, align: "right" },
+          { key: "d", label: "Description", width: 238 },
+          { key: "q", label: "Qty", width: 54, align: "right" },
+          { key: "u", label: "Unit", width: 56 },
+          { key: "c", label: "Unit cost", width: 70, align: "right" },
+          { key: "a", label: "Amount", width: 70, align: "right" },
+        ],
+        entry.estimate.lineItems.map((line, index) => [
+          String(index + 1),
+          line.description,
+          line.quantity.toFixed(2),
+          line.unit,
+          money(line.unitCost),
+          money(line.lineTotal),
+        ]),
+      );
+    }
+    pdf.drawTotalBox(job.grandTotal, [
+      { label: "Installed", value: job.materialsSubtotal },
+      { label: "Overhead & profit", value: job.laborSubtotal },
+    ]);
+    writeTradeSections(pdf, job, "contractor");
+    pdf.paragraph(
+      `This estimate uses ${PRICE_LIST} installed unit prices (${PRICE_AS_OF}) except cabinets. ${COMPANY.license}.`,
+      8,
+      MUTED,
+    );
   }
 
-  // 2) Grand total after the last room
-  pdf.drawTotalBox(job, true);
-
-  // 3) Trade / cost-per-item breakdown after the job total
-  writeTradeSections(pdf, job, "contractor");
-
-  pdf.paragraph(
-    `This estimate uses ${PRICE_LIST} installed unit prices (${PRICE_AS_OF}) except cabinets. Cabinets use Northville Cabinetry MSRP (December 2023) plus $75 install per unit ($125 for pantries and refrigerator panels). Line codes: R&R remove & replace, R remove only, + install only. Overhead and profit is applied to interior work. Roofing is installed unit prices with no O&P. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
-    8,
-    MUTED,
-  );
-  writeRoofCodeNote(pdf, job, client);
   pdf.paragraph(`${COMPANY.email}  ·  ${COMPANY.region}`, 8, MUTED);
-
   pdf.stampFooters();
   return doc.save();
 }
 
 export async function buildCustomerPdf(job: JobEstimate, client: ClientInfo) {
   const { pdf, doc } = await startPdf(job, client, "customer");
+  const crew = jobHasRoofing(job) ? roofCrewBid(job.completeLineItems) : null;
+  const total = crew ? crew.customerTotal : job.grandTotal;
 
-  pdf.paragraph(
-    "Work by room with a room total under each. Grand total follows the last room, then the trade breakdown.",
-    9,
-    MUTED,
-  );
-  pdf.y -= 6;
-
-  // 1) Rooms with totals
-  for (const entry of job.rooms) {
-    pdf.ensure(54);
-    pdf.kicker(entry.room.label);
-    writeRoomMeasurements(pdf, entry);
-    if (entry.estimate.lineItems.length === 0) {
-      pdf.paragraph("No finishes selected for this room.", 9, MUTED);
-      writeRoomTotal(pdf, entry.estimate.grandTotal);
-      continue;
-    }
-    pdf.table(
-      [
-        { key: "n", label: "#", width: 28, align: "right" },
-        { key: "d", label: "Material / work", width: 330 },
-        { key: "q", label: "Qty", width: 78, align: "right" },
-        { key: "u", label: "Unit", width: 80 },
-      ],
-      entry.estimate.lineItems.map((line, index) => [
-        String(index + 1),
-        line.description,
-        line.quantity.toFixed(2),
-        line.unit,
-      ]),
-    );
-    writeRoomTotal(pdf, entry.estimate.grandTotal);
+  pdf.paragraph("Scope of work. This copy shows the job total only.", 9, MUTED);
+  pdf.y -= 4;
+  pdf.kicker("What we will do");
+  const seen = new Set<string>();
+  const tasks: string[][] = [];
+  for (const line of job.completeLineItems) {
+    const label = customerRoofTask(line.description);
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tasks.push([label]);
   }
-
-  // 2) Grand total after the last room
-  pdf.drawTotalBox(job, false);
-
-  // 3) Trade breakdown after the job total
-  writeTradeSections(pdf, job, "customer");
-  pdf.paragraph(
-    `Job total includes installed work. Overhead applies to interior rooms, not roofing. R&R is remove & replace, R is remove only, + is install only. Valid 30 days. Final pricing may change after on-site conditions are verified. ${COMPANY.license}.`,
-    8,
-    MUTED,
-  );
-  writeRoofCodeNote(pdf, job, client);
+  pdf.table([{ key: "d", label: "Materials and tasks", width: 516 }], tasks);
+  pdf.drawTotalBox(total);
+  pdf.paragraph(`Valid 30 days. This price is for the work listed. ${COMPANY.license}.`, 8, MUTED);
   pdf.paragraph(`${COMPANY.email}  ·  ${COMPANY.region}`, 8, MUTED);
-
   pdf.stampFooters();
   return doc.save();
 }
@@ -634,7 +723,12 @@ async function saveDownload(bytes: Uint8Array, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function downloadEstimatePdf(job: JobEstimate, client: ClientInfo, kind: EstimatePdfKind = "contractor") {
-  const bytes = kind === "customer" ? await buildCustomerPdf(job, client) : await buildEstimatePdf(job, client);
+export async function downloadEstimatePdf(
+  job: JobEstimate,
+  client: ClientInfo,
+  kind: EstimatePdfKind = "contractor",
+) {
+  const bytes =
+    kind === "customer" ? await buildCustomerPdf(job, client) : await buildEstimatePdf(job, client);
   await saveDownload(bytes, estimatePdfFilename(client, kind));
 }

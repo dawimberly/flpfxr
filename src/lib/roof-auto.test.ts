@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   autoRoofSummary,
+  doubleSlopeOverlapSquares,
   pickLargestBuildingPlanSqft,
   pitchLabelFromDegrees,
   quoteFromPlanSqft,
+  rakesFromPitch,
+  withTappedValleys,
 } from "./roof-auto.ts";
 import { ROOF_STEEP, roofingSelectionsFromSummary } from "./roof-line-items.ts";
 
@@ -23,6 +26,14 @@ describe("roof-auto", () => {
     assert.equal(src.includes("google-solar"), false);
     assert.ok(src.includes("User-Agent"));
     assert.ok(src.includes("Map footprint is busy"));
+  });
+
+  it("does not bid 39 squares — pitch already converts plan to slope", () => {
+    const quote = quoteFromPlanSqft(2255, "4/12");
+    assert.ok(quote);
+    assert.ok((quote.squares ?? 0) < 30);
+    assert.notEqual(quote.squares, 39);
+    assert.equal(doubleSlopeOverlapSquares(1650, "4/12"), 39);
   });
 
   it("builds a 5/12 quote from a plan footprint", () => {
@@ -64,9 +75,35 @@ describe("roof-auto", () => {
     const quote = quoteFromPlanSqft(2774, "9/12");
     const summary = autoRoofSummary(quote!, { pitch: "9/12", rakeCount: 8, valleyCount: 4 });
     assert.equal(summary.valleys_ft, 50);
+    const ice = roofingSelectionsFromSummary(summary).find(
+      (item) => item.name === "Ice & water barrier",
+    );
+    assert.equal(ice?.quantity, 150);
     assert.ok((summary.eaves_ft ?? 0) > 200);
     assert.ok((summary.eaves_ft ?? 0) < 250);
     assert.ok((summary.ridges_hips_ft ?? 0) > 200);
+  });
+
+  it("uses pitch to guess rake count when it is not tapped", () => {
+    assert.equal(rakesFromPitch("4/12"), 8);
+    assert.equal(rakesFromPitch("5/12"), 8);
+    assert.equal(rakesFromPitch("7/12"), 2);
+    assert.equal(rakesFromPitch("9/12"), 2);
+    const low = autoRoofSummary(quoteFromPlanSqft(2300, "5/12")!, { pitch: "5/12" });
+    const steep = autoRoofSummary(quoteFromPlanSqft(2300, "7/12")!, { pitch: "7/12" });
+    assert.ok((low.rakes_ft ?? 0) > (steep.rakes_ft ?? 0) * 3);
+  });
+
+  it("applies tapped valley count onto a measured roof with no valley lines", () => {
+    const quote = quoteFromPlanSqft(2255, "4/12");
+    const summary = autoRoofSummary(quote!, { pitch: "4/12", valleyCount: 0 });
+    assert.equal(summary.valleys_ft, 0);
+    const tapped = withTappedValleys(summary, 2);
+    assert.equal(tapped.valleys_ft, 25);
+    const ice = roofingSelectionsFromSummary(tapped).find(
+      (item) => item.name === "Ice & water barrier",
+    );
+    assert.equal(ice?.quantity, 75);
   });
 
   it("uses the TXSA 7/12-to-9/12 steep line for 12/12 too", () => {

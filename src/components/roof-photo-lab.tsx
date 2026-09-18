@@ -162,7 +162,15 @@ function clientToImage(
   );
 }
 
-export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
+export function RoofPhotoLab({
+  clearTick = 0,
+  address,
+  onAddressChange,
+}: {
+  clearTick?: number;
+  address: string;
+  onAddressChange: (value: string) => void;
+}) {
   const navigate = useNavigate();
   const applyRoofTrace = useEstimatorStore((s) => s.applyRoofTrace);
   const hydrate = useEstimatorStore((s) => s.hydrate);
@@ -191,11 +199,9 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
   const [facets, setFacets] = useState<PhotoFacet[]>([]);
   const [measures, setMeasures] = useState<PhotoMeasure[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [address, setAddress] = useState(BLUE_QUAIL.address);
   const [frame, setFrame] = useState(0);
   const [photoDeg, setPhotoDeg] = useState<Record<string, number>>({});
   const [sampleReady, setSampleReady] = useState(false);
-  const sampleOnce = useRef(false);
   const lastClearTick = useRef(clearTick);
   const loadGen = useRef(0);
 
@@ -238,7 +244,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
     if (gen !== loadGen.current) return false;
     await addShotUrls(data.shots, true);
     if (gen !== loadGen.current) return false;
-    setAddress(data.address || BLUE_QUAIL.address);
+    onAddressChange(data.address || BLUE_QUAIL.address);
     setGarageWidth(BLUE_QUAIL.garageWidthFt);
     setEaveOverhang(BLUE_QUAIL.eaveOverhangIn);
     setRakeOverhang(BLUE_QUAIL.rakeOverhangIn);
@@ -285,7 +291,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
       ) => Promise<number>;
     };
     host.__ffRoofSim = (raw) => {
-      if (raw.address) setAddress(raw.address);
+      if (raw.address) onAddressChange(raw.address);
       if (raw.garageWidth) setGarageWidth(raw.garageWidth);
       if (raw.eaveOverhang) setEaveOverhang(raw.eaveOverhang);
       if (raw.rakeOverhang) setRakeOverhang(raw.rakeOverhang);
@@ -311,13 +317,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
       delete host.__ffRoofSim;
       delete host.__ffRoofAddShots;
     };
-  }, []);
-
-  useEffect(() => {
-    if (sampleOnce.current) return;
-    sampleOnce.current = true;
-    void loadBlueQuailSample();
-  }, []);
+  }, [onAddressChange]);
 
   useLayoutEffect(() => {
     if (clearTick === lastClearTick.current) return;
@@ -502,6 +502,7 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
     }, {
       corniceStripLf: parseRoofQty(corniceStrip),
       corniceReturnEa: parseRoofQty(corniceReturn),
+      existingShingle: "3-tab",
     });
     void navigate({ to: "/estimator" });
   }
@@ -534,15 +535,6 @@ export function RoofPhotoLab({ clearTick = 0 }: { clearTick?: number }) {
               event.target.value = "";
             }}
           />
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <Label htmlFor="photo-job">Job / address</Label>
-            <Input
-              id="photo-job"
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              placeholder="2519 Blue Quail St, San Antonio, TX"
-            />
-          </div>
           <Button type="button" onClick={() => cameraRef.current?.click()}>
             <Camera className="size-4" />
             {walkStep

@@ -1,5 +1,6 @@
 import type { JobEstimate, JobLineItem, LineItem } from "@/lib/estimator";
 import { lineTakesOp, opBaseFromLines } from "@/lib/op";
+import { homeDepotUnitCost } from "@/lib/home-depot-roof";
 
 /** Print order for By trade / Cost per item (who does the work). */
 export const TRADE_ORDER = [
@@ -148,6 +149,11 @@ export function lineSource(line: LineLike): string {
   if (assignTrade(line) === "Cabinets" || /northville|cabinet|vanity|countertop/.test(haystack(line))) {
     return "Northville";
   }
+  if (line.category === "roofing" && homeDepotUnitCost(line.description) != null) {
+    return "Home Depot";
+  }
+  if (line.category === "cleanup" || /debris haul/i.test(haystack(line))) return "Haul";
+  if (line.category === "roofing") return "TXSA labor";
   return "Floor & Decor / HD / Lowe's";
 }
 
@@ -204,19 +210,22 @@ export function costPerItemRows(lines: JobLineItem[]): CostPerItemRow[] {
     const trade = assignTrade(line);
     const laborOnly = isLaborOnlyLine(line);
     const source = lineSource(line);
-    const key = `${trade}|${line.description}|${line.unit}|${line.unitCost}|${source}|${laborOnly}`;
+    const hd = homeDepotUnitCost(line.description);
+    const unitCost = hd ?? line.unitCost;
+    const amount = hd != null ? round2(line.quantity * hd) : line.lineTotal;
+    const key = `${trade}|${line.description}|${line.unit}|${unitCost}|${source}|${laborOnly}`;
     const existing = map.get(key);
     if (existing) {
       existing.quantity = round2(existing.quantity + line.quantity);
-      existing.amount = round2(existing.amount + line.lineTotal);
+      existing.amount = round2(existing.amount + amount);
     } else {
       map.set(key, {
         trade,
         description: line.description,
         quantity: line.quantity,
         unit: line.unit,
-        unitCost: line.unitCost,
-        amount: line.lineTotal,
+        unitCost,
+        amount,
         source,
         laborOnly,
       });

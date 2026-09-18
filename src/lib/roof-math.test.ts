@@ -1,8 +1,15 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { BLUE_QUAIL, BLUE_QUAIL_LENGTH_SCALE, BLUE_QUAIL_MAP_ORIGIN, blueQuailDiagramTrace, blueQuailMapTrace } from "./blue-quail.ts";
+import {
+  BLUE_QUAIL,
+  BLUE_QUAIL_LENGTH_SCALE,
+  BLUE_QUAIL_MAP_ORIGIN,
+  blueQuailDiagramTrace,
+  blueQuailMapTrace,
+} from "./blue-quail.ts";
 import {
   alignRingToAnchors,
+  applyNamedEdges,
   applyWasteFactor,
   eagleViewWaste,
   classifyEdges,
@@ -37,6 +44,36 @@ describe("roof-math", () => {
 
   it("applies 12% waste", () => {
     assert.equal(applyWasteFactor(1000), 1120);
+  });
+
+  it("measures one 4/12 plane at 12% waste, not 39 squares", () => {
+    const summary = summarizeFacets(
+      [
+        facet({
+          pitch: "4/12",
+          slopeDeg: null,
+          latlngs: feetRing([
+            [0, 0],
+            [67, 0],
+            [67, 33.66],
+            [0, 33.66],
+          ]),
+        }),
+      ],
+      12,
+    );
+    assert.ok(summary.total_flat_area_sqft > 2250);
+    assert.ok(summary.total_flat_area_sqft < 2260);
+    assert.ok(Math.abs(summary.total_squares - 23.77) < 0.05);
+    assert.ok(Math.abs(summary.squares_with_waste - 26.62) < 0.05);
+    assert.ok(summary.squares_with_waste < 30);
+    assert.notEqual(salesSquares(summary.squares_with_waste), 39);
+    assert.ok((summary.eaves_ft ?? 0) > 125);
+    assert.ok((summary.eaves_ft ?? 0) < 140);
+    assert.ok((summary.rakes_ft ?? 0) > 60);
+    assert.ok((summary.rakes_ft ?? 0) < 75);
+    assert.ok((summary.ridges_hips_ft ?? 0) > 60);
+    assert.ok((summary.ridges_hips_ft ?? 0) < 75);
   });
 
   it("puts EagleView waste in pitch and hips/valleys, not a stacked 12%", () => {
@@ -336,27 +373,66 @@ describe("roof-math", () => {
 
   it("asks for a scale before photo squares", () => {
     const summary = summarizePhotoFacets(
-      [{ id: "a", points: [[0, 0], [10, 0], [10, 10]], pitch: "4/12" }],
+      [
+        {
+          id: "a",
+          points: [
+            [0, 0],
+            [10, 0],
+            [10, 10],
+          ],
+          pitch: "4/12",
+        },
+      ],
       null,
     );
     assert.equal(summary.incomplete, "Label a known length so the picture has a scale.");
   });
 
   it("adds tapped EagleView lines into eave and ridge totals", () => {
-    const summary = summarizePhotoFacets(
-      [],
-      1,
-      0,
-      [
-        { id: "e1", a: [0, 0], b: [40, 0], name: "Eave", kind: "eave" },
-        { id: "r1", a: [0, 0], b: [0, 12], name: "Ridge", kind: "ridge" },
-        { id: "v1", a: [20, 0], b: [20, 10], name: "Valley", kind: "valley" },
-      ],
-    );
+    const summary = summarizePhotoFacets([], 1, 0, [
+      { id: "e1", a: [0, 0], b: [40, 0], name: "Eave", kind: "eave" },
+      { id: "r1", a: [0, 0], b: [0, 12], name: "Ridge", kind: "ridge" },
+      { id: "v1", a: [20, 0], b: [20, 10], name: "Valley", kind: "valley" },
+    ]);
     assert.equal(summary.eaves_ft, 40);
     assert.equal(summary.ridges_ft, 12);
     assert.equal(summary.valleys_ft, 10.4);
     assert.equal(summary.drip_ft, 40);
+  });
+
+  it("uses a drawn map valley instead of leaving the inferred valley at zero", () => {
+    const summary = summarizeFacets(
+      [
+        {
+          id: "outline",
+          pitch: "4/12",
+          slopeDeg: null,
+          latlngs: feetRing([
+            [0, 0],
+            [40, 0],
+            [40, 25],
+            [0, 25],
+          ]),
+        },
+      ],
+      12,
+    );
+    const withValley = applyNamedEdges(summary, [
+      {
+        kind: "valley",
+        length_ft: 18.5,
+        plan_ft: 18.5,
+        rise_ft: 0,
+        level: false,
+        latlngs: [
+          [29.5, -98.5],
+          [29.5001, -98.5001],
+        ],
+      },
+    ]);
+    assert.equal(withValley.valleys_ft, 18.5);
+    assert.equal(withValley.eaves_ft, summary.eaves_ft);
   });
 
   it("matches EagleView 3D lengths for rakes and hips", () => {
@@ -396,12 +472,9 @@ describe("roof-math", () => {
   });
 
   it("adds tapped headwall into wall totals, not ridge or drip", () => {
-    const summary = summarizePhotoFacets(
-      [],
-      1,
-      0,
-      [{ id: "w1", a: [0, 0], b: [40, 0], name: "Headwall", kind: "headwall" }],
-    );
+    const summary = summarizePhotoFacets([], 1, 0, [
+      { id: "w1", a: [0, 0], b: [40, 0], name: "Headwall", kind: "headwall" },
+    ]);
     assert.equal(summary.steps_ft, 40);
     assert.equal(summary.ridges_ft, 0);
     assert.equal(summary.drip_ft, 0);

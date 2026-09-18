@@ -8,11 +8,11 @@ describe("roof-code", () => {
     assert.equal(zipFromAddress("no zip"), null);
   });
 
-  it("cites drip-edge lap and prices valley metal, not ice-and-water", () => {
+  it("cites drip-edge lap and 3 ft ice and water in valleys", () => {
     const note = roofCodeNote("78254");
     assert.match(note, /R905\.2\.8\.5/);
     assert.match(note, /Valley metal/);
-    assert.match(note, /Ice & water/);
+    assert.match(note, /3 ft/);
     assert.match(note, /7\/12 to 9\/12/);
   });
 

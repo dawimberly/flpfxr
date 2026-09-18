@@ -754,6 +754,12 @@
         "remove_cost_per_unit": 65.53
       },
       {
+        "name": "Owens Corning Oakridge",
+        "unit": "square",
+        "cost_per_unit": 266.69,
+        "remove_cost_per_unit": 68.89
+      },
+      {
         "name": "Laminated composition shingles",
         "unit": "square",
         "cost_per_unit": 266.69,
@@ -790,6 +796,31 @@
         "unit": "linear ft",
         "cost_per_unit": 2.83,
         "remove_cost_per_unit": 0.35
+      },
+      {
+        "name": "Coil nails — 1 1/4 in (20 SQ/box)",
+        "unit": "each",
+        "cost_per_unit": 44.98
+      },
+      {
+        "name": "Plastic cap nails — 1 in (20 SQ/box)",
+        "unit": "each",
+        "cost_per_unit": 42.97
+      },
+      {
+        "name": "Roofing caulk — NP1",
+        "unit": "each",
+        "cost_per_unit": 8.97
+      },
+      {
+        "name": "Material delivery",
+        "unit": "each",
+        "cost_per_unit": 79
+      },
+      {
+        "name": "Roofing crew install",
+        "unit": "square",
+        "cost_per_unit": 100
       },
       {
         "name": "Gutter apron",
