@@ -29,7 +29,8 @@ function AboutPage() {
         </p>
         <p className="mt-4">
           We donate design and labor on group homes and CASA houses when a
-          partner covers materials.{" "}
+          partner covers materials. Seniors 65+, military, first responders,
+          and educators get 10% off paid jobs — one discount per job.{" "}
           <Link to="/community" className="font-medium text-primary">
             Community
           </Link>

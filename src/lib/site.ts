@@ -217,8 +217,8 @@ export const COMMUNITY = {
       body: "A material list with real numbers is what a grant or a donor can attach to. We price the takeoff in plain language. You cover cabinets, counters, and fixtures. We cover design and labor.",
     },
     {
-      title: "If you are military, first responder, or an educator",
-      body: "Ask when you call. We discount the job. Bring ID or a work email if you have it.",
+      title: "If you are 65+, military, first responder, or an educator",
+      body: "Ask when you call. We take 10% off the job. One discount per job — seniors, military, first responder, and educator rates do not stack. Bring ID or a work email if you have it.",
     },
     {
       title: "If you already know which house comes next",
@@ -242,7 +242,7 @@ export const COMMUNITY = {
   kinds: [
     "A group home",
     "CASA or child-advocacy",
-    "Military, veteran, first responder, or educator",
+    "Senior (65+), military, veteran, first responder, or educator",
     "A grant writer or foundation",
     "A donor, church, or civic partner",
     "A vendor who can gift materials",
@@ -259,6 +259,7 @@ export const COMMUNITY = {
 
 export const CONTACT_AFFILIATIONS = [
   { value: "", label: "Doesn't apply" },
+  { value: "Senior (65+)", label: "Senior (65+)" },
   { value: "Military or veteran", label: "Military or veteran" },
   { value: "First responder", label: "First responder" },
   { value: "Educator", label: "Educator" },
@@ -861,6 +862,10 @@ export const FAQS = [
   {
     q: "Can we stay in the house while you work?",
     a: "Yes. We cover floors and work room by room.",
+  },
+  {
+    q: "Do you offer a senior or military discount?",
+    a: "Yes. 10% off the job if you are 65+, military or a veteran, a first responder, or an educator. One discount per job — they do not stack. Ask when you call. Bring ID or a work email if you have it.",
   },
 ] as const;
 

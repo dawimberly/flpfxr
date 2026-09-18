@@ -289,7 +289,8 @@ function ContactPage() {
           </a>
           <p className="text-muted">{AREA_LINE}</p>
           <p className="text-sm leading-relaxed text-subtle">
-            CASA or a group home?{" "}
+            Seniors 65+, military, first responders, and educators: 10% off,
+            one discount per job. CASA or a group home?{" "}
             <Link to="/community" className="font-medium text-primary">
               Use the Community form
             </Link>{" "}
@@ -373,7 +374,7 @@ function ContactPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="affiliation">
-                  Military, first responder, or educator
+                  Senior (65+), military, first responder, or educator
                 </Label>
                 <select
                   id="affiliation"
