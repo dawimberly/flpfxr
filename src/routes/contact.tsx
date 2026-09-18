@@ -13,6 +13,7 @@ import {
   AREA_LINE,
   CONTACT_AFFILIATIONS,
   ESTIMATE_TYPES,
+  JOB_DISCOUNT,
   SCOPE_LABELS,
   SERVICES,
   SITE,
@@ -289,8 +290,7 @@ function ContactPage() {
           </a>
           <p className="text-muted">{AREA_LINE}</p>
           <p className="text-sm leading-relaxed text-subtle">
-            Seniors 65+, military, first responders, and educators: 10% off,
-            one discount per job. CASA or a group home?{" "}
+            {JOB_DISCOUNT} CASA or a group home?{" "}
             <Link to="/community" className="font-medium text-primary">
               Use the Community form
             </Link>{" "}
@@ -373,6 +373,9 @@ function ContactPage() {
                 />
               </div>
               <div className="space-y-2">
+                <p className="text-sm leading-relaxed text-muted">
+                  {JOB_DISCOUNT}
+                </p>
                 <Label htmlFor="affiliation">
                   Senior (65+), military, first responder, or educator
                 </Label>

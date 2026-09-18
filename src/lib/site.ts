@@ -218,7 +218,7 @@ export const COMMUNITY = {
     },
     {
       title: "If you are 65+, military, first responder, or an educator",
-      body: "Ask when you call. We take 10% off the job. One discount per job — seniors, military, first responder, and educator rates do not stack. Bring ID or a work email if you have it.",
+      body: "Ask when you call. Seniors, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack. Bring ID or a work email if you have it.",
     },
     {
       title: "If you already know which house comes next",
@@ -264,6 +264,10 @@ export const CONTACT_AFFILIATIONS = [
   { value: "First responder", label: "First responder" },
   { value: "Educator", label: "Educator" },
 ] as const;
+
+/** Two public bands. Eligible groups share the same rate. They do not stack. */
+export const JOB_DISCOUNT =
+  "Seniors 65+, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack.";
 
 export const TESTIMONIALS = [
   {
@@ -865,7 +869,7 @@ export const FAQS = [
   },
   {
     q: "Do you offer a senior or military discount?",
-    a: "Yes. 10% off the job if you are 65+, military or a veteran, a first responder, or an educator. One discount per job — they do not stack. Ask when you call. Bring ID or a work email if you have it.",
+    a: `Yes. ${JOB_DISCOUNT} Ask when you call. Bring ID or a work email if you have it.`,
   },
 ] as const;
 
