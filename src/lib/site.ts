@@ -30,6 +30,7 @@ export const ESTIMATOR_APP_URL = "/estimator";
 export const NAV = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
+  { to: "/roof", label: "Roof" },
   { to: "/gallery", label: "Gallery" },
   { to: "/about", label: "About" },
   { to: "/community", label: "Community" },
@@ -64,6 +65,7 @@ export type ServiceId =
   | "handyman"
   | "outdoor"
   | "make-ready"
+  | "roofing"
   | "insurance-claims"
   | "consulting";
 
@@ -121,6 +123,14 @@ export const SERVICES: Array<{
     short: "Decks, patios, lighting.",
     body: "Decks, patios, lighting. Outdoor work that holds up out here.",
     image: "/images/patio1.webp",
+    group: "Specialty",
+  },
+  {
+    id: "roofing",
+    title: "Roofing",
+    short: "Measure the roof. Get a planning range.",
+    body: "Type the address. We outline that roof, you pick pitch and shingles, and we give a planning range. Then we walk it.",
+    image: "/images/gallery-22-d.webp",
     group: "Specialty",
   },
   {
@@ -836,7 +846,7 @@ export const FAQS = [
   },
   {
     q: "How do I get a price?",
-    a: "Call (210) 436-9117. Pictures help. We'll walk the job if we need to and give you a number.",
+    a: "Call (210) 436-9117. For a roof, type the address on the Roof page. Pictures help. We'll walk the job if we need to and give you a number.",
   },
   {
     q: "Do you design the work?",

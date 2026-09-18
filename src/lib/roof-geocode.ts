@@ -1,8 +1,15 @@
-import { geocodeAddress, type GeocodeHit } from "./geocode.ts";
-import { looksLikeStreetAddress } from "./roof-address.ts";
+import { geocodeAddress, suggestAddresses, type GeocodeHit } from "./geocode.ts";
+import { looksLikeStreetAddress, type AddressSuggestion } from "./roof-address.ts";
 
-export { looksLikeStreetAddress, houseNumberFrom, pickEsriRooftop, streetFileSlug } from "./roof-address.ts";
-export type { GeocodeHit };
+export {
+  looksLikeStreetAddress,
+  houseNumberFrom,
+  pickEsriRooftop,
+  pickEsriSuggestions,
+  suggestionLabel,
+  streetFileSlug,
+} from "./roof-address.ts";
+export type { AddressSuggestion, GeocodeHit };
 
 const LOCATION_RANK: Record<string, number> = {
   ROOFTOP: 0,
@@ -60,5 +67,16 @@ export async function geocodeHouseAddress(
       hit: null,
       error: "Address lookup failed. Check the street and city, then Measure this roof again.",
     };
+  }
+}
+
+export async function suggestHouseAddresses(query: string): Promise<AddressSuggestion[]> {
+  const q = query.trim();
+  if (q.length < 5) return [];
+  try {
+    const result = await suggestAddresses({ data: { query: q } });
+    return result.suggestions ?? [];
+  } catch {
+    return [];
   }
 }

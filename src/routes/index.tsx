@@ -83,7 +83,7 @@ function Home() {
           What we do
         </h2>
         <p className="mt-6 text-lg leading-relaxed text-muted">
-          Kitchens and baths, flooring, paint, make-ready, repairs, and
+          Kitchens and baths, flooring, paint, roofs, make-ready, repairs, and
           insurance rebuilds. Design in-house. One crew from walkthrough to
           finish.
         </p>
@@ -93,6 +93,12 @@ function Home() {
             className="text-sm font-medium text-primary hover:underline"
           >
             Full service list
+          </Link>
+          <Link
+            to="/roof"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Roof estimate
           </Link>
           <Link
             to="/gallery"

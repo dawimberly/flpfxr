@@ -1,7 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { pickHouseGeocode } from "./roof-geocode.ts";
-import { looksLikeStreetAddress, pickEsriRooftop, pickNominatimHouse } from "./roof-address.ts";
+import {
+  looksLikeStreetAddress,
+  pickEsriRooftop,
+  pickEsriSuggestions,
+  pickNominatimHouse,
+  suggestionLabel,
+} from "./roof-address.ts";
 
 describe("roof-geocode", () => {
   it("picks a rooftop hit over a street-center guess", () => {
@@ -82,5 +88,30 @@ describe("roof-geocode", () => {
       "3407 Stonehaven Dr, San Antonio, TX 78230",
     );
     assert.equal(hit, null);
+  });
+});
+
+describe("pickEsriSuggestions", () => {
+  it("keeps house numbers, drops collections, and prefers San Antonio", () => {
+    const rows = pickEsriSuggestions([
+      {
+        text: "Stonehaven Dr, San Antonio, TX, 78230, USA",
+        magicKey: "street",
+        isCollection: true,
+      },
+      {
+        text: "3407 Stonehaven Dr, Colleyville, TX, 76034, USA",
+        magicKey: "colleyville",
+        isCollection: false,
+      },
+      {
+        text: "3407 Stonehaven Dr, San Antonio, TX, 78230, USA",
+        magicKey: "sa",
+        isCollection: false,
+      },
+    ]);
+    assert.equal(rows[0]?.text.includes("San Antonio"), true);
+    assert.equal(rows.some((row) => row.magicKey === "street"), false);
+    assert.equal(suggestionLabel(rows[0].text), "3407 Stonehaven Dr, San Antonio, TX, 78230");
   });
 });

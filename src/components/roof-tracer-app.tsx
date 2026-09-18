@@ -10,13 +10,13 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
+import { AddressSuggestField } from "@/components/address-suggest-field";
 import { EvLinePalette, RoofDimFields } from "@/components/roof-ev-chrome";
 import { RoofPenetrationPicker } from "@/components/roof-penetration-picker";
 import { RoofGoogle3DMap } from "@/components/roof-google-3d-map";
 import { RoofMap } from "@/components/roof-map";
 import { RoofPhotoLab } from "@/components/roof-photo-lab";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -398,9 +398,8 @@ export function RoofTracerApp() {
     }
   }
 
-  async function onSearch(event: React.FormEvent) {
-    event.preventDefault();
-    if (!looksLikeStreetAddress(address)) {
+  async function measureQuery(query: string) {
+    if (!looksLikeStreetAddress(query)) {
       setLookupError(
         "Enter a house number and street, like 3407 Stonehaven Dr, San Antonio, TX 78230.",
       );
@@ -411,7 +410,7 @@ export function RoofTracerApp() {
     setMode("map");
     setMapSeen(true);
     try {
-      const result = await geocodeHouseAddress(address);
+      const result = await geocodeHouseAddress(query);
       if (result.error || !result.hit) {
         setLookupError(result.error ?? "No rooftop match. Check the street and city.");
         return;
@@ -432,6 +431,11 @@ export function RoofTracerApp() {
     } finally {
       setLooking(false);
     }
+  }
+
+  async function onSearch(event: React.FormEvent) {
+    event.preventDefault();
+    await measureQuery(address);
   }
 
   function onMapClick(latlng: LatLng) {
@@ -646,12 +650,16 @@ export function RoofTracerApp() {
         >
           <div className="min-w-0 flex-1 space-y-1">
             <Label htmlFor="roof-address">Address</Label>
-            <Input
+            <AddressSuggestField
               id="roof-address"
               value={address}
-              onChange={(event) => setAddress(event.target.value)}
+              onChange={setAddress}
+              onPick={(label) => {
+                setAddress(label);
+                void measureQuery(label);
+              }}
+              disabled={looking}
               placeholder={ADDRESS_PLACEHOLDER}
-              autoComplete="street-address"
             />
           </div>
           <Button type="submit" disabled={looking} className="min-w-[11rem]">

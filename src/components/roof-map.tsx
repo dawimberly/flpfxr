@@ -24,6 +24,8 @@ export type RoofMapProps = {
   onClick: (latlng: LatLng) => void;
   onSelect: (id: string | null) => void;
   onMoveVertex: (id: string, index: number, latlng: LatLng) => void;
+  /** Public ballpark: show the outline, no vertex drag. */
+  readOnly?: boolean;
 };
 
 export function RoofMap({
@@ -39,6 +41,7 @@ export function RoofMap({
   onClick,
   onSelect,
   onMoveVertex,
+  readOnly = false,
 }: RoofMapProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
@@ -148,22 +151,28 @@ export function RoofMap({
           {
             color: EV_FILL,
             weight: 0,
-            fillColor: EV_FILL,
-            fillOpacity: facet.id === selectedId ? 0.4 : 0.26,
+            fillColor: readOnly ? "#c2410c" : EV_FILL,
+            fillOpacity: readOnly ? 0.28 : facet.id === selectedId ? 0.4 : 0.26,
           },
         );
-        poly.on("click", (event) => {
-          L.DomEvent.stopPropagation(event);
-          selectRef.current(facet.id);
-        });
+        if (!readOnly) {
+          poly.on("click", (event) => {
+            L.DomEvent.stopPropagation(event);
+            selectRef.current(facet.id);
+          });
+        }
         poly.addTo(layers);
         if (!edges.length && facet.latlngs.length >= 2) {
           const ring = [...facet.latlngs, facet.latlngs[0]].map(
             ([lat, lng]) => [lat, lng] as [number, number],
           );
-          L.polyline(ring, { color: EV_EDGE_COLOR.eave, weight: 2.5, opacity: 0.9 }).addTo(layers);
+          L.polyline(ring, {
+            color: readOnly ? "#f4e6c3" : EV_EDGE_COLOR.eave,
+            weight: readOnly ? 4 : 2.5,
+            opacity: 0.95,
+          }).addTo(layers);
         }
-        if (facet.id === selectedId) {
+        if (!readOnly && facet.id === selectedId) {
           facet.latlngs.forEach((pt, vertexIndex) => {
             const marker = L.circleMarker([pt[0], pt[1]], {
               radius: 6,
@@ -236,6 +245,16 @@ export function RoofMap({
         fillColor: "#c2410c",
         fillOpacity: 1,
       }).addTo(layers);
+      if (readOnly && facets[0]?.latlngs.length) {
+        const bounds = L.latLngBounds(
+          facets.flatMap((facet) =>
+            facet.latlngs.map(([lat, lng]) => [lat, lng] as [number, number]),
+          ),
+        );
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [36, 36], maxZoom: 20 });
+        }
+      }
       if (hostRef.current) {
         hostRef.current.style.cursor = drawing ? "crosshair" : "";
       }
@@ -243,7 +262,7 @@ export function RoofMap({
     return () => {
       cancelled = true;
     };
-  }, [center.lat, center.lng, draft, drawing, edges, facets, selectedId]);
+  }, [center.lat, center.lng, draft, drawing, edges, facets, readOnly, selectedId]);
 
-  return <div ref={hostRef} className="h-full min-h-[22rem] w-full bg-ink" />;
+  return <div ref={hostRef} className="relative z-0 h-full min-h-[22rem] w-full bg-ink" />;
 }

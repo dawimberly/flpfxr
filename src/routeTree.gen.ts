@@ -16,6 +16,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimatorRouteImport } from './routes/estimator'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
@@ -57,6 +58,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RoofRoute = RoofRouteImport.update({
+  id: '/roof',
+  path: '/roof',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
   '/estimator/roof': typeof EstimatorRoofRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
   '/estimator/roof': typeof EstimatorRoofRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/login': typeof LoginRoute
+  '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
   '/estimator/roof': typeof EstimatorRoofRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/estimator'
     | '/gallery'
     | '/login'
+    | '/roof'
     | '/services'
     | '/testimonials'
     | '/estimator/roof'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/login'
+    | '/roof'
     | '/services'
     | '/testimonials'
     | '/estimator/roof'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/estimator'
     | '/gallery'
     | '/login'
+    | '/roof'
     | '/services'
     | '/testimonials'
     | '/estimator/roof'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   EstimatorRoute: typeof EstimatorRouteWithChildren
   GalleryRoute: typeof GalleryRoute
   LoginRoute: typeof LoginRoute
+  RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
   TestimonialsRoute: typeof TestimonialsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roof': {
+      id: '/roof'
+      path: '/roof'
+      fullPath: '/roof'
+      preLoaderRoute: typeof RoofRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/services': {
@@ -293,6 +313,7 @@ const rootRouteChildren: RootRouteChildren = {
   EstimatorRoute: EstimatorRouteWithChildren,
   GalleryRoute: GalleryRoute,
   LoginRoute: LoginRoute,
+  RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
   TestimonialsRoute: TestimonialsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

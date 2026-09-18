@@ -4,9 +4,12 @@ import {
   looksLikeStreetAddress,
   pickCensusHouse,
   pickEsriRooftop,
+  pickEsriSuggestions,
   pickNominatimHouse,
+  type AddressSuggestion,
   type CensusMatch,
   type EsriCandidate,
+  type EsriSuggestRow,
   type GeocodeHit,
   type NominatimRow,
 } from "./roof-address.ts";
@@ -90,6 +93,34 @@ export const geocodeAddress = createServerFn({ method: "POST" })
       /* none */
     }
     return { hit: null, error: "No rooftop match. Check the street number and city." };
+  });
+
+const SA_BIAS = "-98.4936,29.4241";
+
+export const suggestAddresses = createServerFn({ method: "POST" })
+  .validator((data: { query: string }) => data)
+  .handler(async ({ data }): Promise<{ suggestions: AddressSuggestion[] }> => {
+    const query = data.query.trim();
+    if (query.length < 5 || !houseNumberFrom(query)) {
+      return { suggestions: [] };
+    }
+    try {
+      const url = new URL(
+        "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest",
+      );
+      url.searchParams.set("f", "json");
+      url.searchParams.set("text", query);
+      url.searchParams.set("countryCode", "USA");
+      url.searchParams.set("maxSuggestions", "8");
+      url.searchParams.set("category", "Address");
+      url.searchParams.set("location", SA_BIAS);
+      const res = await fetch(url, { headers: { Accept: "application/json", "User-Agent": UA } });
+      if (!res.ok) return { suggestions: [] };
+      const json = (await res.json()) as { suggestions?: EsriSuggestRow[] };
+      return { suggestions: pickEsriSuggestions(json.suggestions ?? []) };
+    } catch {
+      return { suggestions: [] };
+    }
   });
 
 export const fetchBuildingOutline = createServerFn({ method: "POST" })

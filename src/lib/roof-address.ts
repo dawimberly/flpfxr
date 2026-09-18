@@ -122,6 +122,56 @@ export function pickNominatimHouse(rows: NominatimRow[], query: string): Geocode
   return null;
 }
 
+export type EsriSuggestRow = {
+  text?: string;
+  magicKey?: string;
+  isCollection?: boolean;
+};
+
+export type AddressSuggestion = {
+  text: string;
+  magicKey: string;
+};
+
+function localHintRank(text: string): number {
+  const t = text.toLowerCase();
+  if (t.includes("san antonio")) return 0;
+  if (
+    /kerrville|boerne|helotes|fair oaks|shavano|alamo heights|terrell hills|olmos park|stone oak|hollywood park/.test(
+      t,
+    )
+  ) {
+    return 1;
+  }
+  if (/, tx\b|, texas\b/.test(t)) return 2;
+  return 3;
+}
+
+/** House-number suggestions only. Street-name collections stay out. */
+export function pickEsriSuggestions(rows: EsriSuggestRow[]): AddressSuggestion[] {
+  const seen = new Set<string>();
+  const out: AddressSuggestion[] = [];
+  const ranked = [...rows].sort(
+    (a, b) => localHintRank(a.text || "") - localHintRank(b.text || ""),
+  );
+  for (const row of ranked) {
+    if (row.isCollection) continue;
+    const text = (row.text || "").trim();
+    if (!text || !row.magicKey) continue;
+    if (!looksLikeStreetAddress(text) || !houseNumberFrom(text)) continue;
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ text, magicKey: row.magicKey });
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+export function suggestionLabel(text: string): string {
+  return text.replace(/,\s*USA$/i, "");
+}
+
 export function streetFileSlug(address: string): string {
   const m = address.trim().match(/(\d+)\s+([A-Za-z0-9]+)/);
   if (m) return `${m[1]}-${m[2].toLowerCase()}`;

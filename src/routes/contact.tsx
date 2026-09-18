@@ -12,6 +12,7 @@ import {
   AREA_LINE,
   ESTIMATE_TYPES,
   SCOPE_LABELS,
+  SERVICES,
   SITE,
   loadLeadDraft,
   saveLeadDraft,
@@ -82,7 +83,9 @@ function ContactPage() {
   }, [sentFromUrl]);
 
   const serviceLabel =
-    ESTIMATE_TYPES.find((t) => t.id === service)?.label || service;
+    ESTIMATE_TYPES.find((t) => t.id === service)?.label ||
+    SERVICES.find((t) => t.id === service)?.title ||
+    service;
 
   const sizeLabel = quote ? SCOPE_LABELS[quote.scope] : "";
   const kitchenLabel =
@@ -156,14 +159,16 @@ function ContactPage() {
         <p>Call or send photos of the job.</p>
       </PageIntro>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12">
-        <QuoteEstimator
-          initialService={estimateService}
-          hideCta
-          onServiceChange={(id) => setService(id)}
-          onQuoteChange={onQuoteChange}
-        />
-      </section>
+      {serviceFromUrl === "roofing" ? null : (
+        <section className="mx-auto max-w-6xl px-4 pb-12">
+          <QuoteEstimator
+            initialService={estimateService}
+            hideCta
+            onServiceChange={(id) => setService(id)}
+            onQuoteChange={onQuoteChange}
+          />
+        </section>
+      )}
 
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
         <aside className="space-y-6 md:col-span-2">
