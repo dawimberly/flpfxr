@@ -64,6 +64,7 @@ function ContactPage() {
       : "interior",
   );
   const lastInteriorService = useRef<ServiceId>("kitchen");
+  const ignoreFirstQuote = useRef(!serviceFromUrl);
 
   const estimateService =
     serviceFromUrl === "kitchen-bath"
@@ -123,6 +124,10 @@ function ContactPage() {
   const subjectLine = `The Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${pitch ? `, ${pitch}` : ""}${ballpark ? ` (${ballpark})` : ""}`;
 
   const onQuoteChange = (next: QuoteSelection | null) => {
+    if (ignoreFirstQuote.current) {
+      ignoreFirstQuote.current = false;
+      return;
+    }
     setQuote(next);
     if (next?.service) setService(next.service);
     if (next?.service === "roofing") {
