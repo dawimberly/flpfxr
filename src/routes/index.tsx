@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PencilRuler, Phone, Wrench } from "lucide-react";
+import { CallLink } from "@/components/call-link";
 import { Photo } from "@/components/photo";
 import { BeforeAfterBand } from "@/components/before-after-band";
 import { Button } from "@/components/ui/button";
@@ -70,9 +71,15 @@ function Home() {
           <p className="mt-2 text-sm text-fg/70">
             30+ years on the tools. Design in-house.
           </p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
-              <Link to="/contact">Contact</Link>
+              <CallLink>
+                <Phone className="size-4" />
+                Call {SITE.phoneDisplay}
+              </CallLink>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link to="/contact">Send the job</Link>
             </Button>
           </div>
         </div>
@@ -93,6 +100,12 @@ function Home() {
             className="text-sm font-medium text-primary hover:underline"
           >
             Full service list
+          </Link>
+          <Link
+            to="/kitchen"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Kitchen remodel
           </Link>
           <Link
             to="/roof"

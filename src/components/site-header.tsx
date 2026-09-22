@@ -78,7 +78,7 @@ export function SiteHeader() {
             </CallLink>
           </Button>
           <Button asChild className="hidden sm:inline-flex">
-            <Link to="/contact">Contact</Link>
+            <Link to="/contact">Send the job</Link>
           </Button>
 
           <Sheet open={open} onOpenChange={setOpen}>
@@ -110,15 +110,15 @@ export function SiteHeader() {
               </nav>
               <div className="mt-auto flex flex-col gap-3 pt-8">
                 <Button asChild size="lg">
-                  <Link to="/contact" onClick={() => setOpen(false)}>
-                    Contact
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
                   <CallLink>
                     <Phone className="size-4" />
                     Call {SITE.phoneDisplay}
                   </CallLink>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/contact" onClick={() => setOpen(false)}>
+                    Send the job
+                  </Link>
                 </Button>
                 <SheetClose asChild>
                   <Link
