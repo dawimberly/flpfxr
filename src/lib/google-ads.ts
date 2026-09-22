@@ -49,6 +49,10 @@ export function trackContactFormSubmit() {
     value: 1.0,
     currency: "USD",
   });
+  gtag("event", "generate_lead", {
+    currency: "USD",
+    value: 1.0,
+  });
 }
 
 export function trackPhoneClick() {

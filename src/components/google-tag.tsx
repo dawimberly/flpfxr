@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { GA4_MEASUREMENT_ID, GOOGLE_ADS_ID, gtag } from "@/lib/google-ads";
+import { SITE } from "@/lib/site";
 
 const SCRIPT_ID = "google-gtag";
 
@@ -13,7 +14,9 @@ export function GoogleTag() {
 
     gtag("js", new Date());
     gtag("config", GA4_MEASUREMENT_ID);
-    gtag("config", GOOGLE_ADS_ID);
+    gtag("config", GOOGLE_ADS_ID, {
+      phone_conversion_number: SITE.phoneDisplay,
+    });
 
     if (!document.getElementById(SCRIPT_ID)) {
       const script = document.createElement("script");

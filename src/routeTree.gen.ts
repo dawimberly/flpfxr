@@ -14,7 +14,9 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimatorRouteImport } from './routes/estimator'
+import { Route as ExteriorRouteImport } from './routes/exterior'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -48,9 +50,19 @@ const EstimatorRoute = EstimatorRouteImport.update({
   path: '/estimator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExteriorRoute = ExteriorRouteImport.update({
+  id: '/exterior',
+  path: '/exterior',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KitchenRoute = KitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -95,7 +107,9 @@ export interface FileRoutesByFullPath {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/estimator': typeof EstimatorRouteWithChildren
+  '/exterior': typeof ExteriorRoute
   '/gallery': typeof GalleryRoute
+  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -109,7 +123,9 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
+  '/exterior': typeof ExteriorRoute
   '/gallery': typeof GalleryRoute
+  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -125,7 +141,9 @@ export interface FileRoutesById {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/estimator': typeof EstimatorRouteWithChildren
+  '/exterior': typeof ExteriorRoute
   '/gallery': typeof GalleryRoute
+  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -142,7 +160,9 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/estimator'
+    | '/exterior'
     | '/gallery'
+    | '/kitchen'
     | '/login'
     | '/roof'
     | '/services'
@@ -156,7 +176,9 @@ export interface FileRouteTypes {
     | '/about'
     | '/community'
     | '/contact'
+    | '/exterior'
     | '/gallery'
+    | '/kitchen'
     | '/login'
     | '/roof'
     | '/services'
@@ -171,7 +193,9 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/estimator'
+    | '/exterior'
     | '/gallery'
+    | '/kitchen'
     | '/login'
     | '/roof'
     | '/services'
@@ -187,7 +211,9 @@ export interface RootRouteChildren {
   CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
   EstimatorRoute: typeof EstimatorRouteWithChildren
+  ExteriorRoute: typeof ExteriorRoute
   GalleryRoute: typeof GalleryRoute
+  KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
@@ -232,11 +258,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EstimatorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/exterior': {
+      id: '/exterior'
+      path: '/exterior'
+      fullPath: '/exterior'
+      preLoaderRoute: typeof ExteriorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery': {
       id: '/gallery'
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kitchen': {
+      id: '/kitchen'
+      path: '/kitchen'
+      fullPath: '/kitchen'
+      preLoaderRoute: typeof KitchenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -311,7 +351,9 @@ const rootRouteChildren: RootRouteChildren = {
   CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
   EstimatorRoute: EstimatorRouteWithChildren,
+  ExteriorRoute: ExteriorRoute,
   GalleryRoute: GalleryRoute,
+  KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
