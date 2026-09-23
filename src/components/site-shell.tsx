@@ -1,11 +1,8 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Phone } from "lucide-react";
-import { CallLink } from "@/components/call-link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
-import { SITE } from "@/lib/site";
 
 /** Full-bleed app surfaces — no marketing chrome. */
 function isAppSurface(pathname: string) {
@@ -71,15 +68,11 @@ export function CtaBand({
         </h2>
         <p className="mt-4 text-lg text-cream-muted">{body}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <CallLink className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
-            <Phone className="size-4" />
-            Call {SITE.phoneDisplay}
-          </CallLink>
           <Link
             to="/contact"
-            className="inline-flex h-12 items-center justify-center rounded-lg border border-primary/70 px-6 text-sm font-semibold text-primary hover:bg-primary/10"
+            className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover"
           >
-            Send the job
+            Contact
           </Link>
         </div>
       </div>
