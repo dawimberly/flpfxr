@@ -46,15 +46,40 @@ export const Route = createFileRoute("/contact")({
           : undefined;
     return { service, ...(sent ? { sent: true } : {}), ...(side ? { side } : {}) };
   },
-  head: () => ({
-    meta: [
-      { title: `Contact | ${SITE.legalName}` },
-      {
-        name: "description",
-        content: `Call ${SITE.name} at ${SITE.phoneDisplay}. ${AREA_LINE}`,
-      },
-    ],
-  }),
+  head: ({ match }) => {
+    const service = (match?.search as Search | undefined)?.service;
+    if (service === "roofing") {
+      return {
+        meta: [
+          { title: `Roof repair and replacement | ${SITE.legalName}` },
+          {
+            name: "description",
+            content: `Roof repair and replacement in San Antonio. Call ${SITE.phoneDisplay}. We walk the job. ${AREA_LINE}`,
+          },
+        ],
+      };
+    }
+    if (service === "kitchen" || service === "kitchen-bath") {
+      return {
+        meta: [
+          { title: `Kitchen remodel | ${SITE.legalName}` },
+          {
+            name: "description",
+            content: `Kitchen remodels in San Antonio. Call ${SITE.phoneDisplay}. Design in-house. ${AREA_LINE}`,
+          },
+        ],
+      };
+    }
+    return {
+      meta: [
+        { title: `Contact | ${SITE.legalName}` },
+        {
+          name: "description",
+          content: `Call ${SITE.name} at ${SITE.phoneDisplay}. ${AREA_LINE}`,
+        },
+      ],
+    };
+  },
 });
 
 function ContactPage() {
@@ -82,6 +107,8 @@ function ContactPage() {
       : "interior",
   );
   const lastInteriorService = useRef<ServiceId>("kitchen");
+  const ignoreFirstQuote = useRef(!serviceFromUrl);
+  const [phoneError, setPhoneError] = useState("");
 
   const estimateService =
     serviceFromUrl === "kitchen-bath"
@@ -166,6 +193,10 @@ function ContactPage() {
   const subjectLine = `The Flip Fixer — ${serviceLabel || "job"}${sizeLabel ? `, ${sizeLabel}` : ""}${pitch ? `, ${pitch}` : ""}${ballpark ? ` (${ballpark})` : ""}${affiliation ? ` — ${affiliation}` : ""}`;
 
   const onQuoteChange = (next: QuoteSelection | null) => {
+    if (ignoreFirstQuote.current) {
+      ignoreFirstQuote.current = false;
+      return;
+    }
     setQuote(next);
     if (next?.service) setService(next.service);
     if (next) {
@@ -214,6 +245,14 @@ function ContactPage() {
   };
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      e.preventDefault();
+      setPhoneError("Add a 10-digit phone so we can call you back.");
+      return;
+    }
+    setPhoneError("");
+
     const form = e.currentTarget;
     const setField = (field: string, value: string) => {
       const el = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(
@@ -256,28 +295,27 @@ function ContactPage() {
   };
 
   const sent = sentFromUrl || blocked;
+  const isRoofAd = serviceFromUrl === "roofing" || sideFromUrl === "exterior";
+  const isKitchenAd =
+    serviceFromUrl === "kitchen" || serviceFromUrl === "kitchen-bath";
+  const introTitle = isRoofAd
+    ? "Roof repair and replacement in San Antonio."
+    : isKitchenAd
+      ? "Kitchen remodels in San Antonio."
+      : "Call or send the job.";
+  const introBody = isRoofAd
+    ? "Leaks, storm damage, or a roof that is done. Call. We walk it and give you a number."
+    : isKitchenAd
+      ? "Cabinets, counters, floors. Design in-house. Call. We walk the room and give you a number."
+      : "Phone first. Photos help. The planning range is optional.";
 
   return (
     <div>
-      <PageIntro eyebrow="Contact" title="Tell us about the job.">
-        <p>Call or send photos of the job.</p>
+      <PageIntro eyebrow={isRoofAd ? "Roofing" : isKitchenAd ? "Kitchens" : "Contact"} title={introTitle}>
+        <p>{introBody}</p>
       </PageIntro>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12">
-        <JobBallpark
-          side={side}
-          onSideChange={onSideChange}
-          initialService={
-            estimateService ??
-            (side === "interior" ? lastInteriorService.current : undefined)
-          }
-          hideCta
-          onServiceChange={(id) => setService(id)}
-          onQuoteChange={onQuoteChange}
-        />
-      </section>
-
-      <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
+      <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-12 md:grid-cols-5">
         <aside className="space-y-6 md:col-span-2">
           <CallLink className="block font-display text-4xl text-primary hover:text-primary-hover md:text-5xl">
             {SITE.phoneDisplay}
@@ -313,6 +351,7 @@ function ContactPage() {
             <form
               action={`https://formsubmit.co/${encodeURIComponent(SITE.email)}`}
               method="POST"
+              encType="multipart/form-data"
               onSubmit={onSubmit}
               className="space-y-5"
             >
@@ -350,6 +389,26 @@ function ContactPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="phone">Phone *</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  aria-invalid={phoneError ? true : undefined}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    if (phoneError) setPhoneError("");
+                  }}
+                />
+                {phoneError ? (
+                  <p className="text-sm text-destructive">{phoneError}</p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
@@ -359,17 +418,6 @@ function ContactPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -419,20 +467,51 @@ function ContactPage() {
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={
                     side === "exterior"
-                      ? "Neighborhood, when you want to start."
+                      ? "Address, leak or storm, when you want someone out."
                       : "Neighborhood, the room, when you want to start."
                   }
                 />
               </div>
-              <Button type="submit" size="lg">
+              <div className="space-y-2">
+                <Label htmlFor="attachment">Photo of the job</Label>
+                <Input
+                  id="attachment"
+                  name="attachment"
+                  type="file"
+                  accept="image/*"
+                  className="h-auto py-2 file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-fg"
+                />
+                <p className="text-xs text-subtle">Optional. One photo is enough.</p>
+              </div>
+              <Button type="submit" size="lg" className="w-full sm:w-auto">
                 Send it over
               </Button>
-              <p className="text-center text-xs text-subtle">
+              <p className="text-center text-xs text-subtle sm:text-left">
                 We reply by phone or email after you send.
               </p>
             </form>
           )}
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <h2 className="mb-2 font-display text-2xl text-fg">
+          Want a planning range?
+        </h2>
+        <p className="mb-6 text-sm text-muted">
+          Optional. Call or send the form first. This does not replace a walkthrough.
+        </p>
+        <JobBallpark
+          side={side}
+          onSideChange={onSideChange}
+          initialService={
+            estimateService ??
+            (side === "interior" ? lastInteriorService.current : undefined)
+          }
+          hideCta
+          onServiceChange={(id) => setService(id)}
+          onQuoteChange={onQuoteChange}
+        />
       </section>
     </div>
   );

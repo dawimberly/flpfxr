@@ -6,7 +6,6 @@ export const Route = createFileRoute("/roof")({
     throw redirect({
       to: "/contact",
       search: { service: "roofing", side: "exterior" },
-      hash: "ballpark",
     });
   },
   head: () => ({
