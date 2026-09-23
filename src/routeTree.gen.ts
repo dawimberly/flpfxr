@@ -15,6 +15,7 @@ import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimatorRouteImport } from './routes/estimator'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -51,6 +52,11 @@ const EstimatorRoute = EstimatorRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KitchenRoute = KitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
+  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
+  '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimator'
     | '/gallery'
+    | '/kitchen'
     | '/login'
     | '/roof'
     | '/services'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/gallery'
+    | '/kitchen'
     | '/login'
     | '/roof'
     | '/services'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimator'
     | '/gallery'
+    | '/kitchen'
     | '/login'
     | '/roof'
     | '/services'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EstimatorRoute: typeof EstimatorRouteWithChildren
   GalleryRoute: typeof GalleryRoute
+  KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kitchen': {
+      id: '/kitchen'
+      path: '/kitchen'
+      fullPath: '/kitchen'
+      preLoaderRoute: typeof KitchenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EstimatorRoute: EstimatorRouteWithChildren,
   GalleryRoute: GalleryRoute,
+  KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
