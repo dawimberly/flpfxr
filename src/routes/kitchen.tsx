@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdsLanding } from "@/components/ads-landing";
+import { QuoteEstimator } from "@/components/quote-estimator";
 import { AREA_LINE, SITE } from "@/lib/site";
 
 type Search = { sent?: boolean };
@@ -49,6 +50,10 @@ function KitchenLanding() {
           body: "What is included, what is not, and a date. That is the number.",
         },
       ]}
-    />
+    >
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <QuoteEstimator initialService="kitchen" hideCta />
+      </section>
+    </AdsLanding>
   );
 }

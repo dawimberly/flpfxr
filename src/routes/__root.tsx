@@ -6,23 +6,7 @@ import { SiteShell } from "@/components/site-shell";
 import { SITE } from "@/lib/site";
 import appCss from "../styles.css?url";
 
-function RootError() {
-  return (
-    <html lang="en">
-      <body style={{ fontFamily: "sans-serif", padding: "2rem" }}>
-        <p>
-          Call{" "}
-          <a href={`tel:${SITE.phone}`} style={{ color: "#b08d57" }}>
-            {SITE.phoneDisplay}
-          </a>
-        </p>
-      </body>
-    </html>
-  );
-}
-
 export const Route = createRootRoute({
-  errorComponent: RootError,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
