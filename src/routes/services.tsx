@@ -68,14 +68,7 @@ function ServiceCard({
             to="/roof"
             className="text-sm font-medium text-primary hover:underline"
           >
-            Roof price
-          </Link>
-        ) : service.id === "kitchen-bath" ? (
-          <Link
-            to="/kitchen"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Kitchen price
+            Measure this roof
           </Link>
         ) : (
           <Link
