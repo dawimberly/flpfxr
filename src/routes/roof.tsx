@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdsLanding } from "@/components/ads-landing";
-import { RoofPublicQuote } from "@/components/roof-public-quote";
 import { AREA_LINE, SITE } from "@/lib/site";
 
 type Search = { sent?: boolean };
@@ -50,10 +49,6 @@ function RoofLanding() {
           body: "The person who looked at the job owns it through the last shingle.",
         },
       ]}
-    >
-      <section className="mx-auto max-w-6xl px-4 pb-16">
-        <RoofPublicQuote hideCta />
-      </section>
-    </AdsLanding>
+    />
   );
 }
