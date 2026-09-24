@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PencilRuler, Phone, Wrench } from "lucide-react";
+import { CallLink } from "@/components/call-link";
+import { LeadForm } from "@/components/lead-form";
 import { Photo } from "@/components/photo";
 import { BeforeAfterBand } from "@/components/before-after-band";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,10 @@ import {
 
 export const Route = createFileRoute("/")({
   component: Home,
+  validateSearch: (search: Record<string, unknown>) => {
+    const sent = search.sent === "1" || search.sent === true;
+    return sent ? { sent: true as const } : {};
+  },
   head: () => ({
     meta: [
       { title: `${SITE.name} | San Antonio & Kerrville` },
@@ -50,6 +56,7 @@ const WHY = [
 ];
 
 function Home() {
+  const { sent } = Route.useSearch();
   return (
     <div>
       <section className="relative isolate min-h-[78vh] overflow-hidden">
@@ -70,11 +77,46 @@ function Home() {
           <p className="mt-2 text-sm text-fg/70">
             30+ years on the tools. Design in-house.
           </p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button asChild size="lg">
-              <Link to="/contact">Contact</Link>
+              <CallLink>
+                <Phone className="size-4" />
+                Call {SITE.phoneDisplay}
+              </CallLink>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <a href="#send-job">Send a message</a>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section
+        id="send-job"
+        className="scroll-mt-28 mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-5 md:py-20"
+      >
+        <div className="md:col-span-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+            Contact
+          </p>
+          <h2 className="mt-3 font-display text-3xl font-semibold text-fg md:text-4xl">
+            Call or send the job.
+          </h2>
+          <p className="mt-4 text-lg leading-relaxed text-muted">
+            Phone first. Name, number, and what is going on. We call back.
+          </p>
+          <CallLink className="mt-6 inline-block font-display text-3xl text-primary hover:text-primary-hover">
+            {SITE.phoneDisplay}
+          </CallLink>
+        </div>
+        <div className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-border)] md:col-span-3 md:p-8">
+          <LeadForm
+            sent={sent}
+            nextPath="/"
+            source="homepage"
+            compact
+            messagePlaceholder="Neighborhood, the job, when you want someone out."
+          />
         </div>
       </section>
 
@@ -95,10 +137,10 @@ function Home() {
             Full service list
           </Link>
           <Link
-            to="/roof"
+            to="/contact"
             className="text-sm font-medium text-primary hover:underline"
           >
-            Roof estimate
+            Call or send the job
           </Link>
           <Link
             to="/gallery"

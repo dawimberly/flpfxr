@@ -1,5 +1,11 @@
 import { useEffect } from "react";
-import { GA4_MEASUREMENT_ID, GOOGLE_ADS_ID, gtag } from "@/lib/google-ads";
+import {
+  GA4_MEASUREMENT_ID,
+  GOOGLE_ADS_ID,
+  GOOGLE_ADS_PHONE_SEND_TO,
+  gtag,
+} from "@/lib/google-ads";
+import { captureAdClickIds } from "@/lib/formsubmit";
 
 const SCRIPT_ID = "google-gtag";
 
@@ -11,9 +17,14 @@ export function GoogleTag() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    captureAdClickIds();
+
     gtag("js", new Date());
     gtag("config", GA4_MEASUREMENT_ID);
     gtag("config", GOOGLE_ADS_ID);
+    gtag("config", GOOGLE_ADS_PHONE_SEND_TO, {
+      phone_conversion_number: "(210) 436-9117",
+    });
 
     if (!document.getElementById(SCRIPT_ID)) {
       const script = document.createElement("script");

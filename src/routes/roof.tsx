@@ -13,7 +13,7 @@ export const Route = createFileRoute("/roof")({
       { title: `Roof | ${SITE.legalName}` },
       {
         name: "description",
-        content: `Type your address for a San Antonio roof planning range. Low, medium, or steep. 3-tab, architectural, or designer. ${AREA_LINE} Call (210) 436-9117.`,
+        content: `Roof repair and replacement in San Antonio. Call ${SITE.phoneDisplay}. We walk the job. ${AREA_LINE}`,
       },
     ],
   }),

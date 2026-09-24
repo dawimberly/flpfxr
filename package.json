@@ -18,7 +18,7 @@
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "create-employee": "node scripts/create-employee.mjs",
     "reset-employee-password": "node scripts/reset-employee-password.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/eagleview-parse.test.ts src/lib/home-depot-roof.test.ts src/lib/line-act.test.ts src/lib/op.test.ts src/lib/photo-view.test.ts src/lib/roof-3d.test.ts src/lib/roof-auto.test.ts src/lib/roof-basemap.test.ts src/lib/roof-code.test.ts src/lib/roof-geocode.test.ts src/lib/roof-math.test.ts src/lib/roof-outline.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-trace.test.ts src/lib/xactimate-roof.test.ts",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/eagleview-parse.test.ts src/lib/formsubmit.test.ts src/lib/home-depot-roof.test.ts src/lib/line-act.test.ts src/lib/op.test.ts src/lib/photo-view.test.ts src/lib/roof-3d.test.ts src/lib/roof-auto.test.ts src/lib/roof-basemap.test.ts src/lib/roof-code.test.ts src/lib/roof-geocode.test.ts src/lib/roof-math.test.ts src/lib/roof-outline.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-trace.test.ts src/lib/xactimate-roof.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

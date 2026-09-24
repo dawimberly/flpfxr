@@ -66,19 +66,19 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild size="icon" className="sm:hidden" aria-label={`Call ${SITE.phoneDisplay}`}>
+          <Button asChild className="sm:hidden" size="icon" aria-label={`Call ${SITE.phoneDisplay}`}>
             <CallLink>
               <Phone className="size-5" />
             </CallLink>
           </Button>
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+          <Button asChild className="hidden sm:inline-flex">
             <CallLink>
               <Phone className="size-4" />
               {SITE.phoneDisplay}
             </CallLink>
           </Button>
-          <Button asChild className="hidden sm:inline-flex">
-            <Link to="/contact">Contact</Link>
+          <Button asChild variant="outline" className="hidden sm:inline-flex">
+            <Link to="/contact">Message</Link>
           </Button>
 
           <Sheet open={open} onOpenChange={setOpen}>
@@ -110,15 +110,15 @@ export function SiteHeader() {
               </nav>
               <div className="mt-auto flex flex-col gap-3 pt-8">
                 <Button asChild size="lg">
-                  <Link to="/contact" onClick={() => setOpen(false)}>
-                    Contact
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
                   <CallLink>
                     <Phone className="size-4" />
                     Call {SITE.phoneDisplay}
                   </CallLink>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/contact" onClick={() => setOpen(false)}>
+                    Send a message
+                  </Link>
                 </Button>
                 <SheetClose asChild>
                   <Link

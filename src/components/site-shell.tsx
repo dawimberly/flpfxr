@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { CallLink } from "@/components/call-link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
+import { SITE } from "@/lib/site";
 
 /** Full-bleed app surfaces — no marketing chrome. */
 function isAppSurface(pathname: string) {
@@ -55,7 +57,7 @@ export function PageIntro({
 
 export function CtaBand({
   title = "Need work done?",
-  body = "Tell us about the job.",
+  body = "Call or send the job. We pick up.",
 }: {
   title?: string;
   body?: string;
@@ -68,11 +70,14 @@ export function CtaBand({
         </h2>
         <p className="mt-4 text-lg text-cream-muted">{body}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <CallLink className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
+            Call {SITE.phoneDisplay}
+          </CallLink>
           <Link
             to="/contact"
-            className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover"
+            className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-fg/40 px-6 text-sm font-semibold text-cream-fg hover:bg-cream-fg/10"
           >
-            Contact
+            Send a message
           </Link>
         </div>
       </div>
