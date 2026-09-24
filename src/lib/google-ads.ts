@@ -34,16 +34,48 @@ export function gtag(...args: unknown[]) {
   window.gtag(...args);
 }
 
-/** Fire once per browser session so refresh doesn't double-count. */
-export function trackContactFormSubmit() {
-  if (typeof window === "undefined") return;
-  const key = "ff-ads-lead";
+export function pagePathFromLocation(pathname: string, search = ""): string {
+  const path = pathname || "/";
+  if (!search || search === "?") return path;
+  return `${path}${search.startsWith("?") ? search : `?${search}`}`;
+}
+
+function oncePerSession(key: string): boolean {
+  if (typeof window === "undefined") return false;
   try {
-    if (sessionStorage.getItem(key)) return;
+    if (sessionStorage.getItem(key)) return false;
     sessionStorage.setItem(key, "1");
   } catch {
     // sessionStorage blocked — still fire once this load
   }
+  return true;
+}
+
+/** SPA navigations do not reload the document, so config's automatic page_view is not enough. */
+export function trackPageView(path: string, title?: string) {
+  if (typeof window === "undefined") return;
+  gtag("event", "page_view", {
+    page_path: path,
+    page_title: title || document.title,
+    page_location: window.location.href,
+  });
+}
+
+export function trackFormStart() {
+  if (!oncePerSession("ff-form-start")) return;
+  gtag("event", "form_start", {
+    form_id: "lead",
+    form_name: "contact",
+  });
+}
+
+/** Fire once per browser session so refresh doesn't double-count. */
+export function trackContactFormSubmit() {
+  if (!oncePerSession("ff-ads-lead")) return;
+  gtag("event", "generate_lead", {
+    currency: "USD",
+    value: 1.0,
+  });
   gtag("event", "conversion", {
     send_to: GOOGLE_ADS_LEAD_SEND_TO,
     value: 1.0,
@@ -53,6 +85,11 @@ export function trackContactFormSubmit() {
 
 export function trackPhoneClick() {
   if (typeof window === "undefined") return;
+  gtag("event", "click", {
+    link_url: "tel:+12104369117",
+    link_type: "tel",
+    outbound: false,
+  });
   gtag("event", "conversion", {
     send_to: GOOGLE_ADS_PHONE_SEND_TO,
     value: 1.0,

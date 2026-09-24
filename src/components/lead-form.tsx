@@ -10,7 +10,7 @@ import {
   captureAdClickIds,
   parseFormSubmitResponse,
 } from "@/lib/formsubmit";
-import { trackContactFormSubmit } from "@/lib/google-ads";
+import { trackContactFormSubmit, trackFormStart } from "@/lib/google-ads";
 import {
   CONTACT_AFFILIATIONS,
   JOB_DISCOUNT,
@@ -172,6 +172,7 @@ export function LeadForm({
       method="POST"
       encType="multipart/form-data"
       onSubmit={onSubmit}
+      onFocusCapture={trackFormStart}
       className="space-y-5"
     >
       <input type="hidden" name="_subject" value={subject} />

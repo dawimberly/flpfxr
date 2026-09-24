@@ -59,14 +59,14 @@ function Home() {
   const { sent } = Route.useSearch();
   return (
     <div>
-      <section className="relative isolate min-h-[78vh] overflow-hidden">
+      <section className="relative isolate min-h-[58vh] overflow-hidden md:min-h-[78vh]">
         <Photo
           src="/images/gallery-01-a.webp"
           alt="Farmhouse kitchen remodel by The Flip Fixer"
           className="absolute inset-0 size-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/35" />
-        <div className="relative mx-auto flex min-h-[78vh] max-w-6xl flex-col justify-end px-4 pb-16 pt-28 md:pb-20">
+        <div className="relative mx-auto flex min-h-[58vh] max-w-6xl flex-col justify-end px-4 pb-10 pt-24 md:min-h-[78vh] md:pb-20 md:pt-28">
           <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-7xl">
             {SITE.name}
           </h1>
