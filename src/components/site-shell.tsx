@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { CallLink } from "@/components/call-link";
+import { TextLink } from "@/components/text-link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { MobileCallBar } from "@/components/mobile-call-bar";
@@ -57,7 +58,7 @@ export function PageIntro({
 
 export function CtaBand({
   title = "Need work done?",
-  body = "Call or send the job. We pick up.",
+  body = "Call, text, or send the job. We pick up.",
 }: {
   title?: string;
   body?: string;
@@ -73,12 +74,9 @@ export function CtaBand({
           <CallLink className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
             Call {SITE.phoneDisplay}
           </CallLink>
-          <Link
-            to="/contact"
-            className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-fg/40 px-6 text-sm font-semibold text-cream-fg hover:bg-cream-fg/10"
-          >
-            Send a message
-          </Link>
+          <TextLink className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-fg/40 px-6 text-sm font-semibold text-cream-fg hover:bg-cream-fg/10">
+            Text {SITE.phoneDisplay}
+          </TextLink>
         </div>
       </div>
     </section>

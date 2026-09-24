@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PencilRuler, Phone, Wrench } from "lucide-react";
+import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { Photo } from "@/components/photo";
@@ -27,11 +28,11 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: `${SITE.name} | San Antonio & Kerrville` },
+      { title: `Kitchen and bath remodels | ${SITE.name}` },
       {
         name: "description",
         content:
-          `The Flip Fixer. ${SITE.tagline} ${AREA_LINE} 30+ years on the tools. Design in-house. Call (210) 436-9117.`,
+          `Kitchen and bath remodels in San Antonio. Call or text ${SITE.phoneDisplay}. ${SITE.tagline} ${AREA_LINE}`,
       },
     ],
   }),
@@ -59,64 +60,39 @@ function Home() {
   const { sent } = Route.useSearch();
   return (
     <div>
-      <section className="relative isolate min-h-[58vh] overflow-hidden md:min-h-[78vh]">
+      <section className="relative isolate overflow-hidden">
         <Photo
           src="/images/gallery-01-a.webp"
           alt="Farmhouse kitchen remodel by The Flip Fixer"
           className="absolute inset-0 size-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/35" />
-        <div className="relative mx-auto flex min-h-[58vh] max-w-6xl flex-col justify-end px-4 pb-10 pt-24 md:min-h-[78vh] md:pb-20 md:pt-28">
-          <h1 className="max-w-3xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-7xl">
-            {SITE.name}
-          </h1>
-          <p className="mt-5 max-w-xl text-lg text-fg/85 md:text-xl">
-            {SITE.tagline}
-          </p>
-          <p className="mt-3 text-fg/75">{AREA_LINE}</p>
-          <p className="mt-2 text-sm text-fg/70">
-            30+ years on the tools. Design in-house.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button asChild size="lg">
-              <CallLink>
-                <Phone className="size-4" />
-                Call {SITE.phoneDisplay}
-              </CallLink>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <a href="#send-job">Send a message</a>
-            </Button>
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 to-bg/40" />
+        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 pb-10 pt-24 md:grid-cols-2 md:items-end md:gap-12 md:pb-16 md:pt-28">
+          <div>
+            <h1 className="max-w-xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-6xl">
+              Kitchen and bath remodels in San Antonio.
+            </h1>
+            <p className="mt-4 text-lg text-fg/85 md:text-xl">
+              Call, text, or send the job. We pick up.
+            </p>
+            <p className="mt-2 text-fg/75">{AREA_LINE}</p>
+            <CallTextActions className="mt-6" />
           </div>
-        </div>
-      </section>
-
-      <section
-        id="send-job"
-        className="scroll-mt-28 mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-5 md:py-20"
-      >
-        <div className="md:col-span-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-            Contact
-          </p>
-          <h2 className="mt-3 font-display text-3xl font-semibold text-fg md:text-4xl">
-            Call or send the job.
-          </h2>
-          <p className="mt-4 text-lg leading-relaxed text-muted">
-            Phone first. Name, number, and what is going on. We call back.
-          </p>
-          <CallLink className="mt-6 inline-block font-display text-3xl text-primary hover:text-primary-hover">
-            {SITE.phoneDisplay}
-          </CallLink>
-        </div>
-        <div className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-border)] md:col-span-3 md:p-8">
-          <LeadForm
-            sent={sent}
-            nextPath="/"
-            source="homepage"
-            compact
-            messagePlaceholder="Neighborhood, the job, when you want someone out."
-          />
+          <div
+            id="send-job"
+            className="scroll-mt-28 rounded-2xl bg-surface/95 p-5 shadow-[var(--shadow-border)] backdrop-blur-sm md:p-7"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              Send the job
+            </p>
+            <LeadForm
+              sent={sent}
+              nextPath="/"
+              source="homepage"
+              compact
+              messagePlaceholder="Neighborhood, the job, when you want someone out."
+            />
+          </div>
         </div>
       </section>
 
@@ -136,12 +112,9 @@ function Home() {
           >
             Full service list
           </Link>
-          <Link
-            to="/contact"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Call or send the job
-          </Link>
+          <CallLink className="text-sm font-medium text-primary hover:underline">
+            Call {SITE.phoneDisplay}
+          </CallLink>
           <Link
             to="/gallery"
             className="text-sm font-medium text-muted hover:text-primary hover:underline"

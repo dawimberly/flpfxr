@@ -15,4 +15,8 @@ describe("pagePathFromLocation", () => {
     );
     assert.equal(pagePathFromLocation("/contact", ""), "/contact");
   });
+
+  it("keeps kitchen ads landings on /kitchen so they are not a 1s redirect bounce", () => {
+    assert.equal(pagePathFromLocation("/kitchen"), "/kitchen");
+  });
 });

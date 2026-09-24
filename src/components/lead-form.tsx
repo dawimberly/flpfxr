@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { CallLink } from "@/components/call-link";
+import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ export function LeadForm({
   compact = false,
   showAffiliation = !compact,
   showPhoto = !compact,
+  showEmail = !compact,
   children,
 }: {
   sent?: boolean;
@@ -39,6 +41,7 @@ export function LeadForm({
   compact?: boolean;
   showAffiliation?: boolean;
   showPhoto?: boolean;
+  showEmail?: boolean;
   children?: ReactNode;
 }) {
   const [name, setName] = useState("");
@@ -159,9 +162,14 @@ export function LeadForm({
         <p className="mt-2 max-w-sm text-muted">
           We got your message. If you do not hear back today, call.
         </p>
-        <CallLink className="mt-6 text-lg font-semibold text-primary hover:text-primary-hover">
-          Call {SITE.phoneDisplay}
-        </CallLink>
+        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <CallLink className="text-lg font-semibold text-primary hover:text-primary-hover">
+            Call {SITE.phoneDisplay}
+          </CallLink>
+          <TextLink className="text-lg font-semibold text-primary hover:text-primary-hover">
+            Text {SITE.phoneDisplay}
+          </TextLink>
+        </div>
       </div>
     );
   }
@@ -173,7 +181,7 @@ export function LeadForm({
       encType="multipart/form-data"
       onSubmit={onSubmit}
       onFocusCapture={trackFormStart}
-      className="space-y-5"
+      className={compact ? "space-y-3" : "space-y-5"}
     >
       <input type="hidden" name="_subject" value={subject} />
       <input type="hidden" name="_template" value="table" />
@@ -223,18 +231,22 @@ export function LeadForm({
           <p className="text-sm text-destructive">{phoneError}</p>
         ) : null}
       </div>
+      {showEmail ? (
       <div className="space-y-2">
-        <Label htmlFor={`${source}-email`}>Email *</Label>
+        <Label htmlFor={`${source}-email`}>Email</Label>
         <Input
           id={`${source}-email`}
           name="email"
           type="email"
-          required
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        <p className="text-xs text-subtle">Optional. Phone is enough.</p>
       </div>
+      ) : (
+        <input type="hidden" name="email" value={email} />
+      )}
       {children}
       {showAffiliation ? (
         <div className="space-y-2">
@@ -263,7 +275,7 @@ export function LeadForm({
           id={`${source}-message`}
           name="message"
           required
-          rows={compact ? 4 : 5}
+          rows={compact ? 3 : 5}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={messagePlaceholder}
@@ -294,7 +306,7 @@ export function LeadForm({
         {submitting ? "Sending…" : "Send it over"}
       </Button>
       <p className="text-center text-xs text-subtle sm:text-left">
-        We reply by phone or email after you send.
+        We call or text you back.
       </p>
     </form>
   );

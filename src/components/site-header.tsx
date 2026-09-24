@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, Phone } from "lucide-react";
+import { Menu, MessageSquare, Phone } from "lucide-react";
 import { CallLink } from "@/components/call-link";
+import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -78,7 +79,10 @@ export function SiteHeader() {
             </CallLink>
           </Button>
           <Button asChild variant="outline" className="hidden sm:inline-flex">
-            <Link to="/contact">Message</Link>
+            <TextLink>
+              <MessageSquare className="size-4" />
+              Text
+            </TextLink>
           </Button>
 
           <Sheet open={open} onOpenChange={setOpen}>
@@ -116,9 +120,10 @@ export function SiteHeader() {
                   </CallLink>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  <Link to="/contact" onClick={() => setOpen(false)}>
-                    Send a message
-                  </Link>
+                  <TextLink>
+                    <MessageSquare className="size-4" />
+                    Text {SITE.phoneDisplay}
+                  </TextLink>
                 </Button>
                 <SheetClose asChild>
                   <Link

@@ -96,3 +96,12 @@ export function trackPhoneClick() {
     currency: "USD",
   });
 }
+
+export function trackSmsClick() {
+  if (typeof window === "undefined") return;
+  gtag("event", "click", {
+    link_url: "sms:+12104369117",
+    link_type: "sms",
+    outbound: false,
+  });
+}

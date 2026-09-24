@@ -13,15 +13,25 @@ export function formatPhoneDisplay(phone: string) {
   return phone;
 }
 
-export function telHref(phone: string) {
+export function e164Phone(phone: string) {
   const digits = phone.replace(/\D/g, "");
   if (digits.length === 11 && digits.startsWith("1")) {
-    return `tel:+${digits}`;
+    return `+${digits}`;
   }
   if (digits.length === 10) {
-    return `tel:+1${digits}`;
+    return `+1${digits}`;
   }
-  return `tel:${digits}`;
+  return digits ? `+${digits}` : "";
+}
+
+export function telHref(phone: string) {
+  const e164 = e164Phone(phone);
+  return e164 ? `tel:${e164}` : "tel:";
+}
+
+export function smsHref(phone: string) {
+  const e164 = e164Phone(phone);
+  return e164 ? `sms:${e164}` : "sms:";
 }
 
 export function formatUsdRange(min: number, max: number) {

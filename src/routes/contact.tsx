@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
+import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
 import { AREA_LINE, JOB_DISCOUNT, SITE, type ServiceId } from "@/lib/site";
 
@@ -45,7 +47,7 @@ export const Route = createFileRoute("/contact")({
           { title: `Kitchen remodel | ${SITE.legalName}` },
           {
             name: "description",
-            content: `Kitchen remodels in San Antonio. Call ${SITE.phoneDisplay}. Design in-house. ${AREA_LINE}`,
+            content: `Kitchen remodels in San Antonio. Call or text ${SITE.phoneDisplay}. Design in-house. ${AREA_LINE}`,
           },
         ],
       };
@@ -75,8 +77,8 @@ function ContactPage() {
       : "Call or send the job.";
   const introBody = isRoofAd
     ? "Leaks, storm damage, or a roof that is done. Call. We walk it and give you a number."
-    : isKitchenAd
-      ? "Cabinets, counters, floors. Design in-house. Call. We walk the room and give you a number."
+      : isKitchenAd
+      ? "Cabinets, counters, floors. Design in-house. Call, text, or send the job. We walk the room and give you a number."
       : "Phone first. Photos help. No planning range on this page.";
   const placeholder = isRoofAd
     ? "Address, leak or storm, when you want someone out."
@@ -91,6 +93,7 @@ function ContactPage() {
         title={introTitle}
       >
         <p>{introBody}</p>
+        <CallTextActions className="mt-6 justify-center" />
       </PageIntro>
 
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
@@ -98,6 +101,9 @@ function ContactPage() {
           <CallLink className="block font-display text-4xl text-primary hover:text-primary-hover md:text-5xl">
             {SITE.phoneDisplay}
           </CallLink>
+          <TextLink className="block text-xl font-semibold text-primary hover:text-primary-hover">
+            Text {SITE.phoneDisplay}
+          </TextLink>
           <a
             href={`mailto:${SITE.email}`}
             className="block text-muted hover:text-primary"
