@@ -66,25 +66,49 @@ function Home() {
           alt="Farmhouse kitchen remodel by The Flip Fixer"
           className="absolute inset-0 size-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 to-bg/40" />
-        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 pb-10 pt-24 md:grid-cols-2 md:items-end md:gap-12 md:pb-16 md:pt-28">
-          <div>
-            <h1 className="max-w-xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-6xl">
-              Kitchen and bath remodels in San Antonio.
-            </h1>
-            <p className="mt-4 text-lg text-fg/85 md:text-xl">
-              Call, text, or send the job. We pick up.
-            </p>
-            <p className="mt-2 text-fg/75">{AREA_LINE}</p>
-            <CallTextActions className="mt-6" />
-          </div>
-          <div
-            id="send-job"
-            className="scroll-mt-28 rounded-2xl bg-surface/95 p-5 shadow-[var(--shadow-border)] backdrop-blur-sm md:p-7"
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/55 to-bg/25" />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-start justify-end px-4 pb-14 pt-28 md:min-h-[32rem] md:pb-20 md:pt-36">
+          <h1 className="max-w-2xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-6xl">
+            Kitchen and bath remodels in San Antonio.
+          </h1>
+          <p className="mt-4 max-w-lg text-lg text-fg/90 md:text-xl">
+            Design in-house. One crew from walkthrough to finish. We pick up
+            the phone.
+          </p>
+          <p className="mt-2 text-fg/75">{AREA_LINE}</p>
+          <CallTextActions className="mt-8" />
+          <a
+            href="#send-job"
+            className="mt-4 text-sm font-medium text-fg/70 underline-offset-4 hover:text-primary hover:underline"
           >
+            Or send the job below
+          </a>
+        </div>
+      </section>
+
+      <section
+        id="send-job"
+        className="scroll-mt-28 border-b border-border bg-surface px-4 py-12 md:py-16"
+      >
+        <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2 md:items-start md:gap-14">
+          <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
               Send the job
             </p>
+            <h2 className="mt-3 font-display text-2xl font-semibold text-fg md:text-3xl">
+              Tell us what you need.
+            </h2>
+            <p className="mt-3 text-muted">
+              Neighborhood, the room, when you want someone out. We call or
+              text you back.
+            </p>
+            <div className="mt-6 hidden md:block">
+              <CallLink className="text-lg font-semibold text-primary hover:text-primary-hover">
+                Prefer the phone? Call {SITE.phoneDisplay}
+              </CallLink>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-bg p-5 shadow-[var(--shadow-border)] md:p-7">
             <LeadForm
               sent={sent}
               nextPath="/"
