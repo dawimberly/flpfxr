@@ -4,6 +4,7 @@ import { CallLink } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
+import { TrustStrip } from "@/components/trust-strip";
 import { AREA_LINE, JOB_DISCOUNT, SITE, type ServiceId } from "@/lib/site";
 
 type Search = {
@@ -95,6 +96,10 @@ function ContactPage() {
         <p>{introBody}</p>
         <CallTextActions className="mt-6 justify-center" />
       </PageIntro>
+
+      <div className="mx-auto max-w-6xl px-4 pb-12">
+        <TrustStrip />
+      </div>
 
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
         <aside className="space-y-6 md:col-span-2">

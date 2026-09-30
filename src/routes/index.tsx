@@ -5,6 +5,7 @@ import { CallLink } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { Photo } from "@/components/photo";
 import { BeforeAfterBand } from "@/components/before-after-band";
+import { TrustStrip } from "@/components/trust-strip";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -77,6 +78,7 @@ function Home() {
           </p>
           <p className="mt-2 text-fg/75">{AREA_LINE}</p>
           <CallTextActions className="mt-8" />
+          <TrustStrip className="mt-6 justify-start text-fg/80" />
           <a
             href="#send-job"
             className="mt-4 text-sm font-medium text-fg/70 underline-offset-4 hover:text-primary hover:underline"

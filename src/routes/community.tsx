@@ -13,9 +13,10 @@ const selectClass =
 
 export const Route = createFileRoute("/community")({
   component: CommunityPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    sent: search.sent === "1" || search.sent === true,
-  }),
+  validateSearch: (search: Record<string, unknown>): { sent?: boolean } => {
+    const sent = search.sent === "1" || search.sent === true;
+    return sent ? { sent: true } : {};
+  },
   head: () => ({
     meta: [
       { title: `Community | ${SITE.legalName}` },

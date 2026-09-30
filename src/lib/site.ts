@@ -11,6 +11,25 @@ export const SITE = {
   owner: "Jon",
 } as const;
 
+/** Fill with real values from Google Business Profile when available */
+export const REVIEWS = {
+  googleUrl: "",
+  rating: null as number | null,
+  count: null as number | null,
+};
+
+export function hasReviewProof(): boolean {
+  return Boolean(
+    REVIEWS.googleUrl || (REVIEWS.rating !== null && REVIEWS.count !== null),
+  );
+}
+
+/** Fill from verified business licenses and insurance policies */
+export const TRUST = {
+  licensed: false,
+  insured: false,
+};
+
 export const CREW = [
   {
     name: "Jon Styles",
@@ -269,7 +288,15 @@ export const CONTACT_AFFILIATIONS = [
 export const JOB_DISCOUNT =
   "Seniors 65+, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack.";
 
-export const TESTIMONIALS = [
+export type Testimonial = {
+  quote: string;
+  name: string;
+  place: string;
+  date?: string;
+  source?: string;
+};
+
+export const TESTIMONIALS: readonly Testimonial[] = [
   {
     quote:
       "Jon and his team have been awesome to work with. The value they provide for the cost is unbeatable. Jon is talented and responsive. I highly recommend him for all your home repair needs!",

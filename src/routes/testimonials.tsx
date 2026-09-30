@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
-import { SITE, TESTIMONIALS } from "@/lib/site";
+import { REVIEWS, SITE, TESTIMONIALS } from "@/lib/site";
 
 export const Route = createFileRoute("/testimonials")({
   component: TestimonialsPage,
@@ -21,6 +21,19 @@ function TestimonialsPage() {
     <div>
       <PageIntro eyebrow="Reviews" title="What people said." />
 
+      {REVIEWS.googleUrl ? (
+        <div className="mx-auto max-w-6xl -mt-4 px-4 pb-10 text-center">
+          <a
+            href={REVIEWS.googleUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          >
+            Read all our Google reviews &rarr;
+          </a>
+        </div>
+      ) : null}
+
       <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 md:grid-cols-2 lg:grid-cols-3">
         {TESTIMONIALS.map((t) => (
           <blockquote
@@ -36,7 +49,11 @@ function TestimonialsPage() {
             <p className="-mt-4 flex-1 text-fg/90">{t.quote}</p>
             <footer className="mt-6">
               <p className="font-semibold text-fg">{t.name}</p>
-              <p className="text-sm text-subtle">{t.place}</p>
+              <p className="text-sm text-subtle">
+                {t.place}
+                {t.date ? ` · ${t.date}` : null}
+                {t.source ? ` · via ${t.source}` : null}
+              </p>
             </footer>
           </blockquote>
         ))}

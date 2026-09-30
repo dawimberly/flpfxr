@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
+import { TrustStrip } from "@/components/trust-strip";
 import {
+  PROCESS,
   SERVICES,
   SITE,
   AREA_LINE,
@@ -109,6 +111,10 @@ function ServicesPage() {
         </p>
       </PageIntro>
 
+      <div className="mx-auto max-w-6xl px-4 pb-12">
+        <TrustStrip />
+      </div>
+
       <div className="mx-auto max-w-6xl space-y-14 px-4 pb-16">
         {GROUPS.map((group) => {
           const items = SERVICES.filter((s) => s.group === group.name);
@@ -124,6 +130,28 @@ function ServicesPage() {
           );
         })}
       </div>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16">
+        <h2 className="font-display text-center text-2xl font-semibold text-fg sm:text-3xl">
+          How a job goes
+        </h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PROCESS.map((item) => (
+            <article
+              key={item.step}
+              className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-border)]"
+            >
+              <p className="font-display text-4xl font-semibold text-primary">
+                {item.step}.
+              </p>
+              <h3 className="mt-2 font-display text-lg text-fg">{item.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                {item.body}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <CtaBand />
     </div>
