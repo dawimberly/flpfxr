@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone } from "lucide-react";
 import { CallLink } from "@/components/call-link";
-import { NAV, SERVICE_AREAS, SITE } from "@/lib/site";
+import { AREA_PAGES, NAV, SERVICE_AREAS, SITE } from "@/lib/site";
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -19,7 +19,25 @@ export function SiteFooter() {
             Service areas
           </p>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            {SERVICE_AREAS.join(" · ")}
+            {SERVICE_AREAS.map((areaName, i) => {
+              const page = AREA_PAGES.find((a) => a.name === areaName);
+              return (
+                <span key={areaName}>
+                  {i > 0 ? " · " : ""}
+                  {page ? (
+                    <Link
+                      to="/areas/$slug"
+                      params={{ slug: page.slug }}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {areaName}
+                    </Link>
+                  ) : (
+                    areaName
+                  )}
+                </span>
+              );
+            })}
           </p>
           <nav className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             {NAV.map((item) => (

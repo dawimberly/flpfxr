@@ -74,6 +74,65 @@ export const SERVICE_AREAS = [
 export const AREA_LINE =
   "Alamo Heights, The Dominion, Kerrville, Boerne, and San Antonio.";
 
+export type AreaPage = {
+  slug: string;
+  name: string;
+  intro: string;
+  highlightedServices: ServiceId[];
+  galleryTag?: string;
+};
+
+export const AREA_PAGES: readonly AreaPage[] = [
+  {
+    slug: "alamo-heights",
+    name: "Alamo Heights",
+    intro:
+      "TODO: Review area intro text. Kitchen and bath remodels, historic home updates, and make-ready renovations in Alamo Heights. In-house design and direct trade execution with no middleman.",
+    highlightedServices: ["kitchen-bath", "flooring", "paint", "make-ready"],
+    galleryTag: "Kitchen",
+  },
+  {
+    slug: "the-dominion",
+    name: "The Dominion",
+    intro:
+      "TODO: Review area intro text. Custom kitchen and bathroom remodeling, flooring upgrades, and whole-home renovations in The Dominion. High-end finishes, clean daily jobsites, and fast turnarounds.",
+    highlightedServices: ["kitchen-bath", "flooring", "paint", "outdoor"],
+    galleryTag: "Kitchen",
+  },
+  {
+    slug: "boerne",
+    name: "Boerne",
+    intro:
+      "TODO: Review area intro text. Residential kitchen remodels, custom bathrooms, and make-ready services across Boerne and the Hill Country. 30+ years on the tools delivering straight quotes and clean finishes.",
+    highlightedServices: ["kitchen-bath", "flooring", "outdoor", "handyman"],
+    galleryTag: "Kitchen",
+  },
+  {
+    slug: "kerrville",
+    name: "Kerrville",
+    intro:
+      "TODO: Review area intro text. Kitchen, bath, and flooring renovations throughout Kerrville and surrounding communities. From targeted updates to full rebuilds, we deliver one price and stick to it.",
+    highlightedServices: ["kitchen-bath", "flooring", "paint", "handyman"],
+    galleryTag: "Kitchen",
+  },
+  {
+    slug: "stone-oak",
+    name: "Stone Oak",
+    intro:
+      "TODO: Review area intro text. Modern kitchen and bath remodels, interior updates, and tenant make-ready turnovers in Stone Oak. Fast scheduling and clean jobsites so your home gets finished on time.",
+    highlightedServices: ["kitchen-bath", "flooring", "paint", "make-ready"],
+    galleryTag: "Kitchen",
+  },
+  {
+    slug: "fair-oaks-ranch",
+    name: "Fair Oaks Ranch",
+    intro:
+      "TODO: Review area intro text. Kitchen and bathroom renovations, outdoor living upgrades, and custom repairs in Fair Oaks Ranch. Direct crew communication from walkthrough to completion.",
+    highlightedServices: ["kitchen-bath", "flooring", "outdoor", "paint"],
+    galleryTag: "Kitchen",
+  },
+] as const;
+
 export type ServiceId =
   | "kitchen-bath"
   | "kitchen"

@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import { TrustStrip } from "@/components/trust-strip";
 import {
+  AREA_PAGES,
   PROCESS,
+  SERVICE_AREAS,
   SERVICES,
   SITE,
   AREA_LINE,
@@ -130,6 +132,35 @@ function ServicesPage() {
           );
         })}
       </div>
+
+      <section className="mx-auto max-w-6xl px-4 pb-16 text-center">
+        <h2 className="font-display text-xl text-primary">Service areas</h2>
+        <p className="mt-2 text-sm text-muted">
+          Remodels, make-ready, and repairs across the greater San Antonio area.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {SERVICE_AREAS.map((areaName) => {
+            const page = AREA_PAGES.find((a) => a.name === areaName);
+            return page ? (
+              <Link
+                key={areaName}
+                to="/areas/$slug"
+                params={{ slug: page.slug }}
+                className="inline-flex h-9 items-center rounded-lg bg-surface px-3.5 text-sm font-medium text-fg shadow-[var(--shadow-border)] hover:text-primary hover:shadow-[var(--shadow-border-hover)]"
+              >
+                {areaName}
+              </Link>
+            ) : (
+              <span
+                key={areaName}
+                className="inline-flex h-9 items-center rounded-lg px-3.5 text-sm text-muted"
+              >
+                {areaName}
+              </span>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <h2 className="font-display text-center text-2xl font-semibold text-fg sm:text-3xl">
