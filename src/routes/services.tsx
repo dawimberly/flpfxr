@@ -42,8 +42,8 @@ const GROUPS = [
   },
   {
     name: "Specialty",
-    /** Three across after dropping carpentry */
-    grid: "grid-cols-1 sm:grid-cols-3",
+    /** Three across; a lone fourth card (Walkthrough) centers under them */
+    grid: "grid-cols-1 sm:grid-cols-3 sm:[&>:last-child:nth-child(3n+1)]:col-start-2",
     center: false,
   },
 ] as const;
