@@ -1,6 +1,28 @@
 import { Link } from "@tanstack/react-router";
 import { Photo } from "@/components/photo";
-import { HOME_BEST_WORK } from "@/lib/site";
+
+const HOME_BEST_WORK: Array<{ src: string; alt: string; title: string }> = [
+  {
+    src: "/images/gallery-23-d.webp",
+    alt: "Herringbone floor kitchen after remodel",
+    title: "Kitchen remodel",
+  },
+  {
+    src: "/images/gallery-17-a.webp",
+    alt: "Navy island kitchen with gold fixtures",
+    title: "Kitchen remodel",
+  },
+  {
+    src: "/images/gallery-01-a.webp",
+    alt: "Farmhouse kitchen with large island",
+    title: "Kitchen remodel",
+  },
+  {
+    src: "/images/gallery-03-a.webp",
+    alt: "Charcoal and gray remodeled kitchen",
+    title: "Kitchen remodel",
+  },
+];
 
 export function BestWorkBand() {
   return (
