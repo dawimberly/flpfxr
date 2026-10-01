@@ -76,7 +76,7 @@ function Home() {
             the phone.
           </p>
           <p className="mt-2 text-fg/75">{AREA_LINE}</p>
-          <CallTextActions className="mt-8" />
+          <CallTextActions linkLocation="hero" className="mt-8" />
           <a
             href="#send-job"
             className="mt-4 text-sm font-medium text-fg/70 underline-offset-4 hover:text-primary hover:underline"
@@ -103,7 +103,7 @@ function Home() {
               text you back.
             </p>
             <div className="mt-6 hidden md:block">
-              <CallLink className="text-lg font-semibold text-primary hover:text-primary-hover">
+              <CallLink linkLocation="lead_form" className="text-lg font-semibold text-primary hover:text-primary-hover">
                 Prefer the phone? Call {SITE.phoneDisplay}
               </CallLink>
             </div>
@@ -136,7 +136,7 @@ function Home() {
           >
             Full service list
           </Link>
-          <CallLink className="text-sm font-medium text-primary hover:underline">
+          <CallLink linkLocation="other" className="text-sm font-medium text-primary hover:underline">
             Call {SITE.phoneDisplay}
           </CallLink>
           <Link
