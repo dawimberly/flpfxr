@@ -32,7 +32,7 @@ function AboutPage() {
           partner covers materials. Seniors 65+, military, first responders,
           and educators get 5% under $10,000 and 10% at $10,000 and up — one
           discount per job.{" "}
-          <Link to="/community" className="font-medium text-primary">
+          <Link to="/community" search={{ sent: false }} className="font-medium text-primary">
             Community
           </Link>
           .
@@ -52,9 +52,12 @@ function AboutPage() {
                 className="photo-frame aspect-[3/4] w-full object-cover object-top"
               />
               <h3 className="mt-4 font-display text-2xl text-fg">{person.name}</h3>
-              {person.line ? (
-                <p className="mt-1 text-sm text-muted">{person.line}</p>
-              ) : null}
+              <p className="mt-1 text-sm font-medium text-primary">
+                {person.role}
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                {person.bio}
+              </p>
             </article>
           ))}
         </div>
