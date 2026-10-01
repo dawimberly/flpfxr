@@ -74,8 +74,8 @@ export function LeadForm({
   }, [sent]);
 
   useEffect(() => {
-    if (done) trackContactFormSubmit();
-  }, [done]);
+    if (done) trackContactFormSubmit({ leadSource: source, service });
+  }, [done, source, service]);
 
   const subject = `The Flip Fixer — ${service || "job"} (${source})`;
 
@@ -163,10 +163,10 @@ export function LeadForm({
           We got your message. If you do not hear back today, call.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <CallLink className="text-lg font-semibold text-primary hover:text-primary-hover">
+          <CallLink linkLocation="lead_form" className="text-lg font-semibold text-primary hover:text-primary-hover">
             Call {SITE.phoneDisplay}
           </CallLink>
-          <TextLink className="text-lg font-semibold text-primary hover:text-primary-hover">
+          <TextLink linkLocation="lead_form" className="text-lg font-semibold text-primary hover:text-primary-hover">
             Text {SITE.phoneDisplay}
           </TextLink>
         </div>
@@ -297,7 +297,7 @@ export function LeadForm({
       {submitError ? (
         <p className="rounded-xl bg-bg px-4 py-3 text-sm text-destructive">
           {submitError}{" "}
-          <CallLink className="font-medium underline">
+          <CallLink linkLocation="lead_form" className="font-medium underline">
             Call {SITE.phoneDisplay}
           </CallLink>
         </p>
