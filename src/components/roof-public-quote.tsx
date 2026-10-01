@@ -18,6 +18,7 @@ import {
   type PublicShingleId,
 } from "@/lib/roof-public-quote";
 import { loadLeadDraft, saveLeadDraft } from "@/lib/site";
+import { trackToolUse } from "@/lib/google-ads";
 import { cn, formatUsdRange } from "@/lib/utils";
 
 const SA_CENTER = { lat: 29.4241, lng: -98.4936 };
@@ -141,6 +142,7 @@ export function RoofPublicQuote({
       );
       return;
     }
+    trackToolUse("roof_quote", "start");
     setLooking(true);
     setError(null);
     try {
@@ -164,6 +166,7 @@ export function RoofPublicQuote({
       }
       setRing(outline.ring);
       setPlanSqft(outline.planSqft);
+      trackToolUse("roof_quote", "complete");
       saveLeadDraft({
         service: "roofing",
         address: result.hit.label || query.trim(),
