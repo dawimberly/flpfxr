@@ -93,15 +93,15 @@ function ContactPage() {
         title={introTitle}
       >
         <p>{introBody}</p>
-        <CallTextActions className="mt-6 justify-center" />
+        <CallTextActions linkLocation="contact_page" className="mt-6 justify-center" />
       </PageIntro>
 
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
         <aside className="space-y-6 md:col-span-2">
-          <CallLink className="block font-display text-4xl text-primary hover:text-primary-hover md:text-5xl">
+          <CallLink linkLocation="contact_page" className="block font-display text-4xl text-primary hover:text-primary-hover md:text-5xl">
             {SITE.phoneDisplay}
           </CallLink>
-          <TextLink className="block text-xl font-semibold text-primary hover:text-primary-hover">
+          <TextLink linkLocation="contact_page" className="block text-xl font-semibold text-primary hover:text-primary-hover">
             Text {SITE.phoneDisplay}
           </TextLink>
           <a
