@@ -634,79 +634,206 @@ export const GALLERY: Array<{
     src: "/images/gallery-22-a.webp",
     alt: "Fire rebuild by The Flip Fixer — insurance claim tear-out",
     title: "Fire rebuild",
-    caption: "Insurance claim — full rebuild.",
+    caption: "Insurance claim — full rebuild. Tear-out after the fire.",
     category: "Custom",
   },
   {
     src: "/images/gallery-22-b.webp",
-    alt: "Open exposed framing during fire rebuild",
+    alt: "Open exposed framing during fire rebuild by The Flip Fixer",
     title: "Fire rebuild",
-    caption: "Insurance claim — full rebuild.",
+    caption: "Insurance claim — full rebuild. Open framing after tear-out.",
     category: "Custom",
   },
   {
     src: "/images/gallery-22-c.webp",
-    alt: "Fire rebuild in progress",
+    alt: "Structural framing on fire rebuild by The Flip Fixer",
     title: "Fire rebuild",
-    caption: "Insurance claim — full rebuild.",
+    caption: "Insurance claim — full rebuild. Framing goes back up.",
     category: "Custom",
   },
   {
     src: "/images/gallery-22-d.webp",
-    alt: "Roof work by The Flip Fixer",
-    title: "Roof",
-    caption: "Roof",
-    category: "Outdoor",
-  },
-  {
-    src: "/images/gallery-22-e.webp",
-    alt: "Roof work by The Flip Fixer",
-    title: "Roof",
-    caption: "Roof",
-    category: "Outdoor",
-  },
-  {
-    src: "/images/gallery-22-f.webp",
-    alt: "Insurance rebuild by The Flip Fixer",
-    title: "Insurance rebuild",
-    caption: "Insurance rebuild",
+    alt: "New roof during fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. New roof going on.",
     category: "Custom",
   },
   {
-    src: "/images/gallery-24-a.webp",
-    alt: "White island kitchen by The Flip Fixer",
-    title: "White island kitchen",
-    caption: "White island kitchen",
-    category: "Kitchen",
+    src: "/images/gallery-22-h.webp",
+    alt: "Flooring install during fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. New floors going in.",
+    category: "Custom",
   },
   {
-    src: "/images/gallery-24-b.webp",
-    alt: "White island kitchen by The Flip Fixer",
-    title: "White island kitchen",
-    caption: "White island kitchen",
-    category: "Kitchen",
+    src: "/images/gallery-22-g.webp",
+    alt: "Finished kitchen after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished kitchen.",
+    category: "Custom",
   },
   {
-    src: "/images/gallery-24-c.webp",
-    alt: "White island kitchen by The Flip Fixer",
-    title: "White island kitchen",
-    caption: "White island kitchen",
-    category: "Kitchen",
+    src: "/images/gallery-22-e.webp",
+    alt: "Finished bath after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished bath.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-i.webp",
+    alt: "Finished vanity after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished vanity.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-j.webp",
+    alt: "Finished bath hall after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished bath hall.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-f.webp",
+    alt: "Finished exterior after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Home finished.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-22-k.webp",
+    alt: "Finished front exterior after fire rebuild by The Flip Fixer",
+    title: "Fire rebuild",
+    caption: "Insurance claim — full rebuild. Finished front elevation.",
+    category: "Custom",
+  },
+  {
+    src: "/images/patio1.webp",
+    alt: "Covered patio with string lights",
+    title: "Patio",
+    caption: "Patio",
+    category: "Outdoor",
+  },
+  {
+    src: "/images/patio2.webp",
+    alt: "Pergola patio with dining table",
+    title: "Pergola",
+    caption: "Pergola",
+    category: "Outdoor",
+  },
+  {
+    src: "/images/staircase.webp",
+    alt: "Staircase with wood treads and black rail by The Flip Fixer",
+    title: "Stairs",
+    caption: "Stairs — wood treads and rail, finished clean.",
+    category: "Interior",
+  },
+  {
+    src: "/images/bar1.webp",
+    alt: "Custom home bar",
+    title: "Custom bar",
+    caption: "Custom bar",
+    category: "Custom",
+  },
+  {
+    src: "/images/flooring.webp",
+    alt: "Herringbone wood-look flooring by The Flip Fixer",
+    title: "Herringbone floors",
+    caption: "Herringbone floors in a finished kitchen.",
+    category: "Interior",
+  },
+  {
+    src: "/images/punchout.webp",
+    alt: "Make-ready fireplace tile install by The Flip Fixer",
+    title: "Make-ready",
+    caption: "Make-ready — tile, built-ins, punch list work.",
+    category: "Interior",
   },
 ];
+
+export function galleryJobId(src: string): string {
+  const numbered = src.match(/gallery-(\d+)/);
+  if (numbered) {
+    return numbered[1];
+  }
+  if (/kitchenbefore|kitchenafter/.test(src)) return "kitchen-remodel";
+  if (/patio/.test(src)) return src.includes("patio2") ? "patio-2" : "patio-1";
+  return src.replace(/^\/images\//, "").replace(/\.[a-z]+$/i, "");
+}
+
+export function galleryService(
+  item: (typeof GALLERY)[number],
+): ServiceId {
+  if (item.src.includes("gallery-22")) return "insurance-claims";
+  // Flooring showcase
+  if (item.title === "Herringbone floors" || item.src.includes("flooring")) {
+    return "flooring";
+  }
+  if (item.src.includes("punchout")) return "make-ready";
+  if (
+    item.src.includes("staircase") ||
+    item.src.includes("bar1") ||
+    item.src.includes("repair") ||
+    item.src.includes("handyman")
+  ) {
+    return "handyman";
+  }
+  if (item.src.includes("patio")) return "outdoor";
+  if (item.category === "Kitchen" || item.category === "Bath") {
+    return "kitchen-bath";
+  }
+  if (item.category === "Outdoor") return "outdoor";
+  return "handyman";
+}
+
+export type GalleryJob = {
+  id: string;
+  title: string;
+  service: ServiceId;
+  photos: Array<(typeof GALLERY)[number]>;
+};
+
+export function galleryJobs(service?: ServiceId): GalleryJob[] {
+  const items = service
+    ? GALLERY.filter((item) => galleryService(item) === service)
+    : GALLERY;
+  const jobs: GalleryJob[] = [];
+  const indexById = new Map<string, number>();
+  for (const item of items) {
+    const id = galleryJobId(item.src);
+    const existing = indexById.get(id);
+    if (existing === undefined) {
+      indexById.set(id, jobs.length);
+      jobs.push({
+        id,
+        title: item.title,
+        service: galleryService(item),
+        photos: [item],
+      });
+    } else {
+      jobs[existing].photos.push(item);
+    }
+  }
+  return jobs;
+}
+
+export function serviceHasWork(id: ServiceId): boolean {
+  return GALLERY.some((item) => galleryService(item) === id);
+}
+
+export function isBeforeAfterJob(job: GalleryJob): boolean {
+  return job.photos.some((photo) => photo.caption === "Before");
+}
 
 export const BEFORE_AFTER = [
   {
     title: "Kitchen remodel",
     before: "/images/gallery-23-a.webp",
-    after: "/images/gallery-23-d.webp",
-  },
-  {
-    title: "Kitchen remodel",
-    before: "/images/gallery-23-a.webp",
     after: "/images/gallery-23-e.webp",
+    beforeAlt: "Kitchen before the remodel",
+    afterAlt: "Kitchen after the remodel",
   },
-];
+] as const;
 
 export const GALLERY_FILTERS: Array<{
   label: string;
@@ -714,38 +841,39 @@ export const GALLERY_FILTERS: Array<{
   view?: "before-after";
 }> = [
   { label: "All" },
-  { label: "Kitchen", id: "kitchen" },
-  { label: "Bath", id: "bathroom" },
-  { label: "Before / After", view: "before-after" },
+  { view: "before-after", label: "Before & after" },
+  { id: "kitchen-bath", label: "Kitchen & bath" },
+  { id: "flooring", label: "Flooring" },
+  { id: "outdoor", label: "Outdoor" },
+  { id: "insurance-claims", label: "Insurance claims" },
+  { id: "handyman", label: "Repairs" },
+  { id: "make-ready", label: "Make-ready" },
 ];
 
 export const FAQS = [
   {
-    q: "How long does a kitchen take?",
-    a: "Most kitchens are two to four weeks once materials are on site. We give you a date when we price the job.",
-  },
-  {
-    q: "Do you handle permits?",
-    a: "Yes. When the scope needs a permit, we pull it and schedule the inspections.",
-  },
-  {
-    q: "Can I live in the house during the work?",
-    a: "Usually yes. We work room by room, cover floors, and clean up every day so you can still use the rest of the house.",
+    q: "What kind of jobs do you take?",
+    a: "Kitchen and bath remodels, flooring, paint, handyman work, outdoor, make-ready, and insurance claim rebuilds. Alamo Heights, The Dominion, Kerrville, Boerne, San Antonio, and nearby.",
   },
   {
     q: "How do I get a price?",
-    a: "Call or text. We’ll walk the job, tell you what’s worth doing, and give you one number.",
+    a: "Call (210) 436-9117 or send the form on the homepage. Photos help. We'll walk the job and give you a number.",
   },
-];
+  {
+    q: "Do you design the work?",
+    a: "Yes. Design is handled in-house.",
+  },
+  {
+    q: "Can we stay in the house while you work?",
+    a: "Yes. We cover floors and work room by room.",
+  },
+  {
+    q: "Do you offer a senior or military discount?",
+    a: `Yes. ${JOB_DISCOUNT} Ask when you call. Bring ID or a work email if you have it.`,
+  },
+] as const;
 
 export type EstimateScope = "small" | "medium" | "large";
-export type RoomScope = EstimateScope | "none";
-
-export const SCOPE_LABELS: Record<EstimateScope, string> = {
-  small: "Small",
-  medium: "Medium",
-  large: "Large",
-};
 
 export const ESTIMATE_TYPES: Array<{
   id: ServiceId;
@@ -754,50 +882,205 @@ export const ESTIMATE_TYPES: Array<{
   includes: Record<EstimateScope, string>;
 }> = [
   {
-    id: "kitchen-bath",
+    id: "kitchen",
     label: "Kitchen",
     ranges: {
-      small: [12000, 22000],
-      medium: [22000, 38000],
-      large: [38000, 65000],
+      small: [4000, 9000],
+      medium: [12000, 25000],
+      large: [25000, 45000],
     },
     includes: {
-      small: "Cabinets, counters, sink, faucet, basic tile backsplash.",
-      medium: "Cabinets, counters, appliances, tile, lighting, hardware.",
-      large: "Full gut, layout change, cabinets, counters, appliances, tile, lighting.",
+      small: "Refresh: counters, fixtures, paint",
+      medium: "Stock cabinets, counters, floors",
+      large: "Full kitchen — cabinets, quartz, tile or LVP",
     },
   },
   {
     id: "bathroom",
-    label: "Bath",
+    label: "Bathroom",
     ranges: {
-      small: [6000, 11000],
-      medium: [11000, 18000],
-      large: [18000, 32000],
+      small: [3000, 7000],
+      medium: [8000, 16000],
+      large: [15000, 28000],
     },
     includes: {
-      small: "Vanity, toilet, fixtures, paint, basic tile.",
-      medium: "Vanity, tub or shower, tile, fixtures, paint.",
-      large: "Full gut, layout change, tub/shower, tile, vanity, fixtures.",
+      small: "Vanity, fixtures, paint",
+      medium: "Full bath remodel",
+      large: "Primary bath with tile shower",
+    },
+  },
+  {
+    id: "flooring",
+    label: "Floors",
+    ranges: {
+      small: [3000, 7000],
+      medium: [8000, 15000],
+      large: [18000, 35000],
+    },
+    includes: {
+      small: "One or two rooms (LVP, removal, cleanup)",
+      medium: "Main living areas",
+      large: "Whole house — LVP to engineered wood",
+    },
+  },
+  {
+    id: "paint",
+    label: "Paint",
+    ranges: {
+      small: [1500, 4000],
+      medium: [5000, 10000],
+      large: [10000, 18000],
+    },
+    includes: {
+      small: "A few rooms, patch and two coats",
+      medium: "Whole interior, or a modest exterior",
+      large: "Large interior, or inside and out with serious prep",
+    },
+  },
+  {
+    id: "make-ready",
+    label: "Make-ready",
+    ranges: {
+      small: [2000, 5000],
+      medium: [8000, 16000],
+      large: [18000, 30000],
+    },
+    includes: {
+      small: "Touch-up, fixtures, small repairs",
+      medium: "Paint, floors, fixtures across the unit",
+      large: "Turnkey unit — paint, floors, fixtures, punch",
+    },
+  },
+  {
+    id: "outdoor",
+    label: "Outdoor",
+    ranges: {
+      small: [2000, 6000],
+      medium: [6000, 15000],
+      large: [15000, 30000],
+    },
+    includes: {
+      small: "Gutters, trim, or a section of repair/stain",
+      medium: "Siding/soffit work, patio cover, or deck section",
+      large: "Full outdoor setup — pergola, lighting, woodwork",
+    },
+  },
+  {
+    id: "handyman",
+    label: "Repairs",
+    ranges: {
+      small: [250, 750],
+      medium: [750, 2000],
+      large: [2000, 5500],
+    },
+    includes: {
+      small: "A couple of small fixes",
+      medium: "A half-day to a full day",
+      large: "The list you've been putting off",
     },
   },
 ];
 
-export type LeadDraft = Record<string, string | undefined>;
+export const SCOPE_LABELS: Record<EstimateScope, string> = {
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
 
-export const LEAD_STORAGE_KEY = "ff-lead-draft";
+export type RoomKind = "kitchen" | "bathroom";
+export type RoomScope = EstimateScope | "none";
+
+export const ROOM_SCOPE_LABELS: Record<RoomScope, string> = {
+  none: "Skip",
+  small: "Small",
+  medium: "Medium",
+  large: "Large",
+};
+
+export const ROOM_BALLPARKS: Record<
+  RoomKind,
+  {
+    label: string;
+    ranges: Record<EstimateScope, [number, number]>;
+    includes: Record<EstimateScope, string>;
+  }
+> = {
+  kitchen: {
+    label: "Kitchen",
+    ranges: {
+      small: [4000, 9000],
+      medium: [12000, 25000],
+      large: [25000, 45000],
+    },
+    includes: {
+      small: "Refresh: counters, fixtures, paint",
+      medium: "Stock cabinets, counters, floors",
+      large: "Full kitchen — cabinets, quartz, tile or LVP",
+    },
+  },
+  bathroom: {
+    label: "Bathroom",
+    ranges: {
+      small: [3000, 7000],
+      medium: [8000, 16000],
+      large: [15000, 28000],
+    },
+    includes: {
+      small: "Vanity, fixtures, paint",
+      medium: "Full bath remodel",
+      large: "Primary bath with tile shower",
+    },
+  },
+};
+
+export function roomRange(kind: RoomKind, scope: RoomScope): [number, number] | null {
+  if (scope === "none") return null;
+  return ROOM_BALLPARKS[kind].ranges[scope];
+}
+
+export function addRanges(
+  a: [number, number] | null,
+  b: [number, number] | null,
+): [number, number] | null {
+  if (!a && !b) return null;
+  if (!a) return b;
+  if (!b) return a;
+  return [a[0] + b[0], a[1] + b[1]];
+}
+
+export function kitchenBathLine(kitchen: RoomScope, bathroom: RoomScope): string {
+  const bits: string[] = [];
+  if (kitchen !== "none") bits.push(`Kitchen ${SCOPE_LABELS[kitchen]}`);
+  if (bathroom !== "none") bits.push(`Bathroom ${SCOPE_LABELS[bathroom]}`);
+  return bits.join(". ") || "";
+}
+
+export const LEAD_STORAGE_KEY = "flipfixer-lead-draft";
+
+export type LeadDraft = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  service?: ServiceId | "";
+  scope?: EstimateScope | "";
+  kitchenScope?: RoomScope | "";
+  bathroomScope?: RoomScope | "";
+  affiliation?: string;
+  address?: string;
+  pitch?: string;
+  pitchId?: string;
+  shingleId?: string;
+  roofSize?: string;
+  message?: string;
+};
 
 export function saveLeadDraft(draft: LeadDraft) {
   if (typeof window === "undefined") return;
-  try {
-    const prev = loadLeadDraft();
-    sessionStorage.setItem(
-      LEAD_STORAGE_KEY,
-      JSON.stringify({ ...prev, ...draft }),
-    );
-  } catch {
-    // ignore
-  }
+  const prev = loadLeadDraft();
+  sessionStorage.setItem(
+    LEAD_STORAGE_KEY,
+    JSON.stringify({ ...prev, ...draft }),
+  );
 }
 
 export function loadLeadDraft(): LeadDraft {
@@ -809,3 +1092,4 @@ export function loadLeadDraft(): LeadDraft {
     return {};
   }
 }
+
