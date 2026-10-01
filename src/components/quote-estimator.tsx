@@ -11,6 +11,7 @@ import {
   type RoomScope,
   type ServiceId,
 } from "@/lib/site";
+import { trackToolUse } from "@/lib/google-ads";
 import { cn, formatUsdRange } from "@/lib/utils";
 
 const SCOPES: EstimateScope[] = ["small", "medium", "large"];
@@ -96,11 +97,13 @@ export function QuoteEstimator({
   }, [serviceId, scope, summary, includes, range?.[0], range?.[1]]);
 
   const pickService = (id: ServiceId) => {
+    trackToolUse("quote_estimator", "start");
     setServiceId(id);
     onServiceChange?.(id);
   };
 
   const goToContact = () => {
+    trackToolUse("quote_estimator", "complete");
     saveLeadDraft({
       service: serviceId || undefined,
       scope,
@@ -158,7 +161,10 @@ export function QuoteEstimator({
           <button
             key={s}
             type="button"
-            onClick={() => setScope(s)}
+            onClick={() => {
+              trackToolUse("quote_estimator", "start");
+              setScope(s);
+            }}
             className={cn(
               "h-11 rounded-lg text-sm font-medium transition-[background-color,color] duration-150",
               scope === s
