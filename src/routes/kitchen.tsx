@@ -1,30 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CallTextActions } from "@/components/call-text-actions";
 import { LeadForm } from "@/components/lead-form";
+import { PageIntro } from "@/components/site-shell";
 import { AREA_LINE, SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/kitchen")({
-  component: KitchenLanding,
+  component: KitchenPage,
   validateSearch: (search: Record<string, unknown>) => {
     const sent = search.sent === "1" || search.sent === true;
     return sent ? { sent: true as const } : {};
   },
   head: () => ({
     meta: [
-      { title: `Kitchen remodel | ${SITE.legalName}` },
+      { title: "Kitchen Remodels | The Flip Fixer" },
       {
         name: "description",
-        content: `Kitchen remodels in San Antonio. Call or text ${SITE.phoneDisplay}. Design in-house. ${AREA_LINE}`,
+        content:
+          "Kitchen remodels in San Antonio. Cabinets, counters, floors. Call, text, or send the job.",
       },
     ],
   }),
 });
 
-function KitchenLanding() {
+function KitchenPage() {
   const { sent } = Route.useSearch();
   return (
     <div>
-      <header className="mx-auto max-w-6xl px-4 pb-8 pt-14 md:pt-16">
+      <header className="mx-auto max-w-6xl px-4 pb-10 pt-14 md:pt-20">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
           Kitchens
         </p>
@@ -36,21 +38,19 @@ function KitchenLanding() {
           job. We walk the room and give you a number.
         </p>
         <p className="mt-2 text-muted">{AREA_LINE}</p>
-        <CallTextActions className="mt-6" />
+        <CallTextActions linkLocation="hero" className="mt-6" />
       </header>
 
       <section
         id="send-job"
         className="mx-auto max-w-6xl scroll-mt-28 px-4 pb-16"
       >
-        <div className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-border)] md:max-w-xl md:p-8">
+        <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-7">
           <LeadForm
-            sent={sent}
+            sent={Boolean(sent)}
             nextPath="/kitchen"
             service="kitchen"
-            source="kitchen-ad"
-            compact
-            messagePlaceholder="Neighborhood, the room, when you want to start."
+            source="kitchen-ads"
           />
         </div>
       </section>
