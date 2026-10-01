@@ -4,7 +4,7 @@ import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { Photo } from "@/components/photo";
-import { BeforeAfterBand } from "@/components/before-after-band";
+import { BestWorkBand } from "@/components/best-work-band";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -148,7 +148,7 @@ function Home() {
         </div>
       </section>
 
-      <BeforeAfterBand />
+      <BestWorkBand />
 
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
         <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
