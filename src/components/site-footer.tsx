@@ -38,7 +38,7 @@ export function SiteFooter() {
             Contact
           </p>
           <div className="mt-3 space-y-3 text-sm text-muted">
-            <CallLink className="flex items-center gap-2 hover:text-fg">
+            <CallLink linkLocation="footer" className="flex items-center gap-2 hover:text-fg">
               <Phone className="size-4 text-primary" />
               {SITE.phoneDisplay}
             </CallLink>
