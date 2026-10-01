@@ -14,13 +14,17 @@ export const SITE = {
 export const CREW = [
   {
     name: "Jon Styles",
+    role: "Owner",
     src: "/images/crew-jon.webp",
-    line: "30+ years on the tools. Design in-house.",
+    line: "30+ years of carpentry and general contracting. Jon designs every kitchen and bath in-house and runs the job from walkthrough to final walkthrough.",
+    bio: "Jon has spent 30+ years on job sites, framing, finishing, and running crews as a general contractor. He designs the work himself, so the person who draws your kitchen is the person who builds it. There's no handoff to lose details in. Jon walks every house, sets the plan, and is on site until you're handed the keys back.",
   },
   {
     name: "Dan Wimberly",
+    role: "Estimating & Project Coordination",
     src: "/images/crew-dan.webp",
-    line: "Estimates and project coordination. Kitchen, bath, and insurance scopes — 10+ years Xactimate.",
+    line: "10+ years writing Xactimate estimates, from small repairs to 600-line-item rebuilds. Dan builds the scope, sets the price, and keeps the job on that number.",
+    bio: "Dan has written thousands of estimates over 10+ years, in Xactimate, the same software insurance carriers use. He spent eight years managing crews, sales, and quality control on exterior projects, so he knows what a complete scope looks like. On insurance rebuilds, that means catching what the carrier's estimate left out, and he has regularly secured 20-50% increases in approved scope.",
   },
 ] as const;
 
