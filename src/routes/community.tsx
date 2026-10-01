@@ -112,7 +112,7 @@ function CommunityPage() {
             </Link>
             .
           </p>
-          <CallLink className="block font-display text-3xl text-primary hover:text-primary-hover">
+          <CallLink linkLocation="community" className="block font-display text-3xl text-primary hover:text-primary-hover">
             {SITE.phoneDisplay}
           </CallLink>
           <a
@@ -130,7 +130,7 @@ function CommunityPage() {
               <p className="mt-2 max-w-sm text-muted">
                 We have the note and will get back to you.
               </p>
-              <CallLink className="mt-6 text-primary hover:text-primary-hover">
+              <CallLink linkLocation="community" className="mt-6 text-primary hover:text-primary-hover">
                 Call {SITE.phoneDisplay}
               </CallLink>
             </div>
