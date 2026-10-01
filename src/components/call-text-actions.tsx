@@ -2,15 +2,18 @@ import { MessageSquare, Phone } from "lucide-react";
 import { CallLink } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
+import type { LinkLocation } from "@/lib/google-ads";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export function CallTextActions({
   className,
   stacked = false,
+  linkLocation = "other",
 }: {
   className?: string;
   stacked?: boolean;
+  linkLocation?: LinkLocation;
 }) {
   return (
     <div
@@ -21,13 +24,13 @@ export function CallTextActions({
       )}
     >
       <Button asChild size="lg">
-        <CallLink>
+        <CallLink linkLocation={linkLocation}>
           <Phone className="size-4" />
           Call {SITE.phoneDisplay}
         </CallLink>
       </Button>
       <Button asChild size="lg" variant="outline">
-        <TextLink>
+        <TextLink linkLocation={linkLocation}>
           <MessageSquare className="size-4" />
           Text {SITE.phoneDisplay}
         </TextLink>
