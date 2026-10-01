@@ -68,18 +68,18 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <Button asChild className="sm:hidden" size="icon" aria-label={`Call ${SITE.phoneDisplay}`}>
-            <CallLink>
+            <CallLink linkLocation="header">
               <Phone className="size-5" />
             </CallLink>
           </Button>
           <Button asChild className="hidden sm:inline-flex">
-            <CallLink>
+            <CallLink linkLocation="header">
               <Phone className="size-4" />
               {SITE.phoneDisplay}
             </CallLink>
           </Button>
           <Button asChild variant="outline" className="hidden sm:inline-flex">
-            <TextLink>
+            <TextLink linkLocation="header">
               <MessageSquare className="size-4" />
               Text
             </TextLink>
@@ -114,13 +114,13 @@ export function SiteHeader() {
               </nav>
               <div className="mt-auto flex flex-col gap-3 pt-8">
                 <Button asChild size="lg">
-                  <CallLink>
+                  <CallLink linkLocation="header">
                     <Phone className="size-4" />
                     Call {SITE.phoneDisplay}
                   </CallLink>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  <TextLink>
+                  <TextLink linkLocation="header">
                     <MessageSquare className="size-4" />
                     Text {SITE.phoneDisplay}
                   </TextLink>
