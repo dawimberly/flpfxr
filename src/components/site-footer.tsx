@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone } from "lucide-react";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { NAV, SERVICE_AREAS, SITE } from "@/lib/site";
 
 export function SiteFooter() {
@@ -40,7 +40,7 @@ export function SiteFooter() {
           <div className="mt-3 space-y-3 text-sm text-muted">
             <CallLink className="flex items-center gap-2 hover:text-fg">
               <Phone className="size-4 text-primary" />
-              {SITE.phoneDisplay}
+              <CallNumber />
             </CallLink>
             <a
               href={`mailto:${SITE.email}`}

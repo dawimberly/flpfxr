@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, MessageSquare, Phone } from "lucide-react";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,7 +75,7 @@ export function SiteHeader() {
           <Button asChild className="hidden sm:inline-flex">
             <CallLink>
               <Phone className="size-4" />
-              {SITE.phoneDisplay}
+              <CallNumber />
             </CallLink>
           </Button>
           <Button asChild variant="outline" className="hidden sm:inline-flex">
@@ -116,7 +116,7 @@ export function SiteHeader() {
                 <Button asChild size="lg">
                   <CallLink>
                     <Phone className="size-4" />
-                    Call {SITE.phoneDisplay}
+                    Call <CallNumber />
                   </CallLink>
                 </Button>
                 <Button asChild variant="outline" size="lg">

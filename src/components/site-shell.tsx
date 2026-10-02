@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -72,7 +72,7 @@ export function CtaBand({
         <p className="mt-4 text-lg text-cream-muted">{body}</p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <CallLink className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
-            Call {SITE.phoneDisplay}
+            Call <CallNumber />
           </CallLink>
           <TextLink className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-fg/40 px-6 text-sm font-semibold text-cream-fg hover:bg-cream-fg/10">
             Text {SITE.phoneDisplay}

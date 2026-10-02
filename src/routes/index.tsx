@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PencilRuler, Phone, Wrench } from "lucide-react";
 import { CallTextActions } from "@/components/call-text-actions";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { Photo } from "@/components/photo";
 import { BestWorkBand } from "@/components/best-work-band";
@@ -105,7 +105,7 @@ function Home() {
             </p>
             <div className="mt-6 hidden md:block">
               <CallLink className="text-lg font-semibold text-primary hover:text-primary-hover">
-                Prefer the phone? Call {SITE.phoneDisplay}
+                Prefer the phone? Call <CallNumber />
               </CallLink>
             </div>
           </div>
@@ -138,7 +138,7 @@ function Home() {
             Full service list
           </Link>
           <CallLink className="text-sm font-medium text-primary hover:underline">
-            Call {SITE.phoneDisplay}
+            Call <CallNumber />
           </CallLink>
           <Link
             to="/gallery"

@@ -1,5 +1,5 @@
 import { MessageSquare, Phone } from "lucide-react";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
 import { SITE } from "@/lib/site";
@@ -23,7 +23,7 @@ export function CallTextActions({
       <Button asChild size="lg">
         <CallLink>
           <Phone className="size-4" />
-          Call {SITE.phoneDisplay}
+          Call <CallNumber />
         </CallLink>
       </Button>
       <Button asChild size="lg" variant="outline">

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { PageIntro } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,7 +113,7 @@ function CommunityPage() {
             .
           </p>
           <CallLink className="block font-display text-3xl text-primary hover:text-primary-hover">
-            {SITE.phoneDisplay}
+            <CallNumber />
           </CallLink>
           <a
             href={`mailto:${SITE.email}?subject=${encodeURIComponent(COMMUNITY.subject)}`}
@@ -131,7 +131,7 @@ function CommunityPage() {
                 We have the note and will get back to you.
               </p>
               <CallLink className="mt-6 text-primary hover:text-primary-hover">
-                Call {SITE.phoneDisplay}
+                Call <CallNumber />
               </CallLink>
             </div>
           ) : (

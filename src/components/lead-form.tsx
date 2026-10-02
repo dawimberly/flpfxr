@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,7 +164,7 @@ export function LeadForm({
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <CallLink className="text-lg font-semibold text-primary hover:text-primary-hover">
-            Call {SITE.phoneDisplay}
+            Call <CallNumber />
           </CallLink>
           <TextLink className="text-lg font-semibold text-primary hover:text-primary-hover">
             Text {SITE.phoneDisplay}
@@ -298,7 +298,7 @@ export function LeadForm({
         <p className="rounded-xl bg-bg px-4 py-3 text-sm text-destructive">
           {submitError}{" "}
           <CallLink className="font-medium underline">
-            Call {SITE.phoneDisplay}
+            Call <CallNumber />
           </CallLink>
         </p>
       ) : null}

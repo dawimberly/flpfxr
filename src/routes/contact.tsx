@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallTextActions } from "@/components/call-text-actions";
-import { CallLink } from "@/components/call-link";
+import { CallLink, CallNumber } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
@@ -99,7 +99,7 @@ function ContactPage() {
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
         <aside className="space-y-6 md:col-span-2">
           <CallLink className="block font-display text-4xl text-primary hover:text-primary-hover md:text-5xl">
-            {SITE.phoneDisplay}
+            <CallNumber />
           </CallLink>
           <TextLink className="block text-xl font-semibold text-primary hover:text-primary-hover">
             Text {SITE.phoneDisplay}

@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import { setForwardingNumber } from "@/lib/call-number";
 import {
   GA4_MEASUREMENT_ID,
   GOOGLE_ADS_ID,
-  GOOGLE_ADS_PHONE_SEND_TO,
+  GOOGLE_ADS_WEBSITE_CALL_SEND_TO,
   gtag,
   pagePathFromLocation,
   trackPageView,
 } from "@/lib/google-ads";
 import { captureAdClickIds } from "@/lib/formsubmit";
+import { SITE } from "@/lib/site";
 
 const SCRIPT_ID = "google-gtag";
 
@@ -29,8 +31,9 @@ export function GoogleTag() {
     gtag("js", new Date());
     gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false });
     gtag("config", GOOGLE_ADS_ID, { send_page_view: false });
-    gtag("config", GOOGLE_ADS_PHONE_SEND_TO, {
-      phone_conversion_number: "(210) 436-9117",
+    gtag("config", GOOGLE_ADS_WEBSITE_CALL_SEND_TO, {
+      phone_conversion_number: SITE.phoneDisplay,
+      phone_conversion_callback: setForwardingNumber,
     });
 
     if (!document.getElementById(SCRIPT_ID)) {

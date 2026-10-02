@@ -10,6 +10,10 @@ export const GOOGLE_ADS_LEAD_SEND_TO =
 export const GOOGLE_ADS_PHONE_SEND_TO =
   "AW-18251288464/8MtLCJ2R8-8cEJCf8v5D";
 
+/** "Calls from website (60s+)" — Google forwarding number, counts answered calls. */
+export const GOOGLE_ADS_WEBSITE_CALL_SEND_TO =
+  "AW-18251288464/9UoFCLGyuY4dEJCf8v5D";
+
 declare global {
   interface Window {
     dataLayer: IArguments[];
