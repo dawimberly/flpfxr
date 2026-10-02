@@ -6,6 +6,15 @@ import { SiteShell } from "@/components/site-shell";
 import { SITE } from "@/lib/site";
 import appCss from "../styles.css?url";
 
+const GTM_ID = "GTM-NXPF8TWF";
+
+/** Official GTM container snippet — high in <head>. */
+const gtmHeadScript = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${GTM_ID}');`;
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -36,6 +45,11 @@ export const Route = createRootRoute({
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap",
       },
     ],
+    scripts: [
+      {
+        children: gtmHeadScript,
+      },
+    ],
   }),
   component: () => (
     <html lang="en" className="antialiased" suppressHydrationWarning>
@@ -43,6 +57,16 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body className="bg-bg text-fg">
+        {/* Google Tag Manager (noscript) — immediately after opening <body> */}
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+            title="Google Tag Manager"
+          />
+        </noscript>
         <GoogleTag />
         <PreviewHostBridge />
         <AuthProvider>
