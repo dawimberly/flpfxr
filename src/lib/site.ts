@@ -16,15 +16,15 @@ export const CREW = [
     name: "Jon Styles",
     role: "Owner",
     src: "/images/crew-jon.webp",
-    line: "30 years on the tools. Jon designs the work and builds it. He is on every job, every day.",
-    bio: "Jon has 30 years on job sites, framing, finishing, and running the work as a general contractor. He designs it, and he builds it. He is on every job, every day, and he does the vast majority of the work. Jon walks the house, sets the plan, and stays until you get the keys back.",
+    line: "30 years on the tools. He designs the remodel and builds it.",
+    bio: "Jon has 30 years framing, finishing, and running jobs as a general contractor. He designs the remodel, then builds it. He walks the house and lays out the plan.",
   },
   {
     name: "Dan Wimberly",
     role: "Estimating & Project Coordination",
     src: "/images/crew-dan-v2.webp",
-    line: "15 years as a contractor. Dan builds the scope, sets the price, and does the work. On every job, every day.",
-    bio: "Dan has 15 years as a contractor. He is on every job, every day, and he does the vast majority of the work. He builds the scope, sets the price, and keeps the job on that number. On insurance rebuilds he catches what the carrier left out, and he has regularly secured 20-50% increases in approved scope.",
+    line: "15 years as a contractor. He writes the scope, prices the job, and works it.",
+    bio: "Dan has 15 years as a contractor. He writes the scope, sets the price, and works the job with Jon. On insurance rebuilds he catches what the carrier left out, and he has regularly secured 20-50% increases in approved scope.",
   },
 ] as const;
 
