@@ -22,7 +22,7 @@ export const CREW = [
   {
     name: "Dan Wimberly",
     role: "Estimating & Project Coordination",
-    src: "/images/crew-dan.webp",
+    src: "/images/crew-dan-v2.webp",
     line: "10+ years writing Xactimate estimates, from small repairs to 600-line-item rebuilds. Dan builds the scope, sets the price, and keeps the job on that number.",
     bio: "Dan has written thousands of estimates over 10+ years, in Xactimate, the same software insurance carriers use. He spent eight years managing crews, sales, and quality control on exterior projects, so he knows what a complete scope looks like. On insurance rebuilds, that means catching what the carrier's estimate left out, and he has regularly secured 20-50% increases in approved scope.",
   },
