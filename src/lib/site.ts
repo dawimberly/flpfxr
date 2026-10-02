@@ -22,7 +22,7 @@ export const CREW = [
   {
     name: "Dan Wimberly",
     role: "Estimating & Project Coordination",
-    src: "/images/crew-dan-v2.webp",
+    src: "/images/crew-dan-v3.webp",
     line: "15 years as a contractor. He writes the scope, prices the job, and works it.",
     bio: "Dan has 15 years as a contractor. He writes the scope, sets the price, and works the job with Jon. On insurance rebuilds he catches what the carrier left out, and he has regularly secured 20-50% increases in approved scope.",
   },
