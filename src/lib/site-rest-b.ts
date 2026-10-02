@@ -4,6 +4,21 @@ export function galleryJobId(src: string): string {
   return src.replace(/^\/images\//, "").replace(/\.webp$/, "");
 }
 
+export function galleryService(item: { category: string }): string | null {
+  const map: Record<string, string> = {
+    Kitchen: "kitchen-bath",
+    Bath: "kitchen-bath",
+    Outdoor: "outdoor",
+    Interior: "paint",
+    Custom: "consulting",
+  };
+  return map[item.category] ?? null;
+}
+
+export function serviceHasWork(id: string): boolean {
+  return true;
+}
+
 export const FAQS = [
   {
     q: "What kind of jobs do you take?",
@@ -26,3 +41,35 @@ export const FAQS = [
     a: `Yes. Seniors 65+, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack. Ask when you call. Bring ID or a work email if you have it.`,
   },
 ] as const;
+
+export const LEAD_STORAGE_KEY = "flipfixer-lead-draft";
+
+export type LeadDraft = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  service?: string;
+  scope?: string;
+  kitchenScope?: string;
+  bathroomScope?: string;
+  message?: string;
+};
+
+export function saveLeadDraft(draft: LeadDraft) {
+  if (typeof window === "undefined") return;
+  const prev = loadLeadDraft();
+  sessionStorage.setItem(
+    LEAD_STORAGE_KEY,
+    JSON.stringify({ ...prev, ...draft }),
+  );
+}
+
+export function loadLeadDraft(): LeadDraft {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = sessionStorage.getItem(LEAD_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as LeadDraft) : {};
+  } catch {
+    return {};
+  }
+}
