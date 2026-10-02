@@ -311,3 +311,6 @@ export const TESTIMONIALS = [
     place: "San Antonio, TX",
   },
 ] as const;
+
+export * from "./site-rest-a";
+export * from "./site-rest-b";
