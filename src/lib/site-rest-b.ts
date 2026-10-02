@@ -1,5 +1,4 @@
 import { GALLERY } from "./site-rest-a";
-import type { ServiceId } from "./site";
 
 export function galleryJobId(src: string): string {
   const numbered = src.match(/gallery-(\d+)/);
@@ -38,7 +37,7 @@ export type GalleryJob = {
 };
 
 /** Group GALLERY photos into jobs by gallery-NN prefix (or full stem). */
-export function galleryJobs(service?: ServiceId): GalleryJob[] {
+export function galleryJobs(service?: string): GalleryJob[] {
   const byId = new Map<string, GalleryJob>();
 
   for (const item of GALLERY) {
@@ -73,7 +72,7 @@ export function isBeforeAfterJob(job: GalleryJob): boolean {
 
 export const GALLERY_FILTERS: Array<{
   label: string;
-  id?: ServiceId;
+  id?: string;
   view?: "before-after";
 }> = [
   { label: "All" },
