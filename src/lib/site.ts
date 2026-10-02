@@ -205,3 +205,109 @@ export const PROCESS = [
     body: "We walk every room with you before we call it done. Then the house is yours again.",
   },
 ] as const;
+
+export const COMMUNITY = {
+  title: "If you have the house, we bring the labor.",
+  intro:
+    "If you run a group home, work with CASA, or serve military families, first responders, or educators in San Antonio, this is the start of a partnership. We design the kitchen or bath and donate the labor. We need partners to cover materials — grants, donations, churches, civic groups, and vendors.",
+  subject: "community partnership",
+  lanes: [
+    {
+      title: "If the kitchen is the room that needs to work",
+      body: "Send the house, the room, and photos. We design it, write the takeoff, and put free labor on it. Mentoring on the work is part of the visit, so the people who live there can keep the room.",
+    },
+    {
+      title: "If you have a grant, a gift, or product to give",
+      body: "A material list with real numbers is what a grant or a donor can attach to. We price the takeoff in plain language. You cover cabinets, counters, and fixtures. We cover design and labor.",
+    },
+    {
+      title: "If you are 65+, military, first responder, or an educator",
+      body: "Ask when you call. Seniors, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack. Bring ID or a work email if you have it.",
+    },
+    {
+      title: "If you already know which house comes next",
+      body: "Sit with us on the application. We put a design, a takeoff, and donated labor on the page so the ask is concrete.",
+    },
+  ],
+  split: [
+    {
+      who: "We give",
+      what: "Design, the list, free labor, and training on the work.",
+    },
+    {
+      who: "A partner gives",
+      what: "A grant, a donation, gifted product, or a group ready to cover materials.",
+    },
+    {
+      who: "The house gets",
+      what: "A kitchen or bath that can be used, and people on site who know how to keep it.",
+    },
+  ],
+  kinds: [
+    "A group home",
+    "CASA or child-advocacy",
+    "Senior (65+), military, veteran, first responder, or educator",
+    "A grant writer or foundation",
+    "A donor, church, or civic partner",
+    "A vendor who can gift materials",
+    "A partner in another form",
+  ],
+  funded: [
+    { value: "", label: "Still mapping this" },
+    { value: "Funded — looking for design and labor", label: "Funded — looking for design and labor" },
+    { value: "Partly funded", label: "Partly funded" },
+    { value: "Ready to pursue a grant or donations together", label: "Ready to pursue a grant or donations together" },
+    { value: "Ready to donate or gift product", label: "Ready to donate or gift product" },
+  ],
+} as const;
+
+export const CONTACT_AFFILIATIONS = [
+  { value: "", label: "Doesn't apply" },
+  { value: "Senior (65+)", label: "Senior (65+)" },
+  { value: "Military or veteran", label: "Military or veteran" },
+  { value: "First responder", label: "First responder" },
+  { value: "Educator", label: "Educator" },
+] as const;
+
+/** Two public bands. Eligible groups share the same rate. They do not stack. */
+export const JOB_DISCOUNT =
+  "Seniors 65+, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack.";
+
+export const TESTIMONIALS = [
+  {
+    quote:
+      "Jon and his team have been awesome to work with. The value they provide for the cost is unbeatable. Jon is talented and responsive. I highly recommend him for all your home repair needs!",
+    name: "Michael M.",
+    place: "San Antonio, TX",
+  },
+  {
+    quote:
+      "The Flip Fixer transformed my outdated rental property within my budget. Jon's attention to detail and craftsmanship is outstanding. I had multiple offers after just one open house!",
+    name: "Clark P.",
+    place: "Alamo Heights, TX",
+  },
+  {
+    quote:
+      "I approached Jon with several repairs needed throughout my home. He was professional, efficient, and the quality of work was exceptional. Will definitely be calling him again.",
+    name: "Scott S.",
+    place: "Hollywood Park, TX",
+  },
+  {
+    quote:
+      "The kitchen renovation exceeded all our expectations. Jon and his team were fast, clean, and incredibly professional. My new kitchen is exactly what I envisioned!",
+    name: "Jennifer R.",
+    place: "Stone Oak, TX",
+  },
+  {
+    quote:
+      "Their make-ready service saved us time and money — enabling our tenant to move in sooner than expected. Jon's team handled everything from repairs to painting flawlessly.",
+    name: "David K.",
+    place: "Austin, TX",
+  },
+  {
+    quote:
+      "As a property manager, I need reliable contractors I can trust. The Flip Fixer has become our go-to for all maintenance and renovation needs. Always professional and on time.",
+    name: "Sarah M.",
+    place: "San Antonio, TX",
+  },
+] as const;
