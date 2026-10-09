@@ -52,6 +52,7 @@ export function LeadForm({
   const [honeypot, setHoneypot] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [done, setDone] = useState(sent);
+  const [hydrated, setHydrated] = useState(false);
   const [phoneError, setPhoneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +68,7 @@ export function LeadForm({
     setMessage(draft.message ?? "");
     setNextUrl(`${window.location.origin}${nextPath}?sent=1`);
     setAdIds(captureAdClickIds());
+    setHydrated(true);
   }, [nextPath]);
 
   useEffect(() => {
@@ -74,14 +76,14 @@ export function LeadForm({
   }, [sent]);
 
   useEffect(() => {
-    if (done) {
+    if (done && hydrated) {
       trackContactFormSubmit({
         name,
         email,
         phone,
       });
     }
-  }, [done, name, email, phone]);
+  }, [done, hydrated, name, email, phone]);
 
   const subject = `The Flip Fixer — ${service || "job"} (${source})`;
 
