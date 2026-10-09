@@ -73,9 +73,62 @@ export function trackFormStart() {
   });
 }
 
+/** Normalized user data for Google Ads Enhanced Conversions (gtag hashes server-side). */
+export type EnhancedUserData = {
+  email?: string;
+  phone?: string;
+  name?: string;
+};
+
+/**
+ * Set first-party user data before a conversion event so Google can match
+ * leads more accurately (Enhanced Conversions). Pass plain text; gtag hashes.
+ */
+export function setEnhancedUserData(data: EnhancedUserData) {
+  if (typeof window === "undefined") return;
+
+  const userData: Record<string, string> = {};
+
+  const email = data.email?.trim().toLowerCase();
+  if (email && email.includes("@")) {
+    userData.email = email;
+  }
+
+  if (data.phone) {
+    const digits = data.phone.replace(/\D/g, "");
+    if (digits.length === 10) {
+      userData.phone_number = `+1${digits}`;
+    } else if (digits.length === 11 && digits.startsWith("1")) {
+      userData.phone_number = `+${digits}`;
+    } else if (digits.length > 10) {
+      userData.phone_number = `+${digits}`;
+    }
+  }
+
+  if (data.name?.trim()) {
+    const parts = data.name.trim().split(/\s+/);
+    if (parts[0]) userData.address = JSON.stringify({ first_name: parts[0] }); // fallback shape
+    // Prefer structured fields when available
+    if (parts[0]) userData.first_name = parts[0];
+    if (parts.length > 1) userData.last_name = parts.slice(1).join(" ");
+  }
+
+  // Remove the temporary address hack if we set structured names
+  if (userData.first_name) delete userData.address;
+
+  if (Object.keys(userData).length === 0) return;
+
+  gtag("set", "user_data", userData);
+}
+
 /** Fire once per browser session so refresh doesn't double-count. */
-export function trackContactFormSubmit() {
+export function trackContactFormSubmit(userData?: EnhancedUserData) {
   if (!oncePerSession("ff-ads-lead")) return;
+
+  if (userData) {
+    setEnhancedUserData(userData);
+  }
+
   gtag("event", "generate_lead", {
     currency: "USD",
     value: 1.0,
