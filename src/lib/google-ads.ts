@@ -87,7 +87,7 @@ export type EnhancedUserData = {
 export function setEnhancedUserData(data: EnhancedUserData) {
   if (typeof window === "undefined") return;
 
-  const userData: Record<string, string> = {};
+  const userData: Record<string, unknown> = {};
 
   const email = data.email?.trim().toLowerCase();
   if (email && email.includes("@")) {
@@ -106,9 +106,14 @@ export function setEnhancedUserData(data: EnhancedUserData) {
   }
 
   if (data.name?.trim()) {
-    const parts = data.name.trim().split(/\s+/);
-    if (parts[0]) userData.first_name = parts[0];
-    if (parts.length > 1) userData.last_name = parts.slice(1).join(" ");
+    const parts = data.name.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (parts.length > 0) {
+      const address: Record<string, string> = { first_name: parts[0] };
+      if (parts.length > 1) {
+        address.last_name = parts.slice(1).join(" ");
+      }
+      userData.address = address;
+    }
   }
 
   if (Object.keys(userData).length === 0) return;
