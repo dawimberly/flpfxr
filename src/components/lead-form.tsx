@@ -74,8 +74,14 @@ export function LeadForm({
   }, [sent]);
 
   useEffect(() => {
-    if (done) trackContactFormSubmit();
-  }, [done]);
+    if (done) {
+      trackContactFormSubmit({
+        name,
+        email,
+        phone,
+      });
+    }
+  }, [done, name, email, phone]);
 
   const subject = `The Flip Fixer — ${service || "job"} (${source})`;
 
