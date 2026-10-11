@@ -156,10 +156,10 @@ export function LeadForm({
         setSubmitError(parsed.message);
         return;
       }
-      markLeadSubmitPending();
+      markLeadSubmitPending(nextPath);
       form.submit();
     } catch {
-      markLeadSubmitPending();
+      markLeadSubmitPending(nextPath);
       form.submit();
     } finally {
       setSubmitting(false);

@@ -110,6 +110,7 @@ describe("ads events", () => {
   it("counts a full-page form redirect only when this submit marked it pending", () => {
     assert.equal(consumePendingLeadSubmit(), false);
     markLeadSubmitPending();
+    window.location.href = "https://theflipfixer.com/contact?sent=1";
     assert.equal(consumePendingLeadSubmit(), true);
     assert.equal(consumePendingLeadSubmit(), false);
     trackContactFormSubmit({
@@ -119,6 +120,21 @@ describe("ads events", () => {
     });
     const conversions = calls.filter((call) => call[1] === "conversion");
     assert.equal(conversions.length, 1);
+  });
+
+  it("discards an interrupted submit on a normal page visit", () => {
+    markLeadSubmitPending();
+    assert.equal(consumePendingLeadSubmit(), false);
+    window.location.href = "https://theflipfixer.com/contact?sent=1";
+    assert.equal(consumePendingLeadSubmit(), false);
+  });
+
+  it("rejects an unrelated or stale thank-you page", () => {
+    markLeadSubmitPending("/roof");
+    window.location.href = "https://theflipfixer.com/contact?sent=1";
+    assert.equal(consumePendingLeadSubmit(), false);
+    sessionStorage.setItem("ff-ads-lead-pending", JSON.stringify({ nextPath: "/contact", createdAt: Date.now() - 11 * 60 * 1000 }));
+    assert.equal(consumePendingLeadSubmit(), false);
   });
 
   it("does not load the Tag Manager container that counted page views as leads", () => {

@@ -140,10 +140,10 @@ const LEAD_PENDING_KEY = "ff-ads-lead-pending";
  * the thank-you page can fire after the saved draft is back in memory.
  * Opening an old `?sent=1` link does not set this flag.
  */
-export function markLeadSubmitPending() {
+export function markLeadSubmitPending(nextPath = "/contact") {
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.setItem(LEAD_PENDING_KEY, "1");
+    sessionStorage.setItem(LEAD_PENDING_KEY, JSON.stringify({ nextPath, createdAt: Date.now() }));
   } catch {
     // private mode — the ajax success path still counts in this document
   }
@@ -152,9 +152,14 @@ export function markLeadSubmitPending() {
 export function consumePendingLeadSubmit(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    if (sessionStorage.getItem(LEAD_PENDING_KEY) !== "1") return false;
+    const stored = sessionStorage.getItem(LEAD_PENDING_KEY);
+    if (!stored) return false;
     sessionStorage.removeItem(LEAD_PENDING_KEY);
-    return true;
+    const pending = JSON.parse(stored) as { nextPath?: string; createdAt?: number };
+    const current = new URL(window.location.href);
+    const age = Date.now() - (pending.createdAt ?? 0);
+    return current.pathname === pending.nextPath &&
+      current.searchParams.get("sent") === "1" && age >= 0 && age < 10 * 60 * 1000;
   } catch {
     return false;
   }
