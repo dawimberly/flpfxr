@@ -34,6 +34,8 @@ export function GoogleTag() {
     gtag("config", GOOGLE_ADS_WEBSITE_CALL_SEND_TO, {
       phone_conversion_number: SITE.phoneDisplay,
       phone_conversion_callback: setForwardingNumber,
+      // A page view must not hit this conversion label.
+      send_page_view: false,
     });
 
     if (!document.getElementById(SCRIPT_ID)) {

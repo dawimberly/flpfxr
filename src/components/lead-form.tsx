@@ -11,7 +11,12 @@ import {
   captureAdClickIds,
   parseFormSubmitResponse,
 } from "@/lib/formsubmit";
-import { trackContactFormSubmit, trackFormStart } from "@/lib/google-ads";
+import {
+  consumePendingLeadSubmit,
+  markLeadSubmitPending,
+  trackContactFormSubmit,
+  trackFormStart,
+} from "@/lib/google-ads";
 import {
   CONTACT_AFFILIATIONS,
   JOB_DISCOUNT,
@@ -52,7 +57,6 @@ export function LeadForm({
   const [honeypot, setHoneypot] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [done, setDone] = useState(sent);
-  const [hydrated, setHydrated] = useState(false);
   const [phoneError, setPhoneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -68,22 +72,18 @@ export function LeadForm({
     setMessage(draft.message ?? "");
     setNextUrl(`${window.location.origin}${nextPath}?sent=1`);
     setAdIds(captureAdClickIds());
-    setHydrated(true);
+    if (consumePendingLeadSubmit()) {
+      trackContactFormSubmit({
+        name: draft.name ?? "",
+        email: draft.email ?? "",
+        phone: draft.phone ?? "",
+      });
+    }
   }, [nextPath]);
 
   useEffect(() => {
     if (sent) setDone(true);
   }, [sent]);
-
-  useEffect(() => {
-    if (done && hydrated) {
-      trackContactFormSubmit({
-        name,
-        email,
-        phone,
-      });
-    }
-  }, [done, hydrated, name, email, phone]);
 
   const subject = `The Flip Fixer — ${service || "job"} (${source})`;
 
@@ -140,6 +140,7 @@ export function LeadForm({
       }
       const parsed = parseFormSubmitResponse(res.status, body);
       if (parsed.ok) {
+        trackContactFormSubmit({ name, email, phone });
         setDone(true);
         try {
           const url = new URL(window.location.href);
@@ -155,8 +156,10 @@ export function LeadForm({
         setSubmitError(parsed.message);
         return;
       }
+      markLeadSubmitPending();
       form.submit();
     } catch {
+      markLeadSubmitPending();
       form.submit();
     } finally {
       setSubmitting(false);
