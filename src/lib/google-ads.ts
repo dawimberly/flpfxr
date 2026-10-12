@@ -1,3 +1,11 @@
+import {
+  LEAD_PENDING_KEY,
+  buildLeadPending,
+  canCountLeadThankYou,
+  parseLeadPending,
+  serializeLeadPending,
+} from "./lead-conversion.ts";
+
 /** GA4 measurement ID — primary gtag.js loader. */
 export const GA4_MEASUREMENT_ID = "G-548WLW4MEK";
 
@@ -42,8 +50,18 @@ export function gtag(...args: unknown[]) {
 
 export function pagePathFromLocation(pathname: string, search = ""): string {
   const path = pathname || "/";
-  if (!search || search === "?") return path;
-  return `${path}${search.startsWith("?") ? search : `?${search}`}`;
+  const raw =
+    !search || search === "?"
+      ? ""
+      : search.startsWith("?")
+        ? search.slice(1)
+        : search;
+  const params = new URLSearchParams(raw);
+  // Thank-you flag is not a separate page for reporting.
+  params.delete("sent");
+  const qs = params.toString();
+  if (!qs) return path;
+  return `${path}?${qs}`;
 }
 
 function oncePerSession(key: string): boolean {
@@ -133,7 +151,51 @@ export function setEnhancedUserData(data: EnhancedUserData) {
   gtag("set", "user_data", userData);
 }
 
-const LEAD_PENDING_KEY = "ff-ads-lead-pending";
+function writeCookie(name: string, value: string, maxAgeSec: number) {
+  if (typeof document === "undefined") return;
+  try {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
+  } catch {
+    // ignore
+  }
+}
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  try {
+    const prefix = `${name}=`;
+    for (const part of document.cookie.split(";")) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith(prefix)) {
+        return decodeURIComponent(trimmed.slice(prefix.length));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function readPendingRaw(): string | null {
+  try {
+    const fromSession = sessionStorage.getItem(LEAD_PENDING_KEY);
+    if (fromSession) return fromSession;
+  } catch {
+    // private mode
+  }
+  return readCookie(LEAD_PENDING_KEY);
+}
+
+function writePendingRaw(raw: string | null) {
+  try {
+    if (raw) sessionStorage.setItem(LEAD_PENDING_KEY, raw);
+    else sessionStorage.removeItem(LEAD_PENDING_KEY);
+  } catch {
+    // private mode — cookie backup below
+  }
+  if (raw) writeCookie(LEAD_PENDING_KEY, raw, 10 * 60);
+  else writeCookie(LEAD_PENDING_KEY, "", 0);
+}
 
 /**
  * Native FormSubmit navigates away before gtag can send. Mark the submit so
@@ -142,32 +204,44 @@ const LEAD_PENDING_KEY = "ff-ads-lead-pending";
  */
 export function markLeadSubmitPending(nextPath = "/contact") {
   if (typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem(LEAD_PENDING_KEY, JSON.stringify({ nextPath, createdAt: Date.now() }));
-  } catch {
-    // private mode — the ajax success path still counts in this document
-  }
+  writePendingRaw(serializeLeadPending(buildLeadPending(nextPath)));
 }
 
+/**
+ * Consume a pending native submit only when the thank-you URL matches.
+ * A mismatch leaves the pending record in place (until it expires).
+ */
 export function consumePendingLeadSubmit(): boolean {
   if (typeof window === "undefined") return false;
-  try {
-    const stored = sessionStorage.getItem(LEAD_PENDING_KEY);
-    if (!stored) return false;
-    sessionStorage.removeItem(LEAD_PENDING_KEY);
-    const pending = JSON.parse(stored) as { nextPath?: string; createdAt?: number };
-    const current = new URL(window.location.href);
-    const age = Date.now() - (pending.createdAt ?? 0);
-    return current.pathname === pending.nextPath &&
-      current.searchParams.get("sent") === "1" && age >= 0 && age < 10 * 60 * 1000;
-  } catch {
+  const pending = parseLeadPending(readPendingRaw());
+  if (!pending) return false;
+
+  const current = new URL(window.location.href);
+  const ok = canCountLeadThankYou({
+    pending,
+    pathname: current.pathname,
+    search: current.search,
+  });
+
+  if (!ok) {
+    // Drop only clearly stale records so a later matching thank-you can still count.
+    const age = Date.now() - pending.createdAt;
+    if (age < 0 || age >= 10 * 60 * 1000) writePendingRaw(null);
     return false;
   }
+
+  writePendingRaw(null);
+  return true;
 }
 
-/** Fire once per browser session so refresh doesn't double-count. */
+/**
+ * Count one accepted form lead for Ads + GA4.
+ * Call only after FormSubmit acceptance (ajax) or a matching pending thank-you.
+ * Do not call from a bare `?sent=1` page load. Reload dedupe is the caller's job
+ * (pending is single-use; ajax path only runs on submit).
+ */
 export function trackContactFormSubmit(userData?: EnhancedUserData) {
-  if (!oncePerSession("ff-ads-lead")) return;
+  if (typeof window === "undefined") return;
 
   if (userData) {
     setEnhancedUserData(userData);
@@ -177,10 +251,13 @@ export function trackContactFormSubmit(userData?: EnhancedUserData) {
     currency: "USD",
     value: 1.0,
   });
+  // event_callback keeps the hit alive if a native redirect races the tag.
   gtag("event", "conversion", {
     send_to: GOOGLE_ADS_LEAD_SEND_TO,
     value: 1.0,
     currency: "USD",
+    event_callback: () => {},
+    event_timeout: 2000,
   });
 }
 

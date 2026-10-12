@@ -1,4 +1,4 @@
-import { GALLERY } from "./site-rest-a";
+import { GALLERY } from "./site-rest-a.ts";
 
 export function galleryJobId(src: string): string {
   const numbered = src.match(/gallery-(\d+)/);

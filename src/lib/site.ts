@@ -312,5 +312,5 @@ export const TESTIMONIALS = [
   },
 ] as const;
 
-export * from "./site-rest-a";
-export * from "./site-rest-b";
+export * from "./site-rest-a.ts";
+export * from "./site-rest-b.ts";

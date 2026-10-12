@@ -30,7 +30,11 @@ export function GoogleTag() {
 
     gtag("js", new Date());
     gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false });
-    gtag("config", GOOGLE_ADS_ID, { send_page_view: false });
+    // Enhanced Conversions for the primary form lead action.
+    gtag("config", GOOGLE_ADS_ID, {
+      send_page_view: false,
+      allow_enhanced_conversions: true,
+    });
     gtag("config", GOOGLE_ADS_WEBSITE_CALL_SEND_TO, {
       phone_conversion_number: SITE.phoneDisplay,
       phone_conversion_callback: setForwardingNumber,
@@ -42,7 +46,9 @@ export function GoogleTag() {
       const script = document.createElement("script");
       script.id = SCRIPT_ID;
       script.async = true;
-      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`;
+      // Load with the Ads ID so the form conversion tag is present even if the
+      // GA4 config line is delayed. GA4 is still configured above.
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`;
       document.head.appendChild(script);
     }
   }, []);

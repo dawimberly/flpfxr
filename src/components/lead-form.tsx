@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,10 @@ import {
   FORMSUBMIT_AJAX_URL,
   FORMSUBMIT_POST_URL,
   captureAdClickIds,
+  formSubmitAjaxInit,
   parseFormSubmitResponse,
 } from "@/lib/formsubmit";
+import { isAcceptedFormSubmit } from "@/lib/lead-conversion";
 import {
   consumePendingLeadSubmit,
   markLeadSubmitPending,
@@ -62,6 +64,8 @@ export function LeadForm({
   const [submitting, setSubmitting] = useState(false);
   const [nextUrl, setNextUrl] = useState(`${SITE.url}${nextPath}?sent=1`);
   const [adIds, setAdIds] = useState<Record<string, string>>({});
+  const sending = useRef(false);
+  const trackedThisSubmit = useRef(false);
 
   useEffect(() => {
     const draft = loadLeadDraft();
@@ -72,6 +76,7 @@ export function LeadForm({
     setMessage(draft.message ?? "");
     setNextUrl(`${window.location.origin}${nextPath}?sent=1`);
     setAdIds(captureAdClickIds());
+    // Native FormSubmit redirect thank-you: count only with a fresh pending mark.
     if (consumePendingLeadSubmit()) {
       trackContactFormSubmit({
         name: draft.name ?? "",
@@ -81,6 +86,8 @@ export function LeadForm({
     }
   }, [nextPath]);
 
+  // ?sent=1 restores the thank-you UI after a redirect or reload.
+  // It is not evidence of a new accepted lead by itself.
   useEffect(() => {
     if (sent) setDone(true);
   }, [sent]);
@@ -114,6 +121,9 @@ export function LeadForm({
     });
 
     e.preventDefault();
+    if (sending.current) return;
+    sending.current = true;
+    trackedThisSubmit.current = false;
     setSubmitting(true);
 
     const data = new FormData(form);
@@ -126,12 +136,14 @@ export function LeadForm({
       if (value) data.set(key, value);
     }
 
+    const countAcceptedLead = () => {
+      if (trackedThisSubmit.current) return;
+      trackedThisSubmit.current = true;
+      trackContactFormSubmit({ name, email, phone });
+    };
+
     try {
-      const res = await fetch(FORMSUBMIT_AJAX_URL, {
-        method: "POST",
-        headers: { Accept: "application/json" },
-        body: data,
-      });
+      const res = await fetch(FORMSUBMIT_AJAX_URL, formSubmitAjaxInit(data));
       let body: unknown = null;
       try {
         body = await res.json();
@@ -139,8 +151,8 @@ export function LeadForm({
         body = null;
       }
       const parsed = parseFormSubmitResponse(res.status, body);
-      if (parsed.ok) {
-        trackContactFormSubmit({ name, email, phone });
+      if (isAcceptedFormSubmit(parsed)) {
+        countAcceptedLead();
         setDone(true);
         try {
           const url = new URL(window.location.href);
@@ -156,12 +168,15 @@ export function LeadForm({
         setSubmitError(parsed.message);
         return;
       }
+      // Ajax failed without an activation message — try the native POST.
+      // Mark pending first so the thank-you redirect can count exactly once.
       markLeadSubmitPending(nextPath);
       form.submit();
     } catch {
       markLeadSubmitPending(nextPath);
       form.submit();
     } finally {
+      sending.current = false;
       setSubmitting(false);
     }
   };
