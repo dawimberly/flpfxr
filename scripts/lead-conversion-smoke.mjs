@@ -1,8 +1,8 @@
 /**
- * Local smoke: mock FormSubmit, submit the contact form, assert exactly one
+ * Local smoke: mock /api/leads, submit the contact form, assert exactly one
  * Ads lead conversion is queued with the primary send_to label.
  *
- * Does not hit production FormSubmit or Google Ads. Safe to run repeatedly.
+ * Does not hit production FormSubmit, Resend, or Google Ads.
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -35,6 +35,8 @@ function startVite() {
       env: {
         ...process.env,
         VITE_AUTH_ENABLED: "false",
+        RESEND_API_KEY: "re_smoke_test",
+        LEAD_TO_EMAIL: "Jon@TheFlipFixer.com",
       },
     },
   );
@@ -72,16 +74,20 @@ async function installGtagSpy(page) {
     window.__ffGtagCalls = [];
     const wrap = (fn) =>
       function gtag(...args) {
-        window.__ffGtagCalls.push(args.map((item) => {
-          if (item && typeof item === "object") {
-            try {
-              return JSON.parse(JSON.stringify(item, (_k, v) => (typeof v === "function" ? "[fn]" : v)));
-            } catch {
-              return String(item);
+        window.__ffGtagCalls.push(
+          args.map((item) => {
+            if (item && typeof item === "object") {
+              try {
+                return JSON.parse(
+                  JSON.stringify(item, (_k, v) => (typeof v === "function" ? "[fn]" : v)),
+                );
+              } catch {
+                return String(item);
+              }
             }
-          }
-          return item;
-        }));
+            return item;
+          }),
+        );
         if (typeof fn === "function") return fn.apply(this, args);
         return undefined;
       };
@@ -97,29 +103,28 @@ async function main() {
     await waitForServer(`${BASE}/contact`, vite);
     const page = await browser.newPage();
 
-    await page.route("**/formsubmit.co/**", async (route) => {
+    await page.route("**/api/leads", async (route) => {
       const req = route.request();
-      if (req.method() === "POST" && req.url().includes("/ajax/")) {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: true,
-            message: "Your form has been submitted",
-          }),
-        });
+      if (req.method() !== "POST") {
+        await route.fulfill({ status: 405, body: "Method Not Allowed" });
         return;
       }
-      await route.abort();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          submissionId: "550e8400-e29b-41d4-a716-446655440000",
+        }),
+      });
     });
 
-    // Opening ?sent=1 alone must not convert.
     await page.goto(`${BASE}/contact?sent=1`, { waitUntil: "networkidle" });
     await installGtagSpy(page);
     await sleep(300);
     let calls = await page.evaluate(() => window.__ffGtagCalls || []);
     if (conversionCalls(calls).length !== 0) {
-      throw new Error(`bare ?sent=1 fired conversion(s): ${JSON.stringify(conversionCalls(calls))}`);
+      throw new Error(`bare ?sent=1 fired conversion(s)`);
     }
 
     await page.goto(`${BASE}/contact`, { waitUntil: "networkidle" });
@@ -129,7 +134,7 @@ async function main() {
     await page.fill("#contact-email", "agent-test+discard@example.com");
     await page.fill(
       "#contact-message",
-      "AGENT SMOKE TEST — discard. Do not call. Mocked FormSubmit only.",
+      "AGENT SMOKE TEST — discard. Mocked /api/leads only.",
     );
     await page.click('button[type="submit"]');
     await page.waitForSelector("text=Sent.", { timeout: 15_000 });
@@ -148,22 +153,17 @@ async function main() {
       throw new Error(`missing enhanced user_data: ${JSON.stringify(userData)}`);
     }
 
-    // Rejected FormSubmit must not convert.
-    await page.unroute("**/formsubmit.co/**");
-    await page.route("**/formsubmit.co/**", async (route) => {
-      const req = route.request();
-      if (req.method() === "POST" && req.url().includes("/ajax/")) {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            success: false,
-            message: "Make sure you confirm the form through your email.",
-          }),
-        });
-        return;
-      }
-      await route.abort();
+    await page.unroute("**/api/leads");
+    await page.route("**/api/leads", async (route) => {
+      await route.fulfill({
+        status: 502,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: false,
+          code: "delivery_failed",
+          message: "Could not deliver the message. Call or text instead.",
+        }),
+      });
     });
     await page.goto(`${BASE}/contact`, { waitUntil: "networkidle" });
     await installGtagSpy(page);
@@ -171,10 +171,10 @@ async function main() {
     await page.fill("#contact-phone", "2105550198");
     await page.fill("#contact-message", "AGENT SMOKE TEST reject path — discard.");
     await page.click('button[type="submit"]');
-    await page.waitForSelector("text=FormSubmit confirmation", { timeout: 15_000 });
+    await page.waitForSelector("text=Could not deliver", { timeout: 15_000 });
     calls = await page.evaluate(() => window.__ffGtagCalls || []);
     if (conversionCalls(calls).length !== 0) {
-      throw new Error("confirmation/reject path fired a conversion");
+      throw new Error("failed delivery path fired a conversion");
     }
 
     console.log(
@@ -184,7 +184,7 @@ async function main() {
           leadSendTo: LEAD_SEND_TO,
           conversionCount: 1,
           enhancedUserData: userData[2],
-          note: "Mocked FormSubmit only — no production lead and no claim about Ads UI warning clearance.",
+          note: "Mocked /api/leads only — no production lead and no Ads UI claim.",
         },
         null,
         2,

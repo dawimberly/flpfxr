@@ -20,6 +20,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
+import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -79,6 +80,11 @@ const TestimonialsRoute = TestimonialsRouteImport.update({
   path: '/testimonials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLeadsRoute = ApiLeadsRouteImport.update({
+  id: '/api/leads',
+  path: '/api/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EstimatorIndexRoute = EstimatorIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
+  '/api/leads': typeof ApiLeadsRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
+  '/api/leads': typeof ApiLeadsRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
+  '/api/leads': typeof ApiLeadsRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/roof'
     | '/services'
     | '/testimonials'
+    | '/api/leads'
     | '/estimator/roof'
     | '/estimator/'
     | '/api/auth/$'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/roof'
     | '/services'
     | '/testimonials'
+    | '/api/leads'
     | '/estimator/roof'
     | '/estimator'
     | '/api/auth/$'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/roof'
     | '/services'
     | '/testimonials'
+    | '/api/leads'
     | '/estimator/roof'
     | '/estimator/'
     | '/api/auth/$'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
   TestimonialsRoute: typeof TestimonialsRoute
+  ApiLeadsRoute: typeof ApiLeadsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TestimonialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/leads': {
+      id: '/api/leads'
+      path: '/api/leads'
+      fullPath: '/api/leads'
+      preLoaderRoute: typeof ApiLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/estimator/': {
       id: '/estimator/'
       path: '/'
@@ -337,6 +357,7 @@ const rootRouteChildren: RootRouteChildren = {
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
   TestimonialsRoute: TestimonialsRoute,
+  ApiLeadsRoute: ApiLeadsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -76,6 +76,18 @@ Copy `.env.example` to `.env` (gitignored). Required for employee login and clou
 
 Auth uses **Better Auth** with email/password. Migrations under `migrations/` apply on every Vercel build when `DATABASE_URL` is set.
 
+### Contact form delivery
+
+Public lead forms post to same-origin **`/api/leads`** (not FormSubmit). The server emails `LEAD_TO_EMAIL` through [Resend](https://resend.com) when `RESEND_API_KEY` is set, and stores an idempotent row in Neon (`contact_leads`) when `DATABASE_URL` is set.
+
+| Variable | Purpose |
+|----------|---------|
+| `RESEND_API_KEY` | Resend API key (required for inbox delivery) |
+| `LEAD_TO_EMAIL` | Inbox (default `Jon@TheFlipFixer.com`) |
+| `LEAD_FROM_EMAIL` | Verified sender, e.g. `The Flip Fixer <leads@theflipfixer.com>` |
+
+Until `RESEND_API_KEY` is configured on Vercel, the form shows an error and asks the visitor to call or text — it will not pretend the lead was sent.
+
 ---
 
 ## Employee account scripts

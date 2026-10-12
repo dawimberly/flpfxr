@@ -5,20 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { captureAdClickIds } from "@/lib/formsubmit";
 import {
-  FORMSUBMIT_AJAX_URL,
-  FORMSUBMIT_POST_URL,
-  captureAdClickIds,
-  formSubmitAjaxInit,
-  parseFormSubmitResponse,
-} from "@/lib/formsubmit";
-import { isAcceptedFormSubmit } from "@/lib/lead-conversion";
-import {
-  consumePendingLeadSubmit,
-  markLeadSubmitPending,
-  trackContactFormSubmit,
-  trackFormStart,
-} from "@/lib/google-ads";
+  LEAD_API_PATH,
+  parseLeadApiResponse,
+  shouldTrackAcceptedLead,
+} from "@/lib/lead-delivery";
+import { trackContactFormSubmit, trackFormStart } from "@/lib/google-ads";
 import {
   CONTACT_AFFILIATIONS,
   JOB_DISCOUNT,
@@ -27,6 +20,17 @@ import {
   saveLeadDraft,
   type ServiceId,
 } from "@/lib/site";
+
+function newSubmissionId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    const v = ch === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export function LeadForm({
   sent = false,
@@ -62,10 +66,10 @@ export function LeadForm({
   const [phoneError, setPhoneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [nextUrl, setNextUrl] = useState(`${SITE.url}${nextPath}?sent=1`);
   const [adIds, setAdIds] = useState<Record<string, string>>({});
   const sending = useRef(false);
   const trackedThisSubmit = useRef(false);
+  const submissionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const draft = loadLeadDraft();
@@ -74,20 +78,10 @@ export function LeadForm({
     setPhone(draft.phone ?? "");
     setAffiliation(draft.affiliation ?? "");
     setMessage(draft.message ?? "");
-    setNextUrl(`${window.location.origin}${nextPath}?sent=1`);
     setAdIds(captureAdClickIds());
-    // Native FormSubmit redirect thank-you: count only with a fresh pending mark.
-    if (consumePendingLeadSubmit()) {
-      trackContactFormSubmit({
-        name: draft.name ?? "",
-        email: draft.email ?? "",
-        phone: draft.phone ?? "",
-      });
-    }
   }, [nextPath]);
 
-  // ?sent=1 restores the thank-you UI after a redirect or reload.
-  // It is not evidence of a new accepted lead by itself.
+  // ?sent=1 restores the thank-you UI after a reload. It is not a new lead.
   useEffect(() => {
     if (sent) setDone(true);
   }, [sent]);
@@ -95,10 +89,10 @@ export function LeadForm({
   const subject = `The Flip Fixer — ${service || "job"} (${source})`;
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const form = e.currentTarget;
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 10) {
-      e.preventDefault();
       setPhoneError("Add a 10-digit phone so we can call you back.");
       return;
     }
@@ -106,7 +100,6 @@ export function LeadForm({
     setSubmitError("");
 
     if (honeypot) {
-      e.preventDefault();
       setBlocked(true);
       return;
     }
@@ -120,13 +113,17 @@ export function LeadForm({
       message,
     });
 
-    e.preventDefault();
     if (sending.current) return;
     sending.current = true;
     trackedThisSubmit.current = false;
     setSubmitting(true);
 
+    if (!submissionIdRef.current) {
+      submissionIdRef.current = newSubmissionId();
+    }
+
     const data = new FormData(form);
+    data.set("submissionId", submissionIdRef.current);
     data.set("_subject", subject);
     data.set("Job", service || "n/a");
     data.set("Affiliation", affiliation || "n/a");
@@ -136,24 +133,29 @@ export function LeadForm({
       if (value) data.set(key, value);
     }
 
-    const countAcceptedLead = () => {
-      if (trackedThisSubmit.current) return;
-      trackedThisSubmit.current = true;
-      trackContactFormSubmit({ name, email, phone });
-    };
-
     try {
-      const res = await fetch(FORMSUBMIT_AJAX_URL, formSubmitAjaxInit(data));
+      const res = await fetch(LEAD_API_PATH, {
+        method: "POST",
+        body: data,
+      });
       let body: unknown = null;
       try {
         body = await res.json();
       } catch {
         body = null;
       }
-      const parsed = parseFormSubmitResponse(res.status, body);
-      if (isAcceptedFormSubmit(parsed)) {
-        countAcceptedLead();
+      const parsed = parseLeadApiResponse(res.status, body);
+      if (parsed.ok && parsed.discarded) {
+        setBlocked(true);
+        return;
+      }
+      if (shouldTrackAcceptedLead(parsed)) {
+        if (!trackedThisSubmit.current) {
+          trackedThisSubmit.current = true;
+          trackContactFormSubmit({ name, email, phone });
+        }
         setDone(true);
+        submissionIdRef.current = null;
         try {
           const url = new URL(window.location.href);
           url.searchParams.set("sent", "1");
@@ -164,17 +166,13 @@ export function LeadForm({
         }
         return;
       }
-      if (parsed.needsConfirm) {
-        setSubmitError(parsed.message);
-        return;
-      }
-      // Ajax failed without an activation message — try the native POST.
-      // Mark pending first so the thank-you redirect can count exactly once.
-      markLeadSubmitPending(nextPath);
-      form.submit();
+      setSubmitError(
+        parsed.ok
+          ? "Could not send the form. Call or text instead."
+          : parsed.message,
+      );
     } catch {
-      markLeadSubmitPending(nextPath);
-      form.submit();
+      setSubmitError("Could not send the form. Call or text instead.");
     } finally {
       sending.current = false;
       setSubmitting(false);
@@ -202,17 +200,14 @@ export function LeadForm({
 
   return (
     <form
-      action={FORMSUBMIT_POST_URL}
       method="POST"
       encType="multipart/form-data"
       onSubmit={onSubmit}
       onFocusCapture={trackFormStart}
       className={compact ? "space-y-3" : "space-y-5"}
+      noValidate
     >
       <input type="hidden" name="_subject" value={subject} />
-      <input type="hidden" name="_template" value="table" />
-      <input type="hidden" name="_captcha" value="false" />
-      <input type="hidden" name="_next" value={nextUrl} />
       <input type="hidden" name="Job" value={service || "n/a"} />
       <input type="hidden" name="Source" value={source} />
       <div className="hidden" aria-hidden="true">
@@ -317,7 +312,7 @@ export function LeadForm({
             accept="image/*"
             className="h-auto py-2 file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-fg"
           />
-          <p className="text-xs text-subtle">Optional. One photo is enough.</p>
+          <p className="text-xs text-subtle">Optional. One photo up to 3 MB.</p>
         </div>
       ) : null}
       {submitError ? (
@@ -326,6 +321,10 @@ export function LeadForm({
           <CallLink className="font-medium underline">
             Call <CallNumber />
           </CallLink>
+          {" · "}
+          <TextLink className="font-medium underline">
+            Text {SITE.phoneDisplay}
+          </TextLink>
         </p>
       ) : null}
       <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
