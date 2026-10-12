@@ -117,10 +117,21 @@ async function persistLead(args: {
   );
 }
 
+export type LeadSubmitDeps = {
+  findExistingLead?: typeof findExistingLead;
+  persistLead?: typeof persistLead;
+  sendLeadEmail?: typeof sendLeadEmail;
+  now?: number;
+};
+
 export async function handleLeadFormData(
   form: FormData,
   request: Request,
+  deps: LeadSubmitDeps = {},
 ): Promise<Response> {
+  const findExisting = deps.findExistingLead ?? findExistingLead;
+  const persist = deps.persistLead ?? persistLead;
+  const sendMail = deps.sendLeadEmail ?? sendLeadEmail;
   const submissionId = str(form, "submissionId").trim();
   if (!isValidSubmissionId(submissionId)) {
     return Response.json(
@@ -190,7 +201,7 @@ export async function handleLeadFormData(
     );
   }
 
-  const existing = await findExistingLead(submissionId);
+  const existing = await findExisting(submissionId);
   if (existing?.delivered_email) {
     return Response.json({
       ok: true,
@@ -223,7 +234,7 @@ export async function handleLeadFormData(
     };
   }
 
-  const mail = await sendLeadEmail(
+  const mail = await sendMail(
     {
       to: mailCfg.to,
       submissionId,
@@ -238,7 +249,7 @@ export async function handleLeadFormData(
 
   if (!mail.ok) {
     try {
-      await persistLead({
+      await persist({
         payload,
         phoneDigits: fields.phoneDigits,
         hasPhoto: Boolean(photoCheck.file),
@@ -259,7 +270,7 @@ export async function handleLeadFormData(
   }
 
   try {
-    await persistLead({
+    await persist({
       payload,
       phoneDigits: fields.phoneDigits,
       hasPhoto: Boolean(photoCheck.file),

@@ -114,7 +114,10 @@ export function validateLeadPhoto(file: File | null | undefined): {
     return { ok: false, message: "Photo must be under 3 MB." };
   }
   if (file.type && !LEAD_PHOTO_TYPES.has(file.type)) {
-    return { ok: false, message: "Photo must be a JPEG, PNG, WebP, or GIF." };
+    return {
+      ok: false,
+      message: "Photo must be a JPEG, PNG, WebP, HEIC, or GIF.",
+    };
   }
   return { ok: true, file };
 }
@@ -175,4 +178,33 @@ export function parseLeadApiResponse(
 
 export function shouldTrackAcceptedLead(result: LeadDeliveryResult): boolean {
   return result.ok === true && result.discarded !== true;
+}
+
+/** sessionStorage key — one Ads conversion claim per submission UUID. */
+export const LEAD_CONVERSION_CLAIM_PREFIX = "ff-ads-lead-tracked:";
+
+/**
+ * Claim the Ads lead conversion for this submissionId once per browser session.
+ * Retries after an uncertain response reuse the same id (and Resend Idempotency-Key)
+ * and must not fire a second conversion.
+ */
+export function claimAcceptedLeadConversion(submissionId: string): boolean {
+  const id = submissionId.trim();
+  if (!isValidSubmissionId(id)) return false;
+  if (typeof window === "undefined") return false;
+  const key = `${LEAD_CONVERSION_CLAIM_PREFIX}${id.toLowerCase()}`;
+  try {
+    if (window.sessionStorage.getItem(key)) return false;
+    window.sessionStorage.setItem(key, "1");
+    return true;
+  } catch {
+    // Private mode / blocked storage — still allow one in-memory claim via Map.
+  }
+  const g = globalThis as typeof globalThis & {
+    __ffLeadConversionClaims__?: Set<string>;
+  };
+  g.__ffLeadConversionClaims__ ??= new Set();
+  if (g.__ffLeadConversionClaims__.has(key)) return false;
+  g.__ffLeadConversionClaims__.add(key);
+  return true;
 }

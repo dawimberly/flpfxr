@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { captureAdClickIds } from "@/lib/formsubmit";
 import {
   LEAD_API_PATH,
+  claimAcceptedLeadConversion,
+  isValidSubmissionId,
   parseLeadApiResponse,
   shouldTrackAcceptedLead,
 } from "@/lib/lead-delivery";
@@ -78,6 +80,9 @@ export function LeadForm({
     setPhone(draft.phone ?? "");
     setAffiliation(draft.affiliation ?? "");
     setMessage(draft.message ?? "");
+    if (draft.submissionId && isValidSubmissionId(draft.submissionId)) {
+      submissionIdRef.current = draft.submissionId;
+    }
     setAdIds(captureAdClickIds());
   }, [nextPath]);
 
@@ -104,15 +109,6 @@ export function LeadForm({
       return;
     }
 
-    saveLeadDraft({
-      name,
-      email,
-      phone,
-      service: (service as ServiceId) || "",
-      affiliation,
-      message,
-    });
-
     if (sending.current) return;
     sending.current = true;
     trackedThisSubmit.current = false;
@@ -121,6 +117,16 @@ export function LeadForm({
     if (!submissionIdRef.current) {
       submissionIdRef.current = newSubmissionId();
     }
+
+    saveLeadDraft({
+      name,
+      email,
+      phone,
+      service: (service as ServiceId) || "",
+      affiliation,
+      message,
+      submissionId: submissionIdRef.current,
+    });
 
     const data = new FormData(form);
     data.set("submissionId", submissionIdRef.current);
@@ -150,12 +156,25 @@ export function LeadForm({
         return;
       }
       if (shouldTrackAcceptedLead(parsed)) {
-        if (!trackedThisSubmit.current) {
+        const trackedId = parsed.submissionId || submissionIdRef.current || "";
+        if (
+          !trackedThisSubmit.current &&
+          claimAcceptedLeadConversion(trackedId)
+        ) {
           trackedThisSubmit.current = true;
           trackContactFormSubmit({ name, email, phone });
         }
         setDone(true);
         submissionIdRef.current = null;
+        saveLeadDraft({
+          name,
+          email,
+          phone,
+          service: (service as ServiceId) || "",
+          affiliation,
+          message,
+          submissionId: "",
+        });
         try {
           const url = new URL(window.location.href);
           url.searchParams.set("sent", "1");

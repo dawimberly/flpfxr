@@ -111,4 +111,127 @@ describe("lead submit server", () => {
     assert.equal(checkLeadRateLimit("198.51.100.9"), false);
     assert.equal(checkLeadRateLimit("198.51.100.10"), true);
   });
+
+  it("reuses the same Resend Idempotency-Key for concurrent retries", async () => {
+    const fields = {
+      submissionId,
+      name: "TRACKING TEST — NOT A CUSTOMER LEAD",
+      phone: "2104369117",
+      message: "Concurrent retry unit test — discard.",
+      Source: "contact",
+    };
+    const request = () =>
+      new Request("https://theflipfixer.com/api/leads", {
+        method: "POST",
+        headers: { "x-forwarded-for": "203.0.113.50" },
+      });
+
+    const [a, b] = await Promise.all([
+      handleLeadFormData(form(fields), request()),
+      handleLeadFormData(form(fields), request()),
+    ]);
+    assert.equal(a.status, 200);
+    assert.equal(b.status, 200);
+    assert.equal(mailCalls.length, 2);
+    for (const call of mailCalls) {
+      const headers = new Headers((call as { init?: RequestInit }).init?.headers);
+      assert.equal(headers.get("Idempotency-Key"), `contact-lead/${submissionId}`);
+    }
+  });
+
+  it("returns duplicate without a second email when already delivered", async () => {
+    const res = await handleLeadFormData(
+      form({
+        submissionId,
+        name: "TRACKING TEST — NOT A CUSTOMER LEAD",
+        phone: "2104369117",
+        message: "Duplicate path unit test — discard.",
+      }),
+      new Request("https://theflipfixer.com/api/leads", { method: "POST" }),
+      {
+        findExistingLead: async () => ({
+          submission_id: submissionId,
+          delivered_email: true,
+        }),
+      },
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.duplicate, true);
+    assert.equal(mailCalls.length, 0);
+  });
+
+  it("reports delivery_failed without claiming success when Resend errors", async () => {
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ message: "boom" }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      })) as typeof fetch;
+
+    let persisted = false;
+    const res = await handleLeadFormData(
+      form({
+        submissionId,
+        name: "TRACKING TEST — NOT A CUSTOMER LEAD",
+        phone: "2104369117",
+        message: "Delivery failure unit test — discard.",
+      }),
+      new Request("https://theflipfixer.com/api/leads", { method: "POST" }),
+      {
+        persistLead: async () => {
+          persisted = true;
+        },
+      },
+    );
+    assert.equal(res.status, 502);
+    const body = await res.json();
+    assert.equal(body.ok, false);
+    assert.equal(body.code, "delivery_failed");
+    assert.match(body.message, /Call or text/);
+    assert.equal(persisted, true);
+  });
+
+  it("still accepts the lead when persistence fails after email", async () => {
+    const res = await handleLeadFormData(
+      form({
+        submissionId,
+        name: "TRACKING TEST — NOT A CUSTOMER LEAD",
+        phone: "2104369117",
+        message: "DB failure after email unit test — discard.",
+      }),
+      new Request("https://theflipfixer.com/api/leads", { method: "POST" }),
+      {
+        persistLead: async () => {
+          throw new Error("database unavailable");
+        },
+      },
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(mailCalls.length, 1);
+  });
+
+  it("rejects invalid photos before calling Resend", async () => {
+    const data = form({
+      submissionId,
+      name: "TRACKING TEST — NOT A CUSTOMER LEAD",
+      phone: "2104369117",
+      message: "Photo validation unit test — discard.",
+    });
+    data.set(
+      "attachment",
+      new File([new Uint8Array([1])], "notes.pdf", { type: "application/pdf" }),
+    );
+    const res = await handleLeadFormData(
+      data,
+      new Request("https://theflipfixer.com/api/leads", { method: "POST" }),
+    );
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.ok, false);
+    assert.equal(body.code, "validation");
+    assert.equal(mailCalls.length, 0);
+  });
 });

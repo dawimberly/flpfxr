@@ -1,12 +1,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  MAX_LEAD_PHOTO_BYTES,
   buildLeadEmailText,
+  claimAcceptedLeadConversion,
   isValidSubmissionId,
   parseLeadApiResponse,
   shouldTrackAcceptedLead,
   validateLeadFields,
+  validateLeadPhoto,
 } from "./lead-delivery.ts";
+
+const submissionId = "550e8400-e29b-41d4-a716-446655440000";
 
 describe("lead delivery validation", () => {
   it("accepts a normal lead and rejects short phone or empty message", () => {
@@ -40,8 +45,26 @@ describe("lead delivery validation", () => {
   });
 
   it("validates submission ids", () => {
-    assert.equal(isValidSubmissionId("550e8400-e29b-41d4-a716-446655440000"), true);
+    assert.equal(isValidSubmissionId(submissionId), true);
     assert.equal(isValidSubmissionId("not-a-uuid"), false);
+  });
+
+  it("rejects oversize or unsupported photos", () => {
+    assert.equal(validateLeadPhoto(null).ok, true);
+    const okFile = new File([new Uint8Array([1, 2, 3])], "job.jpg", {
+      type: "image/jpeg",
+    });
+    assert.equal(validateLeadPhoto(okFile).ok, true);
+    const huge = new File([new Uint8Array(MAX_LEAD_PHOTO_BYTES + 1)], "big.jpg", {
+      type: "image/jpeg",
+    });
+    const hugeCheck = validateLeadPhoto(huge);
+    assert.equal(hugeCheck.ok, false);
+    const bad = new File([new Uint8Array([1])], "notes.pdf", {
+      type: "application/pdf",
+    });
+    const badCheck = validateLeadPhoto(bad);
+    assert.equal(badCheck.ok, false);
   });
 
   it("tracks only explicit non-discarded acceptance", () => {
@@ -57,6 +80,45 @@ describe("lead delivery validation", () => {
       shouldTrackAcceptedLead({ ok: false, message: "nope" }),
       false,
     );
+    assert.equal(
+      shouldTrackAcceptedLead({
+        ok: true,
+        duplicate: true,
+        submissionId,
+      }),
+      true,
+    );
+  });
+
+  it("claims an Ads conversion only once per submission id", () => {
+    const store = new Map<string, string>();
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    Object.assign(globalThis, {
+      window: {
+        sessionStorage: {
+          getItem: (key: string) => store.get(key) ?? null,
+          setItem: (key: string, value: string) => {
+            store.set(key, value);
+          },
+          removeItem: (key: string) => {
+            store.delete(key);
+          },
+        },
+      },
+    });
+    try {
+      assert.equal(claimAcceptedLeadConversion(submissionId), true);
+      assert.equal(claimAcceptedLeadConversion(submissionId), false);
+      assert.equal(claimAcceptedLeadConversion(submissionId.toUpperCase()), false);
+      assert.equal(
+        claimAcceptedLeadConversion("660e8400-e29b-41d4-a716-446655440001"),
+        true,
+      );
+      assert.equal(claimAcceptedLeadConversion("not-a-uuid"), false);
+    } finally {
+      if (prevWindow === undefined) delete (globalThis as { window?: unknown }).window;
+      else (globalThis as { window?: unknown }).window = prevWindow;
+    }
   });
 
   it("parses API success and failure bodies", () => {
@@ -79,7 +141,7 @@ describe("lead delivery validation", () => {
 
   it("includes ad click fields in the email body", () => {
     const text = buildLeadEmailText({
-      submissionId: "550e8400-e29b-41d4-a716-446655440000",
+      submissionId,
       name: "Ada",
       email: "a@example.com",
       phone: "2104369117",

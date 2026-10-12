@@ -14,23 +14,28 @@ describe("lead mail", () => {
     assert.match(cfg.from, /leads@theflipfixer.com/);
   });
 
-  it("treats Resend 200 with id as acceptance", async () => {
+  it("treats Resend 200 with id as acceptance and sends Idempotency-Key", async () => {
+    const submissionId = "550e8400-e29b-41d4-a716-446655440000";
+    let seenKey: string | null = null;
     const result = await sendLeadEmail(
       {
         to: "Jon@TheFlipFixer.com",
-        submissionId: "550e8400-e29b-41d4-a716-446655440000",
+        submissionId,
         from: "Leads <leads@theflipfixer.com>",
         subject: "Test",
         text: "Hello",
       },
       "re_test",
-      async () =>
-        new Response(JSON.stringify({ id: "email_123" }), {
+      async (_url, init) => {
+        seenKey = new Headers(init?.headers).get("Idempotency-Key");
+        return new Response(JSON.stringify({ id: "email_123" }), {
           status: 200,
           headers: { "content-type": "application/json" },
-        }),
+        });
+      },
     );
     assert.deepEqual(result, { ok: true, id: "email_123" });
+    assert.equal(seenKey, `contact-lead/${submissionId}`);
   });
 
   it("surfaces provider failures without claiming delivery", async () => {
