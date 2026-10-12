@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseFormSubmitResponse } from "./formsubmit.ts";
+import {
+  formSubmitAjaxInit,
+  parseFormSubmitResponse,
+} from "./formsubmit.ts";
 
 describe("parseFormSubmitResponse", () => {
   it("treats success JSON as a delivered lead", () => {
@@ -10,6 +13,19 @@ describe("parseFormSubmitResponse", () => {
     });
     assert.equal(result.ok, true);
     assert.equal(result.needsConfirm, false);
+  });
+
+  it("does not treat an empty 2xx body as an accepted lead", () => {
+    const result = parseFormSubmitResponse(200, null);
+    assert.equal(result.ok, false);
+    assert.equal(result.needsConfirm, false);
+  });
+
+  it("does not treat a 2xx message without success as acceptance", () => {
+    const result = parseFormSubmitResponse(200, {
+      message: "Queued",
+    });
+    assert.equal(result.ok, false);
   });
 
   it("flags the first-send confirmation email so ads leads are not silently dropped", () => {
@@ -30,5 +46,14 @@ describe("parseFormSubmitResponse", () => {
     assert.equal(result.ok, false);
     assert.equal(result.needsConfirm, false);
     assert.match(result.message, /Invalid email/i);
+  });
+});
+
+describe("formSubmitAjaxInit", () => {
+  it("omits custom headers so the browser does not CORS-preflight FormSubmit", () => {
+    const init = formSubmitAjaxInit(new FormData());
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers, undefined);
+    assert.equal("Accept" in (init.headers ?? {}), false);
   });
 });

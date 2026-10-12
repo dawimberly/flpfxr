@@ -9,6 +9,10 @@ export type FormSubmitResult = {
   message: string;
 };
 
+/** Shown when FormSubmit did not explicitly accept the lead. */
+export const FORM_SUBMIT_UNCONFIRMED =
+  "Could not confirm the form was sent. Call instead.";
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object") return null;
   return value as Record<string, unknown>;
@@ -44,14 +48,29 @@ export function parseFormSubmitResponse(
     };
   }
 
-  if (status >= 200 && status < 300 && (success || !rawMessage)) {
+  // Explicit success only. An empty 2xx body is not acceptance evidence.
+  if (status >= 200 && status < 300 && success) {
     return { ok: true, needsConfirm: false, message: "Sent." };
   }
 
   return {
     ok: false,
     needsConfirm: false,
-    message: rawMessage || "Could not send the form. Call instead.",
+    message: rawMessage || FORM_SUBMIT_UNCONFIRMED,
+  };
+}
+
+/**
+ * Fetch options for FormSubmit's ajax endpoint.
+ * No custom headers — `Accept: application/json` triggers a CORS preflight that
+ * Cloudflare on formsubmit.co often blocks, forcing every browser into the
+ * native redirect path.
+ */
+export function formSubmitAjaxInit(body: BodyInit): RequestInit {
+  return {
+    method: "POST",
+    body,
+    credentials: "omit",
   };
 }
 
