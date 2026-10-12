@@ -117,6 +117,8 @@ export type LeadDraft = {
   kitchenScope?: string;
   bathroomScope?: string;
   message?: string;
+  /** In-flight / retry id so remounts keep the same Resend Idempotency-Key. */
+  submissionId?: string;
 };
 
 export function saveLeadDraft(draft: LeadDraft) {
