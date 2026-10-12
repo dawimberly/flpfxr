@@ -65,6 +65,8 @@ describe("lead submit server", () => {
     assert.equal(mailCalls.length, 1);
     const sent = mailCalls[0] as { init?: { body?: string } };
     assert.match(String(sent.init?.body), /unit-gclid/);
+    const requestHeaders = new Headers((sent.init as RequestInit)?.headers);
+    assert.equal(requestHeaders.get("Idempotency-Key"), `contact-lead/${submissionId}`);
   });
 
   it("discards honeypot without emailing", async () => {

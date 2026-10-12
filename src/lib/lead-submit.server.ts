@@ -226,6 +226,7 @@ export async function handleLeadFormData(
   const mail = await sendLeadEmail(
     {
       to: mailCfg.to,
+      submissionId,
       from: mailCfg.from,
       replyTo: payload.email.trim() || undefined,
       subject: buildLeadSubject(payload.service, payload.source),

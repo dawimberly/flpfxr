@@ -18,6 +18,7 @@ describe("lead mail", () => {
     const result = await sendLeadEmail(
       {
         to: "Jon@TheFlipFixer.com",
+        submissionId: "550e8400-e29b-41d4-a716-446655440000",
         from: "Leads <leads@theflipfixer.com>",
         subject: "Test",
         text: "Hello",
@@ -36,6 +37,7 @@ describe("lead mail", () => {
     const result = await sendLeadEmail(
       {
         to: "Jon@TheFlipFixer.com",
+        submissionId: "550e8400-e29b-41d4-a716-446655440000",
         from: "Leads <leads@theflipfixer.com>",
         subject: "Test",
         text: "Hello",

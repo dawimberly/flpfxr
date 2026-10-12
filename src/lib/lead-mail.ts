@@ -10,6 +10,7 @@ export type LeadMailAttachment = {
 };
 
 export type LeadMailInput = {
+  submissionId: string;
   to: string;
   from: string;
   replyTo?: string;
@@ -61,6 +62,7 @@ export async function sendLeadEmail(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "Idempotency-Key": `contact-lead/${input.submissionId}`,
       },
       body: JSON.stringify(payload),
     });
