@@ -123,8 +123,8 @@ export const SERVICES: Array<{
   {
     id: "outdoor",
     title: "Outdoor",
-    short: "Decks, patios, lighting.",
-    body: "Decks, patios, lighting. Outdoor work that holds up out here.",
+    short: "Fences, decks, patios, lighting.",
+    body: "Fences, decks, patios, lighting. Outdoor work that holds up in San Antonio heat and storms.",
     image: "/images/patio1.webp",
     group: "Specialty",
   },
