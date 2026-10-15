@@ -2,15 +2,13 @@
  * Draft-only helper for Nextdoor recommendation replies.
  *
  * Nothing in this module connects to Nextdoor. Automated reading and posting
- * stay refused: the Member Agreement forbids scripts and robots that copy
- * data off the service, the Publish and Displaying APIs need an approved
- * application this project does not have, and a personal account may not
- * answer a recommendation by promoting its own business. Flagging risk is
- * not a switch that turns reading on.
+ * stay off: no approved API client is configured, and the documented APIs do
+ * not read a logged-in neighborhood feed. Flagging risk does not turn reading on.
  *
- * The permitted use is local: paste a post you already read, get one
- * Business Page draft, and decide yourself whether to publish it from
- * The Flip Fixer page Jon owns.
+ * Jon owns The Flip Fixer and its Business Page. The default poster is an
+ * independent neighbor: not the owner, not staff, with no compensation and no
+ * hiring on record. A matching post can produce a short personal-account
+ * draft. This tool does not write in the Business Page's voice.
  */
 import { createHash } from "node:crypto";
 import { SERVICE_AREAS, SITE } from "./site.ts";
@@ -20,8 +18,52 @@ export const POLICY_REVIEWED_ON = "2026-10-15";
 export const AUTOMATION_REFUSAL =
   "Whether a run would be flagged is not a reason to read the account. Automated Nextdoor reading and posting are off. No supported feed integration is configured. The Member Agreement forbids scripts, robots, crawlers, and other automated means of copying profiles or other data off the service. The Publish API and the Displaying Content APIs require an approved application; this project has no client id or access token, and the open Share Plugin only pre-fills a post a person submits by hand. The Displaying Search API, even after approval, returns public anyone-visibility posts from the last 30 days, not a logged-in neighborhood feed.";
 
-export const PERSONAL_ACCOUNT_REFUSAL =
-  "A personal account cannot answer this. Nextdoor's self-promotion policy (August 19, 2026) says paid-service promotion, including a reply to a recommendation request for your own business, has to come from the Business Page. Recommending another business from a personal account is limited to neighbors with no business relationship, referral benefit, or other conflict of interest. Jon owns The Flip Fixer Business Page. No personal-account draft was created, and nothing was posted.";
+export const POLICY_PASSAGES = [
+  {
+    source: "https://blog.nextdoor.com/self-promotion-update",
+    published: "August 19, 2026",
+    passage:
+      "Promoting a business, service, or paid opportunity can still happen on Nextdoor but it must be done from a free Business Page, not a personal neighbor account. For the last few years, businesses have increasingly used neighbor accounts to post promotional content from personal accounts rather than Business Pages. That includes posts and comments in the main feed, as well as unsolicited direct messages.",
+  },
+  {
+    source: "https://blog.nextdoor.com/self-promotion-update",
+    published: "August 19, 2026",
+    passage:
+      "Nothing about your Nextdoor changes. Asking who to call, recommending a business you love, posting a garage sale, or selling a couch are all still welcome from your personal account.",
+  },
+  {
+    source: "https://nextdoorcrm.my.site.com/s/article/Self-Promotion-using-your-Personal-Account",
+    published: "Help article, retrieved October 15, 2026",
+    passage:
+      'When a neighbor asks for a recommendation (e.g., "Who is a great plumber?"), you may not reply to recommend your own business. These replies must come from other neighbors or your business profile.',
+  },
+  {
+    source: "https://nextdoorcrm.my.site.com/s/article/Self-Promotion-using-your-Personal-Account",
+    published: "Help article, retrieved October 15, 2026",
+    passage:
+      "Posts from family, staff, or close friends on behalf of a business are treated as business promotion and are not allowed in the feed.",
+  },
+  {
+    source: "https://nextdoorcrm.my.site.com/s/article/Self-Promotion-using-your-Personal-Account",
+    published: "Help article, retrieved October 15, 2026",
+    passage:
+      "Yes, you can provide a neighbor recommendation for another service provider as long as there isn’t a relationship, referral benefit, or other conflict of interest.",
+  },
+] as const;
+
+export const CONFLICT_REFUSAL =
+  "No draft was created. The recorded relationship is a conflict with an independent recommendation. Nextdoor's self-promotion FAQ says you may not reply from a personal account to recommend your own business, and that posts from family, staff, or close friends on behalf of a business are treated as business promotion. Jon owns the Business Page. This tool does not operate that page and will not write in its voice.";
+
+export const BUSINESS_PAGE_REFUSAL =
+  "No draft was created. Jon owns The Flip Fixer Business Page. This account does not operate that page, so the reply is not written as the business. An independent neighbor draft uses --channel personal.";
+
+export const API_APPLICATION = `API application: https://developer.nextdoor.com/reference/applying-for-access. Submit the Publishing API form, the Displaying API form, or both. Nextdoor reviews each application against its current program criteria, and approval is not guaranteed. An approval email includes a client id and client secret. This project has neither.
+
+Publishing is OAuth. After approval, the member opens https://www.nextdoor.com/v3/authorize/ with the redirect URI from the application and scopes such as openid, post:write, post:read, and comment:write, then the app exchanges the code for a bearer token. post:write creates a post. comment:write creates a comment only when the caller already has that post's share id. The authenticated profile can be a neighbor or a business profile.
+
+Displaying Search uses a client-credentials token. Scopes include openid and content_api.search_post. The Search API returns public anyone-visibility posts from the last 30 days for a latitude, longitude, radius, and keywords. It does not read a logged-in neighborhood feed. https://developer.nextdoor.com/docs/displaying-overview
+
+Those APIs do not cover hourly reading of a personal neighborhood feed plus automatic replies. comment:write could post a comment only after approval, member consent, and a known share id, and the self-promotion rules would still apply. That path is not configured. The Ads API is a separate application for advertising partners. The Share Plugin needs no application and only opens Nextdoor's composer for a person to submit by hand.`;
 
 export const POLICY_SOURCES = [
   "https://blog.nextdoor.com/self-promotion-update",
@@ -29,11 +71,10 @@ export const POLICY_SOURCES = [
   "https://developer.nextdoor.com/reference/applying-for-access",
   "https://developer.nextdoor.com/docs/displaying-overview",
   "https://developer.nextdoor.com/docs/sharing-overview",
+  "https://developer.nextdoor.com/reference/sharing-get-authorization-code",
+  "https://developer.nextdoor.com/reference/displaying-get-access-token",
   "https://help.nextdoor.com/s/article/Member-Agreement-US-2026",
 ] as const;
-
-export const SUGGESTED_DISCLOSURE =
-  "I work with The Flip Fixer. Jon owns the Nextdoor Business Page. This reply is from that page, not from a personal neighbor account.";
 
 export const STATE_FILENAME = "nextdoor-draft-state.json";
 
@@ -49,13 +90,23 @@ export type ServiceId =
 
 export type Channel = "business-page" | "personal";
 
+export const POSTER_RELATIONSHIPS = [
+  "independent",
+  "owner",
+  "employee",
+  "compensated",
+  "family-or-close-friend",
+] as const;
+
+export type PosterRelationship = (typeof POSTER_RELATIONSHIPS)[number];
+
 export interface NextdoorDraftConfig {
   paused: boolean;
   stopped: boolean;
   stopReason: string | null;
   monitoringIntervalMinutes: number;
   maxDraftsPerDay: number;
-  relationshipDisclosure: string;
+  relationship: PosterRelationship;
   truthfulExperience: string | null;
 }
 
@@ -75,7 +126,7 @@ export interface HandledRecord {
 }
 
 export interface DraftState {
-  version: 1;
+  version: 2;
   config: NextdoorDraftConfig;
   handled: HandledRecord[];
   log: LogEntry[];
@@ -96,10 +147,10 @@ export type IngestStatus =
   | "not-a-request"
   | "outside-service-area"
   | "location-unknown"
-  | "personal-account-blocked"
+  | "conflict-blocked"
+  | "business-page-unavailable"
   | "limit"
-  | "rejected"
-  | "config-error";
+  | "rejected";
 
 export interface IngestResult {
   status: IngestStatus;
@@ -124,12 +175,12 @@ const SERVICE_RULES: Array<{ id: ServiceId; pattern: RegExp }> = [
 ];
 
 const SERVICE_PHRASE: Record<ServiceId, string> = {
-  kitchen: "a kitchen remodel",
-  bathroom: "a bathroom remodel",
+  kitchen: "kitchen remodels",
+  bathroom: "bathroom remodels",
   flooring: "flooring",
   painting: "painting",
   "make-ready": "make-ready work",
-  remodeling: "a remodel",
+  remodeling: "remodels",
 };
 
 const REQUEST_PATTERN =
@@ -175,7 +226,7 @@ const ZIP_AREAS: Array<{ name: string; pattern: RegExp }> = [
 
 export function initialState(partial: Partial<NextdoorDraftConfig> = {}): DraftState {
   return {
-    version: 1,
+    version: 2,
     config: { ...defaultConfig(), ...partial },
     handled: [],
     log: [],
@@ -189,22 +240,13 @@ export function defaultConfig(): NextdoorDraftConfig {
     stopReason: null,
     monitoringIntervalMinutes: 60,
     maxDraftsPerDay: 5,
-    relationshipDisclosure: SUGGESTED_DISCLOSURE,
+    relationship: "independent",
     truthfulExperience: null,
   };
 }
 
-function disclosureIsValid(text: string): boolean {
-  const value = text.toLowerCase();
-  const namesTheBusiness = value.includes("flip fixer");
-  const namesTheOwner = /\bjon\b/.test(value);
-  const namesTheRelationship =
-    value.includes("work with") ||
-    value.includes("business") ||
-    value.includes("owner") ||
-    value.includes("employee") ||
-    value.includes("financial");
-  return namesTheBusiness && namesTheOwner && namesTheRelationship;
+function isPosterRelationship(value: string): value is PosterRelationship {
+  return (POSTER_RELATIONSHIPS as readonly string[]).includes(value);
 }
 
 function stripControls(text: string): string {
@@ -291,24 +333,27 @@ export function setMaxDraftsPerDay(
   };
 }
 
-export function setDisclosure(
+export function setRelationship(
   state: DraftState,
-  disclosure: string,
+  relationship: string,
   now: Date,
 ): { state: DraftState; error: string | null } {
-  const text = disclosure.trim();
-  if (!disclosureIsValid(text)) {
+  const value = relationship.trim();
+  if (!isPosterRelationship(value)) {
     return {
       state,
-      error:
-        "Disclosure has to name The Flip Fixer, Jon, and the business relationship. A reply is not created without that.",
+      error: `Relationship must be one of: ${POSTER_RELATIONSHIPS.join(", ")}.`,
     };
   }
+  const detail =
+    value === "independent"
+      ? "Relationship set to independent. No ownership, staff role, compensation, or hiring is on record. Jon owns the business."
+      : `Relationship set to ${value}. Personal drafts are blocked, and this tool will not write Jon's Business Page.`;
   return {
     state: withLog(
-      { ...state, config: { ...state.config, relationshipDisclosure: text } },
-      "disclosure-set",
-      "Relationship disclosure updated.",
+      { ...state, config: { ...state.config, relationship: value } },
+      "relationship-set",
+      detail,
       now,
     ),
     error: null,
@@ -524,22 +569,14 @@ function askedPhrase(services: ServiceId[]): string {
   return `${phrases.slice(0, -1).join(", ")} and ${phrases[phrases.length - 1]}`;
 }
 
-export function buildBusinessPageReply(
+export function buildNeighborReply(
   services: ServiceId[],
   area: string,
-  disclosure: string,
   truthfulExperience: string | null,
 ): string {
-  const paragraphs = [
-    "We're The Flip Fixer, replying from our Business Page. Jon owns this page.",
-    `You asked about ${askedPhrase(services)} in ${area}. We do kitchen and bath remodels, flooring, painting, and make-ready work in our San Antonio service area.`,
-    disclosure.trim(),
-  ];
-  if (truthfulExperience && truthfulExperience.trim()) {
-    paragraphs.push(truthfulExperience.trim());
-  }
-  paragraphs.push(`Call or text ${SITE.phoneDisplay}, or use ${SITE.url}/contact.`);
-  return paragraphs.join("\n\n");
+  const reply = `Jon owns The Flip Fixer and does ${askedPhrase(services)} in ${area}. ${SITE.phoneDisplay}.`;
+  if (!truthfulExperience?.trim()) return reply;
+  return `${reply} ${truthfulExperience.trim()}`;
 }
 
 function draftsToday(state: DraftState, now: Date): number {
@@ -572,14 +609,6 @@ export function ingestPost(
   input: PostInput,
   now: Date,
 ): { state: DraftState; result: IngestResult } {
-  if (!disclosureIsValid(state.config.relationshipDisclosure)) {
-    const next = result(
-      "config-error",
-      "Set a disclosure that names The Flip Fixer, Jon, and the business relationship before drafting.",
-    );
-    return { state: withLog(state, "config-error", next.detail, now), result: next };
-  }
-
   const text = stripControls(input.text).trim();
   if (!text) {
     const next = result("rejected", "The post was empty. Nothing was drafted.");
@@ -592,7 +621,7 @@ export function ingestPost(
 
   const keys = keysFor(text, input.platformId);
   const prior = alreadyDrafted(state, keys);
-  if (prior) {
+  if (prior && input.channel === "personal" && state.config.relationship === "independent") {
     const next = result(
       "duplicate",
       "This request already has a draft. It was not drafted again.",
@@ -674,16 +703,32 @@ export function ingestPost(
     return { state: withLog(state, "skipped", next.detail, now), result: next };
   }
 
-  if (input.channel === "personal") {
-    const next = result("personal-account-blocked", PERSONAL_ACCOUNT_REFUSAL, {
+  if (state.config.relationship !== "independent") {
+    const next = result("conflict-blocked", CONFLICT_REFUSAL, {
       services,
       area: areaHit.name,
     });
     return {
       state: withLog(
         state,
-        "personal-blocked",
-        "Personal-account reply refused. No draft was created.",
+        "conflict-blocked",
+        `No draft. Recorded relationship is ${state.config.relationship}.`,
+        now,
+      ),
+      result: next,
+    };
+  }
+
+  if (input.channel === "business-page") {
+    const next = result("business-page-unavailable", BUSINESS_PAGE_REFUSAL, {
+      services,
+      area: areaHit.name,
+    });
+    return {
+      state: withLog(
+        state,
+        "business-page-refused",
+        "No Business Page draft. This account does not operate Jon's page.",
         now,
       ),
       result: next,
@@ -699,12 +744,7 @@ export function ingestPost(
     return { state: withLog(state, "limit", next.detail, now), result: next };
   }
 
-  const draft = buildBusinessPageReply(
-    services,
-    areaHit.name,
-    state.config.relationshipDisclosure,
-    state.config.truthfulExperience,
-  );
+  const draft = buildNeighborReply(services, areaHit.name, state.config.truthfulExperience);
   const record: HandledRecord = {
     keys,
     platformId: platformKey(input.platformId)?.slice(3) ?? null,
@@ -713,7 +753,7 @@ export function ingestPost(
     area: areaHit.name,
     draft,
   };
-  const next = result("draft", "Draft created for the Business Page. It was not posted.", {
+  const next = result("draft", "Personal-account draft created. It was not posted.", {
     services,
     area: areaHit.name,
     draft,
@@ -729,6 +769,16 @@ export function ingestPost(
   };
 }
 
+function relationshipSummary(config: NextdoorDraftConfig): string {
+  if (config.relationship === "independent") {
+    const hiring = config.truthfulExperience
+      ? "A supplied experience note is included only in drafts created after it was stored."
+      : "No hiring is on record.";
+    return `On record: not the owner, not staff, and no compensation. ${hiring} Jon owns The Flip Fixer and its Business Page.`;
+  }
+  return `On record: ${config.relationship}. That conflicts with an independent recommendation. Jon owns the Business Page.`;
+}
+
 export function statusReport(state: DraftState): string {
   const lines = [
     "Mode: draft-only",
@@ -741,10 +791,20 @@ export function statusReport(state: DraftState): string {
     `Stored monitoring interval: ${state.config.monitoringIntervalMinutes} minutes (not scheduled)`,
     `Local draft cap: ${state.config.maxDraftsPerDay} per UTC day`,
     `Drafts stored: ${state.handled.length}`,
-    `Disclosure set: ${disclosureIsValid(state.config.relationshipDisclosure) ? "yes" : "no"}`,
+    `Poster relationship: ${state.config.relationship}`,
+    relationshipSummary(state.config),
     `Truthful experience note: ${state.config.truthfulExperience ? "set" : "not set"}`,
+    state.config.relationship === "independent"
+      ? "Personal-account drafts: allowed for an independent recommendation of Jon's business."
+      : "Personal-account drafts: blocked because the recorded relationship is a conflict.",
+    "Business Page drafts: not created. This account does not operate Jon's page.",
     "",
     AUTOMATION_REFUSAL,
+    "",
+    "Personal-account policy passages:",
+    ...POLICY_PASSAGES.map((item) => `${item.published} — ${item.source}\n"${item.passage}"`),
+    "",
+    API_APPLICATION,
     "",
     "Policy reviewed 2026-10-15.",
     ...POLICY_SOURCES.map((source) => `Source: ${source}`),
@@ -763,7 +823,7 @@ export type CliCommand =
   | { type: "enable-posting" }
   | { type: "interval"; minutes: number }
   | { type: "cap"; cap: number }
-  | { type: "disclosure"; text: string }
+  | { type: "relationship"; relationship: string }
   | { type: "experience"; text: string | null }
   | { type: "warning"; text: string }
   | { type: "acknowledge"; text: string }
@@ -796,8 +856,8 @@ export function parseCliArgs(argv: string[]): { command: CliCommand } | { error:
       return parseNumberCommand(rest, "interval");
     case "cap":
       return parseNumberCommand(rest, "cap");
-    case "disclosure":
-      return { command: { type: "disclosure", text: rest.join(" ").trim() } };
+    case "relationship":
+      return { command: { type: "relationship", relationship: rest.join(" ").trim() } };
     case "experience":
       if (rest[0] === "--clear") {
         if (rest.length > 1) return { error: `unexpected argument: ${rest[1]}` };
@@ -866,7 +926,7 @@ function parseDraftArgs(rest: string[]): { command: CliCommand } | { error: stri
   if (!channel)
     return {
       error:
-        "usage: draft --channel business-page|personal [--id id] [--neighborhood name] [--file path | --text words]",
+        "usage: draft --channel personal|business-page [--id id] [--neighborhood name] [--file path | --text words]",
     };
   return {
     command: {
@@ -890,8 +950,8 @@ Commands:
   resume                         Allow drafts again (posting stays off)
   interval <minutes>             Store an interval from 1 to 1440 (not scheduled)
   cap <count>                    Local drafts per UTC day, from 1 to 20
-  draft --channel business-page  Classify a pasted post and draft a Business Page reply
-  disclosure <sentence>          Set the relationship disclosure
+  draft --channel personal       Classify a pasted post and draft an independent neighbor reply
+  relationship <value>           independent, owner, employee, compensated, or family-or-close-friend
   experience <sentence>          Add a truthful experience note you supply
   experience --clear             Remove that note
   warning <what Nextdoor showed> Stop drafts after a warning or restriction
@@ -981,12 +1041,12 @@ export function dispatch(
         exitCode: 0,
       };
     }
-    case "disclosure": {
-      const updated = setDisclosure(state, command.text, now);
+    case "relationship": {
+      const updated = setRelationship(state, command.relationship, now);
       if (updated.error) return { state, stdout: `${updated.error}\n`, exitCode: 1 };
       return {
         state: updated.state,
-        stdout: "Relationship disclosure updated.\n",
+        stdout: `${updated.state.log.at(-1)?.detail ?? "Relationship updated."}\n`,
         exitCode: 0,
       };
     }
@@ -1064,11 +1124,18 @@ export function serializeState(state: DraftState): string {
 export function loadState(raw: string): DraftState {
   const parsed: unknown = JSON.parse(raw);
   if (!parsed || typeof parsed !== "object") throw new Error("State file is not an object.");
-  const record = parsed as Partial<DraftState>;
-  if (record.version !== 1) throw new Error("Unsupported state version.");
+  const record = parsed as {
+    version?: unknown;
+    config?: Partial<NextdoorDraftConfig> & { relationshipDisclosure?: unknown };
+    handled?: unknown;
+    log?: unknown;
+  };
+  if (record.version !== 1 && record.version !== 2) throw new Error("Unsupported state version.");
   const config = record.config;
   if (!config || typeof config !== "object") throw new Error("State file is missing config.");
   const base = defaultConfig();
+  const rawRelationship =
+    "relationship" in config && typeof config.relationship === "string" ? config.relationship : "";
   const loaded: NextdoorDraftConfig = {
     paused: config.paused === true,
     stopped: config.stopped === true,
@@ -1087,11 +1154,7 @@ export function loadState(raw: string): DraftState {
       config.maxDraftsPerDay <= MAX_DAILY_CAP
         ? config.maxDraftsPerDay
         : base.maxDraftsPerDay,
-    relationshipDisclosure:
-      typeof config.relationshipDisclosure === "string" &&
-      disclosureIsValid(config.relationshipDisclosure)
-        ? config.relationshipDisclosure.trim()
-        : base.relationshipDisclosure,
+    relationship: isPosterRelationship(rawRelationship) ? rawRelationship : base.relationship,
     truthfulExperience:
       typeof config.truthfulExperience === "string" && config.truthfulExperience.trim()
         ? oneLine(config.truthfulExperience, 400)
@@ -1099,7 +1162,7 @@ export function loadState(raw: string): DraftState {
   };
   const handled = Array.isArray(record.handled) ? record.handled.filter(isHandledRecord) : [];
   const log = Array.isArray(record.log) ? record.log.filter(isLogEntry).slice(-MAX_LOG) : [];
-  return { version: 1, config: loaded, handled, log };
+  return { version: 2, config: loaded, handled, log };
 }
 
 function isHandledRecord(value: unknown): value is HandledRecord {
