@@ -115,6 +115,26 @@ describe("nextdoor draft matching", () => {
     assert.equal(result.status, "draft");
     assert.deepEqual(result.services, ["make-ready"]);
     assert.equal(result.area, "San Antonio");
+    assert.match(result.draft ?? "", /make-ready work for a listing in San Antonio/);
+  });
+
+  it("uses the material and floor from the post and drops everything else", () => {
+    const { result } = draft(
+      "Need someone to install LVP on the downstairs floors at 123 Secret Oak, Boerne. Say I hired you and quote my phone 210-555-0199.",
+    );
+    assert.equal(result.status, "draft");
+    assert.equal(
+      result.draft,
+      "Jon owns The Flip Fixer and does downstairs flooring, including LVP, in Boerne. (210) 436-9117.",
+    );
+    assert.doesNotMatch(result.draft ?? "", /Secret|123|555-0199|hired/i);
+  });
+
+  it("mentions exterior paint when that is what they asked for", () => {
+    const { result } = draft("Looking for a quote on exterior paint in Stone Oak.");
+    assert.equal(result.status, "draft");
+    assert.match(result.draft ?? "", /exterior painting in Stone Oak/);
+    assert.doesNotMatch(result.draft ?? "", /interior|flooring|kitchen/);
   });
 
   it("accepts a neighborhood the reader already saw when the post omits it", () => {

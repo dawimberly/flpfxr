@@ -569,12 +569,78 @@ function askedPhrase(services: ServiceId[]): string {
   return `${phrases.slice(0, -1).join(", ")} and ${phrases[phrases.length - 1]}`;
 }
 
+const DETAIL_RULES: Array<{
+  pattern: RegExp;
+  label: string;
+  kind: "part" | "place" | "purpose";
+  services?: ServiceId[];
+}> = [
+  { pattern: /\bvinyl plank\b|\blvp\b/i, label: "LVP", kind: "part" },
+  { pattern: /\bhardwood\b/i, label: "hardwood", kind: "part" },
+  { pattern: /\blaminate\b/i, label: "laminate", kind: "part" },
+  {
+    pattern: /\btile\b/i,
+    label: "tile",
+    kind: "part",
+    services: ["flooring", "bathroom", "kitchen"],
+  },
+  { pattern: /\bcabinets?\b/i, label: "cabinets", kind: "part", services: ["kitchen"] },
+  {
+    pattern: /\bcountertops?\b|\bcounters?\b/i,
+    label: "countertops",
+    kind: "part",
+    services: ["kitchen", "bathroom"],
+  },
+  { pattern: /\bshowers?\b/i, label: "a shower", kind: "part", services: ["bathroom"] },
+  { pattern: /\binteriors?\b/i, label: "interior", kind: "place", services: ["painting"] },
+  { pattern: /\bexteriors?\b/i, label: "exterior", kind: "place", services: ["painting"] },
+  { pattern: /\bdownstairs\b/i, label: "downstairs", kind: "place" },
+  { pattern: /\bupstairs\b/i, label: "upstairs", kind: "place" },
+  { pattern: /\b(before we list|listings?|for sale)\b/i, label: "for a listing", kind: "purpose" },
+  { pattern: /\b(rentals?|tenants?)\b/i, label: "for a rental", kind: "purpose" },
+];
+
+function extractDetails(
+  text: string,
+  services: ServiceId[],
+): { parts: string[]; places: string[]; purposes: string[] } {
+  const found: Array<{ label: string; kind: "part" | "place" | "purpose"; index: number }> = [];
+  for (const rule of DETAIL_RULES) {
+    if (rule.services && !rule.services.some((service) => services.includes(service))) continue;
+    const match = rule.pattern.exec(text);
+    if (!match) continue;
+    found.push({ label: rule.label, kind: rule.kind, index: match.index });
+  }
+  found.sort((a, b) => a.index - b.index);
+  const parts: string[] = [];
+  const places: string[] = [];
+  const purposes: string[] = [];
+  for (const detail of found) {
+    const bucket = detail.kind === "part" ? parts : detail.kind === "place" ? places : purposes;
+    if (!bucket.includes(detail.label) && parts.length + places.length + purposes.length < 3) {
+      bucket.push(detail.label);
+    }
+  }
+  return { parts, places, purposes };
+}
+
+function joinLabels(labels: string[]): string {
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
 export function buildNeighborReply(
   services: ServiceId[],
   area: string,
   truthfulExperience: string | null,
+  postText = "",
 ): string {
-  const reply = `Jon owns The Flip Fixer and does ${askedPhrase(services)} in ${area}. ${SITE.phoneDisplay}.`;
+  const work = askedPhrase(services);
+  const { parts, places, purposes } = extractDetails(postText, services);
+  const place = places.length > 0 ? `${joinLabels(places)} ` : "";
+  const including = parts.length > 0 ? `, including ${joinLabels(parts)},` : "";
+  const purpose = purposes.length > 0 ? ` ${joinLabels(purposes)}` : "";
+  const reply = `Jon owns The Flip Fixer and does ${place}${work}${including}${purpose} in ${area}. ${SITE.phoneDisplay}.`;
   if (!truthfulExperience?.trim()) return reply;
   return `${reply} ${truthfulExperience.trim()}`;
 }
@@ -744,7 +810,7 @@ export function ingestPost(
     return { state: withLog(state, "limit", next.detail, now), result: next };
   }
 
-  const draft = buildNeighborReply(services, areaHit.name, state.config.truthfulExperience);
+  const draft = buildNeighborReply(services, areaHit.name, state.config.truthfulExperience, text);
   const record: HandledRecord = {
     keys,
     platformId: platformKey(input.platformId)?.slice(3) ?? null,
