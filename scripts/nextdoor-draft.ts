@@ -40,6 +40,11 @@ function writeState(state: DraftState) {
 }
 
 function bodyFor(command: CliCommand, fileText: string): string {
+  if (command.type === "profile-set") {
+    if (command.file) return fileText;
+    if (command.json !== null) return command.json;
+    return readFileSync(0, "utf8");
+  }
   if (command.type !== "draft") return "";
   if (command.file) return fileText;
   if (command.text !== null) return command.text;
@@ -53,7 +58,10 @@ if ("error" in parsed) {
 }
 
 let fileText = "";
-if (parsed.command.type === "draft" && parsed.command.file) {
+if (
+  (parsed.command.type === "draft" || parsed.command.type === "profile-set") &&
+  parsed.command.file
+) {
   try {
     fileText = readFileSync(parsed.command.file, "utf8");
   } catch (error) {

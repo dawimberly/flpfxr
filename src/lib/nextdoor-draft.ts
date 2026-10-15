@@ -5,13 +5,12 @@
  * stay off: no approved API client is configured, and the documented APIs do
  * not read a logged-in neighborhood feed. Flagging risk does not turn reading on.
  *
- * Jon owns The Flip Fixer and its Business Page. The default poster is an
- * independent neighbor: not the owner, not staff, with no compensation and no
- * hiring on record. A matching post can produce a short personal-account
- * draft. This tool does not write in the Business Page's voice.
+ * The default poster is an independent neighbor. Service and area claims come
+ * only from a verified business profile the operator supplies. The neighbor's
+ * post identifies the request. An uncertain match is flagged and not asserted.
  */
 import { createHash } from "node:crypto";
-import { SERVICE_AREAS, SITE } from "./site.ts";
+import { SERVICE_AREAS } from "./site.ts";
 
 export const POLICY_REVIEWED_ON = "2026-10-15";
 
@@ -125,9 +124,21 @@ export interface HandledRecord {
   draft: string;
 }
 
+export interface VerifiedBusinessProfile {
+  verified: true;
+  businessName: string;
+  ownerName: string | null;
+  phone: string | null;
+  services: ServiceId[];
+  serviceAreas: string[];
+}
+
+export type BusinessProfile = { verified: false } | VerifiedBusinessProfile;
+
 export interface DraftState {
   version: 2;
   config: NextdoorDraftConfig;
+  profile: BusinessProfile;
   handled: HandledRecord[];
   log: LogEntry[];
 }
@@ -147,6 +158,7 @@ export type IngestStatus =
   | "not-a-request"
   | "outside-service-area"
   | "location-unknown"
+  | "needs-review"
   | "conflict-blocked"
   | "business-page-unavailable"
   | "limit"
@@ -216,6 +228,15 @@ const OUTSIDE_AREAS = [
   "Cibolo",
 ] as const;
 
+const SERVICE_ID_LIST: ServiceId[] = [
+  "kitchen",
+  "bathroom",
+  "flooring",
+  "painting",
+  "make-ready",
+  "remodeling",
+];
+
 const ZIP_AREAS: Array<{ name: string; pattern: RegExp }> = [
   { name: "San Antonio", pattern: /\b782\d{2}\b/ },
   { name: "Boerne", pattern: /\b78006\b/ },
@@ -224,10 +245,15 @@ const ZIP_AREAS: Array<{ name: string; pattern: RegExp }> = [
   { name: "Kerrville", pattern: /\b78028\b|\b78029\b/ },
 ];
 
+export function emptyProfile(): BusinessProfile {
+  return { verified: false };
+}
+
 export function initialState(partial: Partial<NextdoorDraftConfig> = {}): DraftState {
   return {
     version: 2,
     config: { ...defaultConfig(), ...partial },
+    profile: emptyProfile(),
     handled: [],
     log: [],
   };
@@ -360,6 +386,22 @@ export function setRelationship(
   };
 }
 
+export function setBusinessProfile(
+  state: DraftState,
+  raw: unknown,
+  now: Date,
+): { state: DraftState; error: string | null } {
+  const parsed = parseBusinessProfile(raw);
+  if (parsed.error || !parsed.profile) return { state, error: parsed.error };
+  const detail = parsed.profile.verified
+    ? `Verified profile stored for ${parsed.profile.businessName}. Claims are limited to its services and areas.`
+    : "Profile stored as not verified. No service or area will be asserted.";
+  return {
+    state: withLog({ ...state, profile: parsed.profile }, "profile-set", detail, now),
+    error: null,
+  };
+}
+
 export function setTruthfulExperience(
   state: DraftState,
   experience: string | null,
@@ -384,7 +426,7 @@ export function setTruthfulExperience(
     state: withLog(
       { ...state, config: { ...state.config, truthfulExperience: text } },
       "experience-set",
-      "Truthful experience note stored. It is added only because it was supplied here.",
+      "Truthful experience note stored. It is not added to the recommendation.",
       now,
     ),
     error: null,
@@ -528,23 +570,27 @@ function earliestMatch(text: string, pattern: RegExp): number | null {
   return match ? match.index : null;
 }
 
-function locate(
-  text: string,
-): { kind: "in"; name: string } | { kind: "out"; name: string } | { kind: "unknown" } {
-  let inHit: { name: string; index: number } | null = null;
-  for (const name of SERVICE_AREAS) {
+type AreaHit =
+  | { kind: "in"; name: string; source: "named" | "zip" }
+  | { kind: "out"; name: string }
+  | { kind: "unknown" };
+
+function locate(text: string, extraNames: readonly string[] = []): AreaHit {
+  const names = [...SERVICE_AREAS, ...extraNames];
+  let named: { name: string; index: number } | null = null;
+  for (const name of names) {
     const index = earliestMatch(
       text,
       new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i"),
     );
-    if (index !== null && (inHit === null || index < inHit.index)) inHit = { name, index };
+    if (index !== null && (named === null || index < named.index)) named = { name, index };
   }
+  if (named) return { kind: "in", name: named.name, source: "named" };
+
   for (const zip of ZIP_AREAS) {
     const index = earliestMatch(text, zip.pattern);
-    if (index !== null && (inHit === null || index < inHit.index))
-      inHit = { name: zip.name, index };
+    if (index !== null) return { kind: "in", name: zip.name, source: "zip" };
   }
-  if (inHit) return { kind: "in", name: inHit.name };
 
   let outHit: { name: string; index: number } | null = null;
   for (const name of OUTSIDE_AREAS) {
@@ -555,12 +601,22 @@ function locate(
   return { kind: "unknown" };
 }
 
-function resolveArea(text: string, neighborhood: string | null | undefined) {
-  const fromPost = locate(text);
+function resolveArea(
+  text: string,
+  neighborhood: string | null | undefined,
+  extraNames: readonly string[],
+): AreaHit {
+  const fromPost = locate(text, extraNames);
   if (fromPost.kind !== "unknown") return fromPost;
   const hint = neighborhood?.trim();
   if (!hint) return fromPost;
-  return locate(hint);
+  const fromHint = locate(hint, extraNames);
+  if (fromHint.kind === "in") return { kind: "in", name: fromHint.name, source: "named" };
+  return fromHint;
+}
+
+function namedArea(hit: AreaHit): string | null {
+  return hit.kind === "in" && hit.source === "named" ? hit.name : null;
 }
 
 function askedPhrase(services: ServiceId[]): string {
@@ -629,20 +685,116 @@ function joinLabels(labels: string[]): string {
   return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
+function uncertainScopes(text: string): string[] {
+  const reasons: string[] = [];
+  if (/\bcabinets?\b/i.test(text)) reasons.push("cabinets");
+  if (/\bcountertops?\b|\bcounters?\b/i.test(text)) reasons.push("countertops");
+  if (/\bshowers?\b/i.test(text) && !/\bbathrooms?\b|\bbath remodel\b/i.test(text)) {
+    reasons.push("a shower");
+  }
+  if (/\btile\b/i.test(text) && !/\btile floors?\b|\bfloor tile\b/i.test(text))
+    reasons.push("tile");
+  return reasons;
+}
+
+function needPhrase(text: string, services: ServiceId[], area: string): string {
+  const { parts, places, purposes } = extractDetails(text, services);
+  const lead = [...places, ...parts];
+  const work = services.length > 0 ? askedPhrase(services) : "the work described";
+  const purpose = purposes.length > 0 ? ` ${joinLabels(purposes)}` : "";
+  const core = lead.length > 0 ? `${joinLabels(lead)} ${work}` : work;
+  return `${core}${purpose} in ${area}`;
+}
+
 export function buildNeighborReply(
   services: ServiceId[],
   area: string,
-  truthfulExperience: string | null,
-  postText = "",
+  postText: string,
+  profile: VerifiedBusinessProfile,
 ): string {
-  const work = askedPhrase(services);
-  const { parts, places, purposes } = extractDetails(postText, services);
-  const place = places.length > 0 ? `${joinLabels(places)} ` : "";
-  const including = parts.length > 0 ? `, including ${joinLabels(parts)},` : "";
-  const purpose = purposes.length > 0 ? ` ${joinLabels(purposes)}` : "";
-  const reply = `Jon owns The Flip Fixer and does ${place}${work}${including}${purpose} in ${area}. ${SITE.phoneDisplay}.`;
-  if (!truthfulExperience?.trim()) return reply;
-  return `${reply} ${truthfulExperience.trim()}`;
+  const sentences = [
+    `You asked about ${needPhrase(postText, services, area)}.`,
+    `${profile.businessName}'s verified profile lists ${askedPhrase(services)} in ${area}.`,
+  ];
+  if (profile.ownerName) sentences.push(`${profile.ownerName} is the owner on that profile.`);
+  if (profile.phone)
+    sentences.push(profile.phone.endsWith(".") ? profile.phone : `${profile.phone}.`);
+  return sentences.join(" ");
+}
+
+function reviewBeforeClaim(
+  profile: BusinessProfile,
+  services: ServiceId[],
+  uncertain: string[],
+  area: string,
+): string | null {
+  if (uncertain.length > 0) {
+    return `The post mentions ${uncertain.join(", ")}. That scope is not a verified profile service, so no capability was asserted.`;
+  }
+  if (!profile.verified) {
+    return "No verified business profile is on file. No service or area was asserted.";
+  }
+  const missing = services.filter((service) => !profile.services.includes(service));
+  if (services.length === 0 || missing.length > 0) {
+    return `The post asks for ${missing.length > 0 ? missing.join(", ") : "work that is not specific"}. That is not on the verified profile, so it was not asserted.`;
+  }
+  if (!onProfile(area, profile.serviceAreas)) {
+    return `The post names ${area}. That place is not on the verified profile, so no service area was asserted.`;
+  }
+  return null;
+}
+
+function profileAreaNames(profile: BusinessProfile): string[] {
+  return profile.verified ? profile.serviceAreas : [];
+}
+
+function onProfile(name: string, areas: string[]): boolean {
+  const wanted = name.toLowerCase();
+  return areas.some((area) => area.toLowerCase() === wanted);
+}
+
+function parseBusinessProfile(raw: unknown): {
+  profile: BusinessProfile | null;
+  error: string | null;
+} {
+  if (!raw || typeof raw !== "object")
+    return { profile: null, error: "Profile JSON must be an object." };
+  const record = raw as Record<string, unknown>;
+  if (record.verified !== true) return { profile: emptyProfile(), error: null };
+  const businessName = typeof record.businessName === "string" ? record.businessName.trim() : "";
+  if (!businessName) {
+    return { profile: null, error: "A verified profile needs a businessName." };
+  }
+  if (!Array.isArray(record.services) || record.services.length === 0) {
+    return { profile: null, error: "A verified profile needs at least one service." };
+  }
+  const services: ServiceId[] = [];
+  for (const service of record.services) {
+    if (typeof service !== "string" || !SERVICE_ID_LIST.includes(service as ServiceId)) {
+      return { profile: null, error: `Unknown service: ${String(service)}.` };
+    }
+    if (!services.includes(service as ServiceId)) services.push(service as ServiceId);
+  }
+  if (!Array.isArray(record.serviceAreas) || record.serviceAreas.length === 0) {
+    return { profile: null, error: "A verified profile needs at least one service area." };
+  }
+  const serviceAreas: string[] = [];
+  for (const area of record.serviceAreas) {
+    if (typeof area !== "string" || !area.trim()) {
+      return { profile: null, error: "Service areas must be non-empty names." };
+    }
+    serviceAreas.push(area.trim());
+  }
+  const ownerName =
+    typeof record.ownerName === "string" && record.ownerName.trim()
+      ? record.ownerName.trim()
+      : null;
+  const phone =
+    typeof record.phone === "string" && record.phone.trim() ? oneLine(record.phone, 40) : null;
+  return {
+    profile: { verified: true, businessName, ownerName, phone, services, serviceAreas },
+    error: null,
+  };
 }
 
 function draftsToday(state: DraftState, now: Date): number {
@@ -713,7 +865,8 @@ export function ingestPost(
       : requestSentences.some((sentence) => BROAD_REQUEST.test(sentence))
         ? detectServices(text)
         : [];
-  const areaHit = resolveArea(text, input.neighborhood);
+  const areaHit = resolveArea(text, input.neighborhood, profileAreaNames(state.profile));
+  const uncertain = uncertainScopes(text);
 
   if (state.config.paused) {
     const next = result(
@@ -721,7 +874,7 @@ export function ingestPost(
       "Pause is on. The post was classified and no reply was created.",
       {
         services,
-        area: areaHit.kind === "in" ? areaHit.name : null,
+        area: namedArea(areaHit),
       },
     );
     return { state: withLog(state, "paused-skip", next.detail, now), result: next };
@@ -730,7 +883,7 @@ export function ingestPost(
     const next = result(
       "stopped",
       `Drafts are stopped after a platform warning${state.config.stopReason ? `: ${state.config.stopReason}` : ""}.`,
-      { services, area: areaHit.kind === "in" ? areaHit.name : null },
+      { services, area: namedArea(areaHit) },
     );
     return {
       state: withLog(
@@ -743,7 +896,7 @@ export function ingestPost(
     };
   }
 
-  if (requestSentences.length === 0 || services.length === 0) {
+  if (requestSentences.length === 0 || (services.length === 0 && uncertain.length === 0)) {
     const next = result(
       "not-a-request",
       "No explicit request for remodeling, a kitchen, a bathroom, flooring, painting, or make-ready work.",
@@ -753,26 +906,32 @@ export function ingestPost(
   if (areaHit.kind === "out") {
     const next = result(
       "outside-service-area",
-      `The request is in ${areaHit.name}, outside the service area.`,
-      {
-        services,
-      },
+      `The post names ${areaHit.name}. No service area was asserted.`,
+      { services },
     );
     return { state: withLog(state, "skipped", next.detail, now), result: next };
   }
   if (areaHit.kind === "unknown") {
     const next = result(
       "location-unknown",
-      "The post does not name a city or neighborhood in the service area. Pass the neighborhood shown on the post if you already read it.",
+      "The post does not name a place. No service area was asserted.",
       { services },
     );
     return { state: withLog(state, "skipped", next.detail, now), result: next };
+  }
+  if (areaHit.source === "zip") {
+    const next = result(
+      "needs-review",
+      `The post uses a ZIP code instead of a place name. ${areaHit.name} was not asserted as a service area.`,
+      { services },
+    );
+    return { state: withLog(state, "needs-review", next.detail, now), result: next };
   }
 
   if (state.config.relationship !== "independent") {
     const next = result("conflict-blocked", CONFLICT_REFUSAL, {
       services,
-      area: areaHit.name,
+      area: namedArea(areaHit),
     });
     return {
       state: withLog(
@@ -788,7 +947,7 @@ export function ingestPost(
   if (input.channel === "business-page") {
     const next = result("business-page-unavailable", BUSINESS_PAGE_REFUSAL, {
       services,
-      area: areaHit.name,
+      area: namedArea(areaHit),
     });
     return {
       state: withLog(
@@ -801,6 +960,14 @@ export function ingestPost(
     };
   }
 
+  const review = reviewBeforeClaim(state.profile, services, uncertain, areaHit.name);
+  if (review || !state.profile.verified) {
+    const detail =
+      review ?? "No verified business profile is on file. No service or area was asserted.";
+    const next = result("needs-review", detail, { services, area: areaHit.name });
+    return { state: withLog(state, "needs-review", detail, now), result: next };
+  }
+
   if (draftsToday(state, now) >= state.config.maxDraftsPerDay) {
     const next = result(
       "limit",
@@ -810,7 +977,7 @@ export function ingestPost(
     return { state: withLog(state, "limit", next.detail, now), result: next };
   }
 
-  const draft = buildNeighborReply(services, areaHit.name, state.config.truthfulExperience, text);
+  const draft = buildNeighborReply(services, areaHit.name, text, state.profile);
   const record: HandledRecord = {
     keys,
     platformId: platformKey(input.platformId)?.slice(3) ?? null,
@@ -836,13 +1003,20 @@ export function ingestPost(
 }
 
 function relationshipSummary(config: NextdoorDraftConfig): string {
+  const experience = config.truthfulExperience
+    ? "A note is stored and is not added to the recommendation."
+    : "No hiring is on record.";
   if (config.relationship === "independent") {
-    const hiring = config.truthfulExperience
-      ? "A supplied experience note is included only in drafts created after it was stored."
-      : "No hiring is on record.";
-    return `On record: not the owner, not staff, and no compensation. ${hiring} Jon owns The Flip Fixer and its Business Page.`;
+    return `On record: not the owner, not staff, and no compensation. ${experience}`;
   }
-  return `On record: ${config.relationship}. That conflicts with an independent recommendation. Jon owns the Business Page.`;
+  return `On record: ${config.relationship}. That conflicts with an independent recommendation. ${experience}`;
+}
+
+function profileSummary(profile: BusinessProfile): string {
+  if (!profile.verified) {
+    return "Verified business profile: no. No service or area will be asserted.";
+  }
+  return `Verified business profile: ${profile.businessName}. Services: ${profile.services.join(", ")}. Areas: ${profile.serviceAreas.join(", ")}.`;
 }
 
 export function statusReport(state: DraftState): string {
@@ -859,9 +1033,10 @@ export function statusReport(state: DraftState): string {
     `Drafts stored: ${state.handled.length}`,
     `Poster relationship: ${state.config.relationship}`,
     relationshipSummary(state.config),
+    profileSummary(state.profile),
     `Truthful experience note: ${state.config.truthfulExperience ? "set" : "not set"}`,
     state.config.relationship === "independent"
-      ? "Personal-account drafts: allowed for an independent recommendation of Jon's business."
+      ? "Personal-account drafts: allowed only when the verified profile lists the requested service and area."
       : "Personal-account drafts: blocked because the recorded relationship is a conflict.",
     "Business Page drafts: not created. This account does not operate Jon's page.",
     "",
@@ -890,6 +1065,8 @@ export type CliCommand =
   | { type: "interval"; minutes: number }
   | { type: "cap"; cap: number }
   | { type: "relationship"; relationship: string }
+  | { type: "profile-show" }
+  | { type: "profile-set"; file: string | null; json: string | null }
   | { type: "experience"; text: string | null }
   | { type: "warning"; text: string }
   | { type: "acknowledge"; text: string }
@@ -924,6 +1101,8 @@ export function parseCliArgs(argv: string[]): { command: CliCommand } | { error:
       return parseNumberCommand(rest, "cap");
     case "relationship":
       return { command: { type: "relationship", relationship: rest.join(" ").trim() } };
+    case "profile":
+      return parseProfileCommand(rest);
     case "experience":
       if (rest[0] === "--clear") {
         if (rest.length > 1) return { error: `unexpected argument: ${rest[1]}` };
@@ -939,6 +1118,32 @@ export function parseCliArgs(argv: string[]): { command: CliCommand } | { error:
     default:
       return { error: `unknown command: ${command}` };
   }
+}
+
+function parseProfileCommand(rest: string[]): { command: CliCommand } | { error: string } {
+  if (rest.length === 0) return { command: { type: "profile-show" } };
+  if (rest[0] !== "set") return { error: "usage: profile | profile set --file path" };
+  let file: string | null = null;
+  let json: string | null = null;
+  for (let index = 1; index < rest.length; index += 1) {
+    const flag = rest[index];
+    if (flag === "--json") {
+      json = rest
+        .slice(index + 1)
+        .join(" ")
+        .trim();
+      break;
+    }
+    const value = rest[index + 1];
+    if (flag === "--file") {
+      if (!value) return { error: "--file needs a path" };
+      file = value;
+      index += 1;
+    } else {
+      return { error: `unexpected argument: ${flag}` };
+    }
+  }
+  return { command: { type: "profile-set", file, json } };
 }
 
 function parseNumberCommand(
@@ -1018,7 +1223,9 @@ Commands:
   cap <count>                    Local drafts per UTC day, from 1 to 20
   draft --channel personal       Classify a pasted post and draft an independent neighbor reply
   relationship <value>           independent, owner, employee, compensated, or family-or-close-friend
-  experience <sentence>          Add a truthful experience note you supply
+  profile                        Show the verified business profile
+  profile set --file <path>      Store a profile you mark verified: true
+  experience <sentence>          Store a note. It is not added to the recommendation.
   experience --clear             Remove that note
   warning <what Nextdoor showed> Stop drafts after a warning or restriction
   acknowledge <review note>      Clear the stop after you review it
@@ -1116,6 +1323,27 @@ export function dispatch(
         exitCode: 0,
       };
     }
+    case "profile-show":
+      return { state, stdout: `${profileSummary(state.profile)}\n`, exitCode: 0 };
+    case "profile-set": {
+      const rawText = command.json ?? body;
+      if (!rawText.trim()) {
+        return { state, stdout: "usage: profile set --file path\n", exitCode: 1 };
+      }
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        return { state, stdout: "Profile file is not valid JSON.\n", exitCode: 1 };
+      }
+      const updated = setBusinessProfile(state, parsed, now);
+      if (updated.error) return { state, stdout: `${updated.error}\n`, exitCode: 1 };
+      return {
+        state: updated.state,
+        stdout: `${updated.state.log.at(-1)?.detail ?? "Profile stored."}\n`,
+        exitCode: 0,
+      };
+    }
     case "experience": {
       const updated = setTruthfulExperience(state, command.text, now);
       if (updated.error) return { state, stdout: `${updated.error}\n`, exitCode: 1 };
@@ -1124,7 +1352,7 @@ export function dispatch(
         stdout:
           command.text === null
             ? "Truthful experience note cleared.\n"
-            : "Truthful experience note stored.\n",
+            : "Truthful experience note stored. It is not added to the recommendation.\n",
         exitCode: 0,
       };
     }
@@ -1195,6 +1423,7 @@ export function loadState(raw: string): DraftState {
     config?: Partial<NextdoorDraftConfig> & { relationshipDisclosure?: unknown };
     handled?: unknown;
     log?: unknown;
+    profile?: unknown;
   };
   if (record.version !== 1 && record.version !== 2) throw new Error("Unsupported state version.");
   const config = record.config;
@@ -1228,7 +1457,14 @@ export function loadState(raw: string): DraftState {
   };
   const handled = Array.isArray(record.handled) ? record.handled.filter(isHandledRecord) : [];
   const log = Array.isArray(record.log) ? record.log.filter(isLogEntry).slice(-MAX_LOG) : [];
-  return { version: 2, config: loaded, handled, log };
+  const storedProfile = parseBusinessProfile(record.profile);
+  return {
+    version: 2,
+    config: loaded,
+    profile: storedProfile.profile ?? emptyProfile(),
+    handled,
+    log,
+  };
 }
 
 function isHandledRecord(value: unknown): value is HandledRecord {

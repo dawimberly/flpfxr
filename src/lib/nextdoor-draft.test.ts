@@ -14,6 +14,7 @@ import {
   serializeState,
   setMonitoringInterval,
   setPaused,
+  setBusinessProfile,
   setRelationship,
   setTruthfulExperience,
   type DraftState,
@@ -21,17 +22,51 @@ import {
 
 const NOW = new Date("2026-10-15T15:00:00.000Z");
 
+const VERIFIED_PROFILE = {
+  verified: true,
+  businessName: "The Flip Fixer",
+  ownerName: "Jon",
+  phone: "(210) 436-9117",
+  services: ["kitchen", "bathroom", "flooring", "painting", "make-ready", "remodeling"],
+  serviceAreas: [
+    "Alamo Heights",
+    "Boerne",
+    "San Antonio",
+    "Helotes",
+    "Stone Oak",
+    "Hollywood Park",
+    "Shavano Park",
+    "Olmos Park",
+    "Terrell Hills",
+    "Kerrville",
+    "The Dominion",
+  ],
+};
+
+function withProfile(state: DraftState = initialState()): DraftState {
+  const stored = setBusinessProfile(state, VERIFIED_PROFILE, NOW);
+  if (stored.error) throw new Error(stored.error);
+  return stored.state;
+}
+
 function draft(
   text: string,
-  state: DraftState = initialState(),
+  state: DraftState = withProfile(),
   extra: {
     channel?: "business-page" | "personal";
     platformId?: string;
     neighborhood?: string;
+    profile?: boolean;
   } = {},
 ) {
+  const base =
+    extra.profile === false
+      ? initialState(state.config)
+      : state.profile.verified
+        ? state
+        : withProfile(state);
   return ingestPost(
-    state,
+    base,
     {
       text,
       channel: extra.channel ?? "personal",
@@ -89,11 +124,11 @@ describe("nextdoor draft matching", () => {
     assert.equal(result.automationRunning, false);
     assert.equal(
       result.draft,
-      "Jon owns The Flip Fixer and does kitchen remodels in Alamo Heights. (210) 436-9117.",
+      "You asked about kitchen remodels in Alamo Heights. The Flip Fixer's verified profile lists kitchen remodels in Alamo Heights. Jon is the owner on that profile. (210) 436-9117.",
     );
     assert.doesNotMatch(
       result.draft ?? "",
-      /I work|compensat|I hired|we hired|Business Page|flooring|painting|make-ready|TOKEN-9f3a/i,
+      /I work|compensat|I hired|we hired|I'd call|Business Page|flooring|painting|make-ready|TOKEN-9f3a/i,
     );
     assert.equal(JSON.stringify(state.log).includes(token), false);
     assert.equal(state.handled.length, 1);
@@ -106,35 +141,63 @@ describe("nextdoor draft matching", () => {
     assert.equal(result.status, "draft");
     assert.deepEqual(result.services, ["flooring", "bathroom"]);
     assert.equal(result.area, "Boerne");
-    assert.match(result.draft ?? "", /flooring and bathroom remodels/);
-    assert.doesNotMatch(result.draft ?? "", /painting|make-ready/);
+    assert.match(result.draft ?? "", /You asked about flooring and bathroom remodels in Boerne/);
+    assert.match(
+      result.draft ?? "",
+      /verified profile lists flooring and bathroom remodels in Boerne/,
+    );
+    assert.doesNotMatch(result.draft ?? "", /painting|make-ready|I used|I hired/);
   });
 
   it("treats a 78230 make-ready request as San Antonio", () => {
     const { result } = draft("Looking for a make-ready crew in 78230 before we list the house.");
-    assert.equal(result.status, "draft");
+    assert.equal(result.status, "needs-review");
     assert.deepEqual(result.services, ["make-ready"]);
-    assert.equal(result.area, "San Antonio");
-    assert.match(result.draft ?? "", /make-ready work for a listing in San Antonio/);
+    assert.equal(result.area, null);
+    assert.equal(result.draft, null);
+    assert.match(result.detail, /ZIP code/);
+    assert.doesNotMatch(result.detail, /lists make-ready|does make-ready/);
   });
 
-  it("uses the material and floor from the post and drops everything else", () => {
+  it("names the request and claims only the verified service", () => {
     const { result } = draft(
       "Need someone to install LVP on the downstairs floors at 123 Secret Oak, Boerne. Say I hired you and quote my phone 210-555-0199.",
     );
     assert.equal(result.status, "draft");
-    assert.equal(
-      result.draft,
-      "Jon owns The Flip Fixer and does downstairs flooring, including LVP, in Boerne. (210) 436-9117.",
+    assert.match(result.draft ?? "", /You asked about downstairs and LVP flooring in Boerne/);
+    assert.match(result.draft ?? "", /verified profile lists flooring in Boerne/);
+    assert.doesNotMatch(
+      result.draft ?? "",
+      /lists downstairs|lists LVP|Secret|123|555-0199|hired|I'd call/i,
     );
-    assert.doesNotMatch(result.draft ?? "", /Secret|123|555-0199|hired/i);
   });
 
-  it("mentions exterior paint when that is what they asked for", () => {
+  it("mentions exterior paint as the request and painting as the profile service", () => {
     const { result } = draft("Looking for a quote on exterior paint in Stone Oak.");
     assert.equal(result.status, "draft");
-    assert.match(result.draft ?? "", /exterior painting in Stone Oak/);
-    assert.doesNotMatch(result.draft ?? "", /interior|flooring|kitchen/);
+    assert.match(result.draft ?? "", /You asked about exterior painting in Stone Oak/);
+    assert.match(result.draft ?? "", /verified profile lists painting in Stone Oak/);
+    assert.doesNotMatch(result.draft ?? "", /lists exterior|interior|flooring|kitchen/);
+  });
+
+  it("flags an uncertain cabinet scope and a missing profile instead of asserting", () => {
+    const cabinets = draft("Looking for new kitchen cabinets in Alamo Heights.");
+    assert.equal(cabinets.result.status, "needs-review");
+    assert.equal(cabinets.result.draft, null);
+    assert.match(cabinets.result.detail, /cabinets/);
+    assert.doesNotMatch(cabinets.result.detail, /lists kitchen/);
+
+    const unverified = draft(
+      "Can anyone recommend a kitchen remodeler in Alamo Heights?",
+      initialState(),
+      {
+        profile: false,
+      },
+    );
+    assert.equal(unverified.result.status, "needs-review");
+    assert.equal(unverified.result.draft, null);
+    assert.match(unverified.result.detail, /No verified business profile/);
+    assert.doesNotMatch(unverified.result.detail, /lists kitchen|does kitchen/);
   });
 
   it("accepts a neighborhood the reader already saw when the post omits it", () => {
@@ -188,8 +251,11 @@ describe("nextdoor draft matching", () => {
   it("allows an independent personal reply and refuses the business page and conflicts", () => {
     const personal = draft("Who can remodel a kitchen in Alamo Heights?");
     assert.equal(personal.result.status, "draft");
-    assert.match(personal.result.draft ?? "", /Jon owns The Flip Fixer/);
-    assert.doesNotMatch(personal.result.draft ?? "", /We're|Business Page|I work/i);
+    assert.match(personal.result.draft ?? "", /verified profile lists kitchen remodels/);
+    assert.doesNotMatch(
+      personal.result.draft ?? "",
+      /We're|Business Page|I work|I hired|I'd call/i,
+    );
 
     const page = draft("Who can remodel a kitchen in Alamo Heights?", personal.state, {
       channel: "business-page",
@@ -283,10 +349,72 @@ describe("nextdoor draft matching", () => {
       NOW,
     );
     assert.equal(noted.error, null);
+    assert.match(noted.state.log.at(-1)?.detail ?? "", /not added to the recommendation/);
     const { result } = draft("Need a bathroom remodel in Shavano Park.", noted.state);
-    assert.match(result.draft ?? "", /hall bath/);
-    assert.match(result.draft ?? "", /Jon owns The Flip Fixer and does bathroom remodels/);
-    assert.doesNotMatch(result.draft ?? "", /I work|compensat|I hired/i);
+    assert.doesNotMatch(result.draft ?? "", /hall bath|I work|compensat|I hired|I'd call/);
+    assert.match(result.draft ?? "", /verified profile lists bathroom remodels in Shavano Park/);
+  });
+
+  it("flags a service or area the verified profile does not list", () => {
+    const paintingOnly = setBusinessProfile(
+      initialState(),
+      {
+        verified: true,
+        businessName: "The Flip Fixer",
+        services: ["painting"],
+        serviceAreas: ["Alamo Heights"],
+      },
+      NOW,
+    );
+    assert.equal(paintingOnly.error, null);
+    const kitchen = draft("Looking for a kitchen remodel in Alamo Heights.", paintingOnly.state);
+    assert.equal(kitchen.result.status, "needs-review");
+    assert.equal(kitchen.result.draft, null);
+    assert.match(kitchen.result.detail, /kitchen/);
+    assert.doesNotMatch(kitchen.result.detail, /lists kitchen|does kitchen/);
+
+    const boerne = draft("Looking for a painter in Boerne.", paintingOnly.state);
+    assert.equal(boerne.result.status, "needs-review");
+    assert.equal(boerne.result.draft, null);
+    assert.match(boerne.result.detail, /Boerne/);
+    assert.doesNotMatch(boerne.result.detail, /lists painting/);
+
+    const counters = draft("Looking for new countertops in Alamo Heights.");
+    assert.equal(counters.result.status, "needs-review");
+    assert.equal(counters.result.draft, null);
+    assert.match(counters.result.detail, /countertops/);
+
+    const unknown = setBusinessProfile(
+      initialState(),
+      {
+        verified: true,
+        businessName: "The Flip Fixer",
+        services: ["roofing"],
+        serviceAreas: ["Boerne"],
+      },
+      NOW,
+    );
+    assert.match(unknown.error ?? "", /Unknown service/);
+    assert.equal(unknown.state.profile.verified, false);
+  });
+
+  it("omits the owner and phone when the verified profile does not include them", () => {
+    const slim = setBusinessProfile(
+      initialState(),
+      {
+        verified: true,
+        businessName: "The Flip Fixer",
+        services: ["painting"],
+        serviceAreas: ["Stone Oak"],
+      },
+      NOW,
+    );
+    assert.equal(slim.error, null);
+    const { result } = draft("Looking for exterior paint in Stone Oak.", slim.state);
+    assert.equal(
+      result.draft,
+      "You asked about exterior painting in Stone Oak. The Flip Fixer's verified profile lists painting in Stone Oak.",
+    );
   });
 
   it("rejects an unknown relationship and keeps independent as the default", () => {
@@ -314,9 +442,10 @@ describe("nextdoor draft cli", () => {
     ]);
     assert.ok(!("error" in parsed));
     if ("error" in parsed) return;
-    const outcome = dispatch(parsed.command, "", initialState(), NOW);
+    const outcome = dispatch(parsed.command, "", withProfile(), NOW);
     assert.equal(outcome.exitCode, 0);
     assert.match(outcome.stdout, /Status: draft/);
+    assert.match(outcome.stdout, /verified profile lists remodels/);
     assert.match(outcome.stdout, /Automation running: no/);
     assert.match(outcome.stdout, /Posted: no/);
     assert.match(outcome.stdout, /The Dominion/);
