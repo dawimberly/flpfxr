@@ -9,6 +9,7 @@ dist
 .DS_Store
 *.log
 .neon
+data/nextdoor-draft-state.json
 
 public/sim-spring-rain/
 public/blue-quail-local/
