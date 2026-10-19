@@ -176,7 +176,7 @@ export function parseLeadApiResponse(
   return { ok: false, message, code };
 }
 
-export function shouldTrackAcceptedLead(result: LeadDeliveryResult): boolean {
+export function shouldTrackAcceptedLead(result: LeadDeliveryResult): result is LeadDeliverySuccess {
   return result.ok === true && result.discarded !== true;
 }
 

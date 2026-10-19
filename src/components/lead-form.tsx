@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
@@ -351,6 +352,8 @@ export function LeadForm({
       </Button>
       <p className="text-center text-xs text-subtle sm:text-left">
         We call or text you back.
+        {" "}
+        <Link to="/privacy" className="underline">How we use your information</Link>.
       </p>
     </form>
   );

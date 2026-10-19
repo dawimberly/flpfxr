@@ -112,6 +112,7 @@ export type LeadDraft = {
   name?: string;
   email?: string;
   phone?: string;
+  affiliation?: string;
   service?: string;
   scope?: string;
   kitchenScope?: string;
@@ -121,17 +122,23 @@ export type LeadDraft = {
   submissionId?: string;
 };
 
+// Keep retries usable when a browser denies sessionStorage access.
+let inMemoryLeadDraft: LeadDraft | null = null;
+
 export function saveLeadDraft(draft: LeadDraft) {
   if (typeof window === "undefined") return;
   const prev = loadLeadDraft();
-  sessionStorage.setItem(
-    LEAD_STORAGE_KEY,
-    JSON.stringify({ ...prev, ...draft }),
-  );
+  inMemoryLeadDraft = { ...prev, ...draft };
+  try {
+    sessionStorage.setItem(LEAD_STORAGE_KEY, JSON.stringify(inMemoryLeadDraft));
+  } catch {
+    // A blocked draft cache must not prevent the actual lead request.
+  }
 }
 
 export function loadLeadDraft(): LeadDraft {
   if (typeof window === "undefined") return {};
+  if (inMemoryLeadDraft) return inMemoryLeadDraft;
   try {
     const raw = sessionStorage.getItem(LEAD_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as LeadDraft) : {};
