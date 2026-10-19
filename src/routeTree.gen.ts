@@ -17,6 +17,7 @@ import { Route as EstimatorRouteImport } from './routes/estimator'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
@@ -65,6 +66,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoofRoute = RoofRouteImport.update({
   id: '/roof',
   path: '/roof',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/kitchen'
     | '/login'
+    | '/privacy'
     | '/roof'
     | '/services'
     | '/testimonials'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/kitchen'
     | '/login'
+    | '/privacy'
     | '/roof'
     | '/services'
     | '/testimonials'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/kitchen'
     | '/login'
+    | '/privacy'
     | '/roof'
     | '/services'
     | '/testimonials'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
   TestimonialsRoute: typeof TestimonialsRoute
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/roof': {
@@ -354,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
   TestimonialsRoute: TestimonialsRoute,

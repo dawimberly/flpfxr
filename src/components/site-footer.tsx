@@ -57,6 +57,9 @@ export function SiteFooter() {
           © {year} {SITE.legalName}. All rights reserved.
         </p>
         <p className="mt-2">
+          <Link to="/privacy" className="mr-4 text-muted hover:text-primary">
+            Privacy
+          </Link>
           <Link to="/login" className="text-muted hover:text-primary">
             Employee login
           </Link>
