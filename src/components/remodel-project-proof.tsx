@@ -7,6 +7,11 @@ const kitchenPhotos = [
   "/images/gallery-01-a.webp",
   "/images/gallery-02-a.webp",
 ];
+const bathroomPhotos = [
+  "/images/gallery-26-a.webp",
+  "/images/gallery-26-b.webp",
+  "/images/gallery-27-a.webp",
+];
 
 export function RemodelProjectProof({ service }: { service: "kitchen" | "bathroom" }) {
   return (
@@ -25,39 +30,48 @@ export function RemodelProjectProof({ service }: { service: "kitchen" | "bathroo
           Tell us about your project
         </a>
       </div>
-      {service === "kitchen" && (
-        <div>
-          <h2 className="font-display text-3xl text-fg">Kitchens we have remodeled.</h2>
-          <p className="mt-2 text-muted">
-            Real work by The Flip Fixer. See the finishes and details before you get in touch.
-          </p>
-          <div className="mt-6 grid gap-5 md:grid-cols-3">
-            {kitchenPhotos.map((src) => {
-              const photo = GALLERY.find((item) => item.src === src)!;
-              return (
-                <figure key={src} className="overflow-hidden rounded-2xl bg-surface">
-                  <Photo
-                    src={photo.src}
-                    alt={photo.alt}
-                    loading="lazy"
-                    width={800}
-                    height={600}
-                    className="aspect-[4/3] w-full object-cover"
-                  />
-                  <figcaption className="p-4 font-medium text-fg">{photo.title}</figcaption>
-                </figure>
-              );
-            })}
-          </div>
-          <Link
-            to="/gallery"
-            search={{ service: "kitchen-bath" }}
-            className="mt-5 inline-flex font-semibold text-primary underline underline-offset-4"
-          >
-            See more project photos
-          </Link>
+      <div>
+        <h2 className="font-display text-3xl text-fg">
+          {service === "kitchen"
+            ? "Kitchens we have remodeled."
+            : "Bathroom projects, before and after."}
+        </h2>
+        <p className="mt-2 text-muted">
+          Real work by The Flip Fixer. See the finishes and details before you get in touch.
+        </p>
+        <div className="mt-6 grid gap-5 md:grid-cols-3">
+          {(service === "kitchen" ? kitchenPhotos : bathroomPhotos).map((src) => {
+            const photo = GALLERY.find((item) => item.src === src)!;
+            return (
+              <figure key={src} className="overflow-hidden rounded-2xl bg-surface">
+                <Photo
+                  src={photo.src}
+                  alt={photo.alt}
+                  loading="lazy"
+                  width={800}
+                  height={service === "kitchen" ? 600 : 1067}
+                  className={
+                    service === "kitchen"
+                      ? "aspect-[4/3] w-full object-cover"
+                      : "aspect-[3/4] w-full object-cover"
+                  }
+                />
+                <figcaption className="p-4 font-medium text-fg">
+                  {photo.title}
+                  {service === "bathroom" ? ` — ${photo.caption}` : ""}
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
-      )}
+        <Link
+          to="/gallery"
+          search={{ service: "kitchen-bath" }}
+          className="mt-5 inline-flex font-semibold text-primary underline underline-offset-4"
+        >
+          See more project photos
+        </Link>
+      </div>
     </section>
   );
 }
