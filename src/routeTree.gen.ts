@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as BathroomRouteImport } from './routes/bathroom'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimatorRouteImport } from './routes/estimator'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BathroomRoute = BathroomRouteImport.update({
+  id: '/bathroom',
+  path: '/bathroom',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityRoute = CommunityRouteImport.update({
@@ -110,6 +116,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/estimator': typeof EstimatorRouteWithChildren
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/estimator': typeof EstimatorRouteWithChildren
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/bathroom'
     | '/community'
     | '/contact'
     | '/estimator'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/bathroom'
     | '/community'
     | '/contact'
     | '/gallery'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/bathroom'
     | '/community'
     | '/contact'
     | '/estimator'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  BathroomRoute: typeof BathroomRoute
   CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
   EstimatorRoute: typeof EstimatorRouteWithChildren
@@ -248,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bathroom': {
+      id: '/bathroom'
+      path: '/bathroom'
+      fullPath: '/bathroom'
+      preLoaderRoute: typeof BathroomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/community': {
@@ -368,6 +388,7 @@ const EstimatorRouteWithChildren = EstimatorRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  BathroomRoute: BathroomRoute,
   CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
   EstimatorRoute: EstimatorRouteWithChildren,
