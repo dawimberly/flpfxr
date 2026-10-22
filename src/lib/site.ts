@@ -274,6 +274,13 @@ export const CONTACT_AFFILIATIONS = [
 export const JOB_DISCOUNT =
   "Seniors 65+, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack.";
 
+export const FEATURED_REVIEW = {
+  name: "Elieen Doctor",
+  source: "Nextdoor · Repeat customer",
+  excerpt: "Honest, reliable, clean, professional, and informative.",
+  quote: "Hello neighbors,\n\nI just want to take a moment to share our appreciation for Jon and Dan of The Flip Fixer. We have been through several contractors over the years but they have been my “go-to guys” for the last 3, and we couldn’t be happier with their service. Honest, reliable, clean, professional, and informative. They have helped us with everything from a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements and even recently helping us avoid a costly insurance claim by discovering the problems, working with us on a limited budget, and went to work immediately to repair them. They’re practically family now so when they asked for an honest review, I was happy to oblige. If you have any home repairs, remodeling projects, indoor/outdoor, or basic handyman services, I highly recommend The Flip Fixer home services. Give them a call, you won’t regret it. Thank you Jon & Dan!",
+} as const;
+
 export const TESTIMONIALS = [
   {
     quote:

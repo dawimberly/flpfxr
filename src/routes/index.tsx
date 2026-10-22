@@ -18,6 +18,7 @@ import {
   SITE,
   AREA_LINE,
   TESTIMONIALS,
+  FEATURED_REVIEW,
   SERVICE_AREAS,
 } from "@/lib/site";
 
@@ -213,6 +214,21 @@ function Home() {
           <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
             Reviews
           </h2>
+          <figure className="mt-8 rounded-2xl border border-primary/25 bg-bg p-6 md:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              Three years of trust
+            </p>
+            <blockquote className="mt-4 font-display text-2xl leading-relaxed text-fg md:text-3xl">
+              &ldquo;{FEATURED_REVIEW.excerpt}&rdquo;
+            </blockquote>
+            <figcaption className="mt-4 text-sm">
+              <span className="font-medium text-fg">{FEATURED_REVIEW.name}</span>
+              <span className="text-subtle"> · {FEATURED_REVIEW.source}</span>
+            </figcaption>
+            <Link to="/testimonials" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+              Read her full review
+            </Link>
+          </figure>
           <div className="mt-8 space-y-4">
             {TESTIMONIALS.slice(3, 6).map((t) => (
               <blockquote
