@@ -91,7 +91,7 @@ function ContactPage() {
         title={introTitle}
       >
         <p>{introBody}</p>
-        <p className="mt-3 text-fg">{PROJECT_FIT}</p>
+        {isRoofAd ? null : <p className="mt-3 text-fg">{PROJECT_FIT}</p>}
         <CallTextActions className="mt-6 hidden justify-center sm:flex" />
       </PageIntro>
 
