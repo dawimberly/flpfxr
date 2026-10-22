@@ -4,7 +4,6 @@ export const PUBLIC_PAGE_PATHS = [
   "/services",
   "/kitchen",
   "/bathroom",
-  "/roof",
   "/gallery",
   "/about",
   "/community",
