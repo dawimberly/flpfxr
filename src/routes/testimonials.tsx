@@ -5,6 +5,7 @@ import { SITE, TESTIMONIALS } from "@/lib/site";
 export const Route = createFileRoute("/testimonials")({
   component: TestimonialsPage,
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/testimonials` }],
     meta: [
       { title: `Reviews | ${SITE.legalName}` },
       {

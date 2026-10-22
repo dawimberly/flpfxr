@@ -6,6 +6,7 @@ import { CREW, PROCESS, SITE, AREA_LINE } from "@/lib/site";
 export const Route = createFileRoute("/about")({
   component: AboutPage,
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/about` }],
     meta: [
       { title: `About | ${SITE.legalName}` },
       {

@@ -12,7 +12,7 @@ import { SITE } from "@/lib/site";
 export const Route = createFileRoute("/login")({
   component: LoginPage,
   head: () => ({
-    meta: [{ title: `Employee login | ${SITE.legalName}` }],
+    meta: [{ title: `Employee login | ${SITE.legalName}` }, { name: "robots", content: "noindex, nofollow" }],
   }),
 });
 

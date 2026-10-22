@@ -5,6 +5,7 @@ import { authEnabled } from "@/lib/auth/client";
 
 export const Route = createFileRoute("/estimator")({
   component: EstimatorLayout,
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
 });
 
 function EstimatorLayout() {

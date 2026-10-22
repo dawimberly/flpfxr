@@ -17,6 +17,7 @@ export const Route = createFileRoute("/community")({
     sent: search.sent === "1" || search.sent === true,
   }),
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/community` }],
     meta: [
       { title: `Community | ${SITE.legalName}` },
       {

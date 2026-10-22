@@ -5,7 +5,7 @@ import { SITE } from "@/lib/site";
 export const Route = createFileRoute("/estimator/")({
   component: EstimatorIndexPage,
   head: () => ({
-    meta: [{ title: `Estimator | ${SITE.legalName}`, robots: "noindex" }],
+    meta: [{ title: `Estimator | ${SITE.legalName}` }, { name: "robots", content: "noindex, nofollow" }],
   }),
 });
 
