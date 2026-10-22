@@ -9,6 +9,7 @@ import appCss from "../styles.css?url";
 export const Route = createRootRoute({
   head: () => ({
     meta: [
+      { name: "google-site-verification", content: "V9vKM5rDw-mrC4BVxruDRGFSk3cHSjmtagGAdM23vcc" },
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: SITE.legalName },
