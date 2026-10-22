@@ -1,4 +1,71 @@
-export const BLOG_POSTS = [
+export type BlogPost = {
+  slug: string;
+  title: string;
+  category: string;
+  description: string;
+  image: string;
+  sections: Array<{ title: string; body: string }>;
+  photos?: Array<{ src: string; alt: string; caption: string }>;
+};
+
+export const BLOG_POSTS: BlogPost[] = [
+  {
+    slug: "kitchen-remodel-before-during-after",
+    title: "A kitchen remodel: before, during, and after",
+    category: "From the jobsite",
+    description:
+      "See one of our real kitchen remodels through tear-out, cabinet installation, and the finished room.",
+    image: "/images/gallery-23-d.webp",
+    sections: [
+      {
+        title: "The starting point",
+        body: "The original kitchen had painted cabinets, square floor tile, and an L-shaped counter around the sink and range. The before photo records the space before work began.",
+      },
+      {
+        title: "Opening up the room",
+        body: "The tear-out photo shows the work between the existing kitchen and the new installation. This stage gives a different view of the room than a finished photo can: the old materials have come out, and the next parts of the job still need to go in.",
+      },
+      {
+        title: "Cabinets going in",
+        body: "The installation photo shows the new cabinet layout taking shape. It is a useful point in the sequence to compare cabinet positions with the finished sink run and peninsula.",
+      },
+      {
+        title: "The finished kitchen",
+        body: "The finished photos show shaker-style cabinet fronts, light counters, a light tile backsplash, under-cabinet lighting, and a wood-look floor laid in a herringbone pattern. The sink run and peninsula give two views of how those finishes work together.",
+      },
+      {
+        title: "Planning a kitchen of your own",
+        body: "Photos help communicate the kind of space you want, but your scope and price need to be based on your room. Bring your priorities and inspiration photos to the walkthrough so we can discuss layout, selections, and the next step.",
+      },
+    ],
+    photos: [
+      {
+        src: "/images/gallery-23-a.webp",
+        alt: "Original kitchen with painted cabinets and square floor tile",
+        caption: "Before: the existing kitchen.",
+      },
+      {
+        src: "/images/gallery-23-b.webp",
+        alt: "Kitchen during tear-out",
+        caption: "During: tear-out.",
+      },
+      {
+        src: "/images/gallery-23-c.webp",
+        alt: "New kitchen cabinets being installed",
+        caption: "During: cabinets going in.",
+      },
+      {
+        src: "/images/gallery-23-d.webp",
+        alt: "Finished sink run with shaker cabinets, light countertops and herringbone-pattern floor",
+        caption: "After: the sink run and peninsula.",
+      },
+      {
+        src: "/images/gallery-23-e.webp",
+        alt: "Finished kitchen peninsula from a second angle",
+        caption: "After: another view of the peninsula.",
+      },
+    ],
+  },
   {
     slug: "first-remodeling-appointment",
     title: "Your first remodeling appointment",

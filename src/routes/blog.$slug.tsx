@@ -63,6 +63,30 @@ function BlogArticle() {
               </section>
             ))}
           </div>
+          {post.photos ? (
+            <section aria-label="Project photo sequence" className="mt-12 space-y-8">
+              <h2 className="font-display text-2xl font-semibold text-fg">The project in photos</h2>
+              {post.photos.map((photo) => (
+                <figure key={photo.src}>
+                  <Photo
+                    src={photo.src}
+                    alt={photo.alt}
+                    loading="lazy"
+                    width={1500}
+                    height={1126}
+                    className="photo-frame h-auto w-full"
+                  />
+                  <figcaption className="mt-3 text-sm text-muted">{photo.caption}</figcaption>
+                </figure>
+              ))}
+              <Link
+                to="/kitchen"
+                className="inline-flex py-2 font-semibold text-primary underline underline-offset-4"
+              >
+                Explore kitchen remodeling →
+              </Link>
+            </section>
+          ) : null}
           <div className="mt-10 rounded-2xl bg-surface p-6">
             <h2 className="font-display text-2xl text-fg">Have a project in mind?</h2>
             <p className="mt-3 text-muted">
