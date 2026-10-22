@@ -43,7 +43,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-1 xl:flex">
           {NAV.map((item) => {
             const active =
               item.to === "/"
@@ -90,7 +90,7 @@ export function SiteHeader() {
               <Button
                 variant="secondary"
                 size="icon"
-                className="lg:hidden"
+                className="xl:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="size-5" />

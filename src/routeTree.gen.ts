@@ -23,6 +23,8 @@ import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -97,6 +99,16 @@ const ApiLeadsRoute = ApiLeadsRouteImport.update({
   path: '/api/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EstimatorIndexRoute = EstimatorIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -128,7 +140,9 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/estimator/roof': typeof EstimatorRoofRoute
+  '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -146,7 +160,9 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/estimator/roof': typeof EstimatorRoofRoute
+  '/blog': typeof BlogIndexRoute
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -166,7 +182,9 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/estimator/roof': typeof EstimatorRoofRoute
+  '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -187,7 +205,9 @@ export interface FileRouteTypes {
     | '/services'
     | '/testimonials'
     | '/api/leads'
+    | '/blog/$slug'
     | '/estimator/roof'
+    | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -205,7 +225,9 @@ export interface FileRouteTypes {
     | '/services'
     | '/testimonials'
     | '/api/leads'
+    | '/blog/$slug'
     | '/estimator/roof'
+    | '/blog'
     | '/estimator'
     | '/api/auth/$'
   id:
@@ -224,7 +246,9 @@ export interface FileRouteTypes {
     | '/services'
     | '/testimonials'
     | '/api/leads'
+    | '/blog/$slug'
     | '/estimator/roof'
+    | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -244,6 +268,8 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   TestimonialsRoute: typeof TestimonialsRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
+  BlogSlugRoute: typeof BlogSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -347,6 +373,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/estimator/': {
       id: '/estimator/'
       path: '/'
@@ -400,6 +440,8 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   TestimonialsRoute: TestimonialsRoute,
   ApiLeadsRoute: ApiLeadsRoute,
+  BlogSlugRoute: BlogSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
