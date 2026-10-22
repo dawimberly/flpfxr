@@ -36,6 +36,7 @@ export const NAV = [
   { to: "/services", label: "Services" },
   { to: "/gallery", label: "Gallery" },
   { to: "/about", label: "About" },
+  { to: "/blog", label: "Resources" },
   { to: "/community", label: "Community" },
   { to: "/testimonials", label: "Reviews" },
   { to: "/contact", label: "Contact" },
@@ -285,6 +286,13 @@ export const DISCOUNT_ACCEPTED = "Eligibility is confirmed when we accept the jo
 /** Preferred work, described by scope. No price and no budget question. */
 export const PROJECT_FIT =
   "We focus on indoor, full-room kitchen and bathroom remodels. Tell us about the room and what you want to change.";
+
+export const FEATURED_REVIEW = {
+  name: "Elieen Doctor",
+  source: "Nextdoor · Repeat customer",
+  excerpt: "Honest, reliable, clean, professional, and informative.",
+  quote: "Hello neighbors,\n\nI just want to take a moment to share our appreciation for Jon and Dan of The Flip Fixer. We have been through several contractors over the years but they have been my “go-to guys” for the last 3, and we couldn’t be happier with their service. Honest, reliable, clean, professional, and informative. They have helped us with everything from a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements and even recently helping us avoid a costly insurance claim by discovering the problems, working with us on a limited budget, and went to work immediately to repair them. They’re practically family now so when they asked for an honest review, I was happy to oblige. If you have any home repairs, remodeling projects, indoor/outdoor, or basic handyman services, I highly recommend The Flip Fixer home services. Give them a call, you won’t regret it. Thank you Jon & Dan!",
+} as const;
 
 export const TESTIMONIALS = [
   {

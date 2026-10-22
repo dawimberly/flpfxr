@@ -20,6 +20,8 @@ import {
   AREA_LINE,
   PROJECT_FIT,
   TESTIMONIALS,
+  FEATURED_REVIEW,
+  SERVICE_AREAS,
 } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
@@ -29,8 +31,22 @@ export const Route = createFileRoute("/")({
     return sent ? { sent: true as const } : {};
   },
   head: () => ({
+    scripts: [{ type: "application/ld+json", children: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "GeneralContractor",
+      "@id": `${SITE.url}/#business`,
+      name: SITE.name,
+      url: `${SITE.url}/`,
+      telephone: `+1${SITE.phone}`,
+      email: SITE.email,
+      description: SITE.tagline,
+      logo: `${SITE.url}/logo.svg`,
+      image: `${SITE.url}/og.jpg`,
+      areaServed: SERVICE_AREAS.map(name => ({ "@type": "Place", name: `${name}, Texas` })),
+    }).replace(/</g, "\\u003c") }],
+    links: [{ rel: "canonical", href: `${SITE.url}/` }],
     meta: [
-      { title: `Kitchen and bath remodels | ${SITE.name}` },
+      { title: `Kitchen & Bathroom Remodeling in San Antonio | ${SITE.name}` },
       {
         name: "description",
         content:
@@ -200,6 +216,21 @@ function Home() {
           <p className="mt-4 text-muted">
             Homeowners write about remodels and other work in their own words.
           </p>
+          <figure className="mt-8 rounded-2xl border border-primary/25 bg-bg p-6 md:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              Three years of trust
+            </p>
+            <blockquote className="mt-4 font-display text-2xl leading-relaxed text-fg md:text-3xl">
+              &ldquo;{FEATURED_REVIEW.excerpt}&rdquo;
+            </blockquote>
+            <figcaption className="mt-4 text-sm">
+              <span className="font-medium text-fg">{FEATURED_REVIEW.name}</span>
+              <span className="text-subtle"> · {FEATURED_REVIEW.source}</span>
+            </figcaption>
+            <Link to="/testimonials" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+              Read her full review
+            </Link>
+          </figure>
           <div className="mt-8 space-y-4">
             {TESTIMONIALS.slice(3, 6).map((t) => (
               <blockquote

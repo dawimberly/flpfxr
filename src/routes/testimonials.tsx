@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
-import { SITE, TESTIMONIALS } from "@/lib/site";
+import { SITE, TESTIMONIALS, FEATURED_REVIEW } from "@/lib/site";
 
 export const Route = createFileRoute("/testimonials")({
   component: TestimonialsPage,
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/testimonials` }],
     meta: [
       { title: `Reviews | ${SITE.legalName}` },
       {
@@ -20,6 +21,21 @@ function TestimonialsPage() {
   return (
     <div>
       <PageIntro eyebrow="Reviews" title="What people said." />
+
+      <section aria-labelledby="featured-review-title" className="mx-auto max-w-6xl px-4 pb-10">
+        <figure className="rounded-2xl border border-primary/25 bg-surface p-7 md:p-10">
+          <h2 id="featured-review-title" className="font-display text-2xl font-semibold text-fg md:text-3xl">
+            Three years of projects. A relationship built on trust.
+          </h2>
+          <blockquote className="mt-6 whitespace-pre-line leading-relaxed text-fg/90">
+            {FEATURED_REVIEW.quote}
+          </blockquote>
+          <figcaption className="mt-6">
+            <p className="font-semibold text-fg">{FEATURED_REVIEW.name}</p>
+            <p className="text-sm text-subtle">{FEATURED_REVIEW.source}</p>
+          </figcaption>
+        </figure>
+      </section>
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 md:grid-cols-2 lg:grid-cols-3">
         {TESTIMONIALS.map((t) => (

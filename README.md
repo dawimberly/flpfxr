@@ -141,3 +141,13 @@ This one project serves marketing **and** `/estimator`. Do not attach `theflipfi
 **Email:** Jon@TheFlipFixer.com
 
 Service areas: Alamo Heights, Terrell Hills, Olmos Park, The Dominion, Shavano Park, Fair Oaks Ranch, Hollywood Park, Stone Oak, Helotes, Boerne, Kerrville, San Antonio.
+
+## Remodeling resources
+
+Public guides live at `/blog` and `/blog/<slug>`. Edit `src/lib/blog.ts` to add or update guides; cards and related links use the same content list. Existing project photos are decorative, not claims about a specific case study.
+
+## Search engine foundations
+
+`npm run seo:sitemap` generates `public/sitemap.xml` from the public page allowlist in `src/lib/seo-config.ts` and all blog slugs. Both build scripts regenerate it automatically. Employee/login/API routes are excluded. Employee pages emit `noindex`; this supplements authentication, not a replacement for it. Public marketing pages have canonical URLs; campaign query parameters remain available to analytics. The homepage includes business JSON-LD using published facts only; no unverified address, opening hours, or review ratings are supplied.
+
+Next account steps: verify the domain in Google Search Console, submit `https://theflipfixer.com/sitemap.xml`, and inspect indexing for the home, service, and blog pages. Google Business Profile and Search Console are separate account tasks; deploying metadata does not complete either setup.

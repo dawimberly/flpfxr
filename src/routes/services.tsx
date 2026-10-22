@@ -11,6 +11,7 @@ import {
 export const Route = createFileRoute("/services")({
   component: ServicesPage,
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/services` }],
     meta: [
       { title: `Services | ${SITE.legalName}` },
       {

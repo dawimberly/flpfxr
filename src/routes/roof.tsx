@@ -9,6 +9,7 @@ export const Route = createFileRoute("/roof")({
     });
   },
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/roof` }],
     meta: [
       { title: `Roof | ${SITE.legalName}` },
       {

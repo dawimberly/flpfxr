@@ -32,6 +32,7 @@ export const Route = createFileRoute("/contact")({
     const service = (match?.search as Search | undefined)?.service;
     if (service === "roofing") {
       return {
+        links: [{ rel: "canonical", href: `${SITE.url}/contact` }],
         meta: [
           { title: `Roof repair and replacement | ${SITE.legalName}` },
           {
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/contact")({
     }
     if (service === "kitchen" || service === "kitchen-bath") {
       return {
+        links: [{ rel: "canonical", href: `${SITE.url}/contact` }],
         meta: [
           { title: `Kitchen remodel | ${SITE.legalName}` },
           {
@@ -53,7 +55,8 @@ export const Route = createFileRoute("/contact")({
       };
     }
     return {
-      meta: [
+      links: [{ rel: "canonical", href: `${SITE.url}/contact` }],
+        meta: [
         { title: `Contact | ${SITE.legalName}` },
         {
           name: "description",

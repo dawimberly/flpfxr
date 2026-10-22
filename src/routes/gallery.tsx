@@ -28,6 +28,7 @@ export const Route = createFileRoute("/gallery")({
     view: search.view === "before-after" ? "before-after" : undefined,
   }),
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/gallery` }],
     meta: [
       { title: `Gallery | ${SITE.legalName}` },
       {

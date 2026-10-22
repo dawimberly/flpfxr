@@ -15,8 +15,9 @@ export const Route = createFileRoute("/kitchen")({
     return sent ? { sent: true as const } : {};
   },
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/kitchen` }],
     meta: [
-      { title: `Kitchen remodel | ${SITE.legalName}` },
+      { title: `Kitchen Remodeling in San Antonio | ${SITE.legalName}` },
       {
         name: "description",
         content: `Kitchen remodels in San Antonio. Indoor, full-room remodels. ${AREA_LINE}`,

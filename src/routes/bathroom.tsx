@@ -15,8 +15,9 @@ export const Route = createFileRoute("/bathroom")({
     return sent ? { sent: true as const } : {};
   },
   head: () => ({
+    links: [{ rel: "canonical", href: `${SITE.url}/bathroom` }],
     meta: [
-      { title: `Bathroom remodel | ${SITE.legalName}` },
+      { title: `Bathroom Remodeling in San Antonio | ${SITE.legalName}` },
       {
         name: "description",
         content: `Bathroom remodels in San Antonio. Indoor, full-room remodels. ${AREA_LINE}`,
