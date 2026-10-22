@@ -1,8 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CallTextActions } from "@/components/call-text-actions";
 import { LeadForm } from "@/components/lead-form";
-import { RemodelProjectProof, RemodelInquiryIntro } from "@/components/remodel-project-proof";
-import { AREA_LINE, SITE } from "@/lib/site";
+import {
+  FeaturedProjectPhoto,
+  MoreProjectPhotos,
+  ProjectTellButton,
+  RemodelInquiryIntro,
+} from "@/components/remodel-project-proof";
+import { AREA_LINE, PROJECT_FIT, SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/bathroom")({
   component: BathroomLanding,
@@ -15,7 +19,7 @@ export const Route = createFileRoute("/bathroom")({
       { title: `Bathroom remodel | ${SITE.legalName}` },
       {
         name: "description",
-        content: `Bathroom remodels in San Antonio. Show us the room and tell us what needs to change. ${AREA_LINE}`,
+        content: `Bathroom remodels in San Antonio. Indoor, full-room remodels. ${AREA_LINE}`,
       },
     ],
   }),
@@ -25,20 +29,20 @@ function BathroomLanding() {
   const { sent } = Route.useSearch();
   return (
     <div>
-      <header className="mx-auto max-w-6xl px-4 pb-8 pt-14 md:pt-16">
+      <header className="mx-auto max-w-6xl px-4 pb-6 pt-6 md:pt-16">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Bathrooms</p>
         <h1 className="mt-3 max-w-3xl font-display text-4xl font-semibold tracking-tight text-fg md:text-5xl">
           Bathroom remodels in San Antonio.
         </h1>
         <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">
-          Show us the bathroom and tell us what needs to change. Design in-house. Call, text, or
-          send the job. We walk the room and give you a number.
+          Show us the bathroom and what needs to change. We walk the room and give you a number.
         </p>
+        <p className="mt-3 max-w-xl text-lg leading-relaxed text-fg">{PROJECT_FIT}</p>
         <p className="mt-2 text-muted">{AREA_LINE}</p>
-        <CallTextActions className="mt-6" />
+        <ProjectTellButton className="mt-6 w-full sm:w-auto" />
       </header>
 
-      <RemodelProjectProof service="bathroom" />
+      <FeaturedProjectPhoto service="bathroom" />
 
       <section id="send-job" className="mx-auto max-w-6xl scroll-mt-28 px-4 pb-16">
         <div className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-border)] md:max-w-xl md:p-8">
@@ -49,10 +53,12 @@ function BathroomLanding() {
             service="bathroom"
             source="bathroom-ad"
             compact
-            messagePlaceholder="Neighborhood, scope, approximate budget, and when you want to start."
+            messagePlaceholder="Neighborhood, the room, what you want to change, and when you want to start."
           />
         </div>
       </section>
+
+      <MoreProjectPhotos service="bathroom" />
     </div>
   );
 }

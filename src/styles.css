@@ -84,6 +84,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    scroll-padding-bottom: 5.5rem;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      scroll-padding-bottom: 0;
+    }
   }
 
   body {

@@ -17,6 +17,7 @@ import {
 import { trackContactFormSubmit, trackFormStart } from "@/lib/google-ads";
 import {
   CONTACT_AFFILIATIONS,
+  DISCOUNT_ACCEPTED,
   JOB_DISCOUNT,
   SITE,
   loadLeadDraft,
@@ -291,7 +292,9 @@ export function LeadForm({
       {children}
       {showAffiliation ? (
         <div className="space-y-2">
-          <p className="text-sm leading-relaxed text-muted">{JOB_DISCOUNT}</p>
+          <p className="text-sm leading-relaxed text-muted">
+            {JOB_DISCOUNT} {DISCOUNT_ACCEPTED}
+          </p>
           <Label htmlFor={`${source}-affiliation`}>
             Senior (65+), military, first responder, or educator
           </Label>
@@ -317,6 +320,7 @@ export function LeadForm({
           name="message"
           required
           rows={compact ? 3 : 5}
+          className={compact ? "min-h-20" : undefined}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={messagePlaceholder}

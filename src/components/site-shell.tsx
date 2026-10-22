@@ -40,7 +40,7 @@ export function PageIntro({
   children?: ReactNode;
 }) {
   return (
-    <header className="mx-auto max-w-3xl px-4 pb-10 pt-14 text-center md:pt-20">
+    <header className="mx-auto max-w-3xl px-4 pb-6 pt-6 text-center md:pb-10 md:pt-20">
       {eyebrow ? (
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
           {eyebrow}

@@ -4,7 +4,7 @@ import { CallLink, CallNumber } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
-import { AREA_LINE, JOB_DISCOUNT, SITE, type ServiceId } from "@/lib/site";
+import { AREA_LINE, DISCOUNT_ACCEPTED, JOB_DISCOUNT, PROJECT_FIT, SITE, type ServiceId } from "@/lib/site";
 
 type Search = {
   service?: ServiceId;
@@ -76,15 +76,13 @@ function ContactPage() {
       ? "Kitchen remodels in San Antonio."
       : "Call or send the job.";
   const introBody = isRoofAd
-    ? "Leaks, storm damage, or a roof that is done. Call. We walk it and give you a number."
-      : isKitchenAd
-      ? "Cabinets, counters, floors. Design in-house. Call, text, or send the job. We walk the room and give you a number."
-      : "Phone first. Photos help. No planning range on this page.";
-  const placeholder = isRoofAd
-    ? "Address, leak or storm, when you want someone out."
+    ? "Leaks, storm damage, or a roof that is done. We walk it and give you a number."
     : isKitchenAd
-      ? "Neighborhood, the room, when you want to start."
-      : "Neighborhood, the job, when you want someone out.";
+      ? "Cabinets, counters, and floors. We walk the room and give you a number."
+      : "Phone, text, or the form. Photos help.";
+  const placeholder = isRoofAd
+    ? "Address, what's wrong, and when you want someone out."
+    : "Neighborhood, the job, and when you want someone out.";
 
   return (
     <div>
@@ -93,7 +91,8 @@ function ContactPage() {
         title={introTitle}
       >
         <p>{introBody}</p>
-        <CallTextActions className="mt-6 justify-center" />
+        <p className="mt-3 text-fg">{PROJECT_FIT}</p>
+        <CallTextActions className="mt-6 hidden justify-center sm:flex" />
       </PageIntro>
 
       <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 md:grid-cols-5">
@@ -112,7 +111,7 @@ function ContactPage() {
           </a>
           <p className="text-muted">{AREA_LINE}</p>
           <p className="text-sm leading-relaxed text-subtle">
-            {JOB_DISCOUNT} CASA or a group home?{" "}
+            {JOB_DISCOUNT} {DISCOUNT_ACCEPTED} CASA or a group home?{" "}
             <Link
               to="/community"
               search={{ sent: false }}

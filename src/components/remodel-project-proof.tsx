@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Photo } from "@/components/photo";
+import { Button } from "@/components/ui/button";
 import { GALLERY } from "@/lib/site-rest-a";
 
 const kitchenPhotos = [
@@ -8,89 +9,88 @@ const kitchenPhotos = [
   "/images/gallery-02-a.webp",
 ];
 const bathroomPhotos = [
-  "/images/gallery-26-a.webp",
   "/images/gallery-26-b.webp",
+  "/images/gallery-26-a.webp",
   "/images/gallery-27-a.webp",
 ];
 
-export function RemodelProjectProof({ service }: { service: "kitchen" | "bathroom" }) {
+function photosFor(service: "kitchen" | "bathroom") {
+  return service === "kitchen" ? kitchenPhotos : bathroomPhotos;
+}
+
+function ProjectFigure({
+  src,
+  service,
+  eager = false,
+}: {
+  src: string;
+  service: "kitchen" | "bathroom";
+  eager?: boolean;
+}) {
+  const photo = GALLERY.find((item) => item.src === src)!;
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-12" aria-label="Project fit and completed work">
-      <div className="mb-8 rounded-2xl border border-primary/25 bg-surface p-6">
-        <h2 className="font-display text-2xl text-fg">Planning a larger indoor remodel?</h2>
-        <p className="mt-2 max-w-3xl text-muted">
-          Our focus is indoor remodeling projects with budgets of $10,000 and up. Tell us what you
-          want to change and your planning budget. We scope and price your project after a
-          walkthrough.
-        </p>
-        <a
-          href="#send-job"
-          className="mt-4 inline-flex font-semibold text-primary underline underline-offset-4"
-        >
-          Tell us about your project
-        </a>
+    <figure className="overflow-hidden rounded-2xl bg-surface">
+      <Photo
+        src={photo.src}
+        alt={photo.alt}
+        loading={eager ? "eager" : "lazy"}
+        width={800}
+        height={600}
+        className="aspect-[4/3] w-full object-cover"
+      />
+      <figcaption className="p-4 font-medium text-fg">
+        {photo.title}
+        {service === "bathroom" ? ` — ${photo.caption}` : ""}
+      </figcaption>
+    </figure>
+  );
+}
+
+export function ProjectTellButton({ className }: { className?: string }) {
+  return (
+    <Button asChild size="lg" className={className}>
+      <a href="#send-job">Tell us about your project</a>
+    </Button>
+  );
+}
+
+/** One real job photo above the form. The rest stay below it. */
+export function FeaturedProjectPhoto({ service }: { service: "kitchen" | "bathroom" }) {
+  const src = photosFor(service)[0];
+  return (
+    <div className="mx-auto max-w-6xl px-4 pb-8">
+      <ProjectFigure src={src} service={service} eager />
+    </div>
+  );
+}
+
+export function MoreProjectPhotos({ service }: { service: "kitchen" | "bathroom" }) {
+  const rest = photosFor(service).slice(1);
+  return (
+    <section className="mx-auto max-w-6xl px-4 pb-12" aria-label="More completed work">
+      <h2 className="font-display text-3xl text-fg">
+        {service === "kitchen" ? "More kitchens we have remodeled." : "More bathroom projects."}
+      </h2>
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
+        {rest.map((src) => (
+          <ProjectFigure key={src} src={src} service={service} />
+        ))}
       </div>
-      <div>
-        <h2 className="font-display text-3xl text-fg">
-          {service === "kitchen"
-            ? "Kitchens we have remodeled."
-            : "Bathroom projects, before and after."}
-        </h2>
-        <p className="mt-2 text-muted">
-          Real work by The Flip Fixer. See the finishes and details before you get in touch.
-        </p>
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
-          {(service === "kitchen" ? kitchenPhotos : bathroomPhotos).map((src) => {
-            const photo = GALLERY.find((item) => item.src === src)!;
-            return (
-              <figure key={src} className="overflow-hidden rounded-2xl bg-surface">
-                <Photo
-                  src={photo.src}
-                  alt={photo.alt}
-                  loading="lazy"
-                  width={800}
-                  height={service === "kitchen" ? 600 : 1067}
-                  className={
-                    service === "kitchen"
-                      ? "aspect-[4/3] w-full object-cover"
-                      : "aspect-[3/4] w-full object-cover"
-                  }
-                />
-                <figcaption className="p-4 font-medium text-fg">
-                  {photo.title}
-                  {service === "bathroom" ? ` — ${photo.caption}` : ""}
-                </figcaption>
-              </figure>
-            );
-          })}
-        </div>
-        <Link
-          to="/gallery"
-          search={{ service: "kitchen-bath" }}
-          className="mt-5 inline-flex font-semibold text-primary underline underline-offset-4"
-        >
-          See more project photos
-        </Link>
-      </div>
+      <Link
+        to="/gallery"
+        search={{ service: "kitchen-bath" }}
+        className="mt-5 inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
+      >
+        See more project photos
+      </Link>
     </section>
   );
 }
 
 export function RemodelInquiryIntro() {
   return (
-    <div className="mb-6">
-      <h2 className="font-display text-3xl text-fg">Start with the room and your plan.</h2>
-      <p className="mt-3 max-w-2xl text-muted">
-        Send your neighborhood, what you want to change, and your approximate budget. We call or
-        text you back to discuss the job and arrange a walkthrough. Then we define the scope and
-        price.
-      </p>
-      <Link
-        to="/testimonials"
-        className="mt-3 inline-flex text-primary underline underline-offset-4"
-      >
-        Read customer feedback
-      </Link>
+    <div className="mb-3">
+      <h2 className="font-display text-2xl text-fg md:text-3xl">Start with the room and your plan.</h2>
     </div>
   );
 }
