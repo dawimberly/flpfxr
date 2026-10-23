@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { SiteHeader } from "@/components/site-header";
@@ -59,9 +59,11 @@ export function PageIntro({
 export function CtaBand({
   title = "Need work done?",
   body = "Call, text, or send the job. We pick up.",
+  contact = false,
 }: {
   title?: string;
   body?: string;
+  contact?: boolean;
 }) {
   return (
     <section className="bg-cream px-4 py-16 text-cream-fg md:py-20">
@@ -70,13 +72,23 @@ export function CtaBand({
           {title}
         </h2>
         <p className="mt-4 text-lg text-cream-muted">{body}</p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <CallLink className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
-            Call <CallNumber />
-          </CallLink>
-          <TextLink className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-fg/40 px-6 text-sm font-semibold text-cream-fg hover:bg-cream-fg/10">
-            Text {SITE.phoneDisplay}
-          </TextLink>
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <CallLink className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-fg hover:bg-primary-hover">
+              Call <CallNumber />
+            </CallLink>
+            <TextLink className="inline-flex h-12 items-center justify-center rounded-lg border border-cream-fg/40 px-6 text-sm font-semibold text-cream-fg hover:bg-cream-fg/10">
+              Text {SITE.phoneDisplay}
+            </TextLink>
+          </div>
+          {contact ? (
+            <Link
+              to="/contact"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-cream-muted px-6 text-sm font-semibold text-cream hover:bg-cream-fg"
+            >
+              Contact
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>
