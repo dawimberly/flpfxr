@@ -223,7 +223,7 @@ export const COMMUNITY = {
     },
     {
       title: "If you are 65+, military, first responder, or an educator",
-      body: "Ask when you call. Seniors, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack. Bring ID or a work email if you have it.",
+      body: "Ask when you call. Seniors 65+, military, first responders, and educators: ask us about available discounts. One discount per job — they do not stack. Eligibility is confirmed when we accept the job. Bring ID or a work email if you have it.",
     },
     {
       title: "If you already know which house comes next",
@@ -270,9 +270,22 @@ export const CONTACT_AFFILIATIONS = [
   { value: "Educator", label: "Educator" },
 ] as const;
 
-/** Two public bands. Eligible groups share the same rate. They do not stack. */
+/**
+ * Internal policy, not rendered.
+ * Seniors 65+, military, first responders, and educators:
+ * 5% under $10,000, 10% at $10,000 and up.
+ * One discount per job — they do not stack.
+ * Confirmed when the job is accepted. Bring ID or a work email.
+ */
 export const JOB_DISCOUNT =
-  "Seniors 65+, military, first responders, and educators: 5% under $10,000, 10% at $10,000 and up. One discount per job — they do not stack.";
+  "Seniors 65+, military, first responders, and educators: ask us about available discounts. One discount per job — they do not stack.";
+
+/** Shown with the public discount line. Does not publish a rate. */
+export const DISCOUNT_ACCEPTED = "Eligibility is confirmed when we accept the job.";
+
+/** Preferred work, described by scope. No price and no budget question. */
+export const PROJECT_FIT =
+  "We focus on indoor, full-room kitchen and bathroom remodels. Tell us about the room and what you want to change.";
 
 export const FEATURED_REVIEW = {
   name: "Elieen Doctor",

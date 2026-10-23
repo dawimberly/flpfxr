@@ -4,6 +4,7 @@ import {
   SERVICES,
   SITE,
   AREA_LINE,
+  PROJECT_FIT,
   serviceHasWork,
 } from "@/lib/site";
 
@@ -57,7 +58,7 @@ function ServiceCard({
   return (
     <article
       id={service.id}
-      className="scroll-mt-28 flex h-full flex-col items-center rounded-2xl bg-surface p-6 text-center shadow-[var(--shadow-border)] sm:p-8"
+      className="scroll-mt-28 flex h-full flex-col items-center rounded-2xl bg-surface p-4 text-center shadow-[var(--shadow-border)] sm:p-8"
     >
       <h3 className="font-display text-2xl text-fg">{service.title}</h3>
       <p className="mt-2 max-w-xs flex-1 text-sm leading-relaxed text-muted">
@@ -67,7 +68,7 @@ function ServiceCard({
         {service.id === "roofing" ? (
           <Link
             to="/roof"
-            className="text-sm font-medium text-primary hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
           >
             Measure this roof
           </Link>
@@ -75,7 +76,7 @@ function ServiceCard({
           <Link
             to="/contact"
             search={{ service: service.id }}
-            className="text-sm font-medium text-primary hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
           >
             Get a price
           </Link>
@@ -84,7 +85,7 @@ function ServiceCard({
           <Link
             to="/gallery"
             search={{ service: service.id }}
-            className="text-sm font-medium text-muted hover:text-primary hover:underline"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-muted hover:text-primary hover:underline"
           >
             See the work
           </Link>
@@ -98,9 +99,7 @@ function ServicesPage() {
   return (
     <div>
       <PageIntro eyebrow="Services" title="What we do">
-        <p>
-          {SITE.tagline} {AREA_LINE}
-        </p>
+        <p>{PROJECT_FIT}</p>
         <p className="mt-3">
           Photos are on the{" "}
           <Link to="/gallery" className="font-medium text-primary">

@@ -28,11 +28,11 @@ function AboutPage() {
           tools. You get a clear price, a real plan, and a crew that treats the
           house like it's still yours.
         </p>
-        <p className="mt-4">
+        <p className="mt-1 sm:mt-4">
           We donate design and labor on group homes and CASA houses when a
           partner covers materials. Seniors 65+, military, first responders,
-          and educators get 5% under $10,000 and 10% at $10,000 and up — one
-          discount per job.{" "}
+          and educators: ask us about available discounts. One discount per
+          job. Eligibility is confirmed when we accept the job.{" "}
           <Link to="/community" search={{ sent: false }} className="font-medium text-primary">
             Community
           </Link>

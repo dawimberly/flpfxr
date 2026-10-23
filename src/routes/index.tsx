@@ -3,6 +3,7 @@ import { PencilRuler, Phone, Wrench } from "lucide-react";
 import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
+import { ProjectTellButton } from "@/components/remodel-project-proof";
 import { Photo } from "@/components/photo";
 import { BestWorkBand } from "@/components/best-work-band";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
   PROCESS,
   SITE,
   AREA_LINE,
+  PROJECT_FIT,
   TESTIMONIALS,
   FEATURED_REVIEW,
   SERVICE_AREAS,
@@ -83,7 +85,7 @@ function Home() {
           className="absolute inset-0 size-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/55 to-bg/25" />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-start justify-end px-4 pb-14 pt-28 md:min-h-[32rem] md:pb-20 md:pt-36">
+        <div className="relative mx-auto flex max-w-6xl flex-col items-start px-4 pb-4 pt-4 md:min-h-[32rem] md:justify-end md:pb-20 md:pt-36">
           <h1 className="max-w-2xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-6xl">
             Kitchen and bath remodels in San Antonio.
           </h1>
@@ -92,14 +94,10 @@ function Home() {
             actually pick up the phone. Your house stays your house the whole
             time.
           </p>
+          <p className="mt-3 max-w-xl text-lg text-fg">{PROJECT_FIT}</p>
           <p className="mt-2 text-fg/75">{AREA_LINE}</p>
-          <CallTextActions className="mt-8" />
-          <a
-            href="#send-job"
-            className="mt-4 text-sm font-medium text-fg/70 underline-offset-4 hover:text-primary hover:underline"
-          >
-            Or send the job below
-          </a>
+          <CallTextActions className="mt-8 hidden sm:flex" />
+          <ProjectTellButton className="mt-4 w-full sm:w-auto" />
         </div>
       </section>
 
@@ -116,7 +114,7 @@ function Home() {
               Tell us what you need.
             </h2>
             <p className="mt-3 text-muted">
-              Neighborhood, the room, when you want someone out. We call or
+              Neighborhood, the room, and what you want to change. We call or
               text you back.
             </p>
             <div className="mt-6 hidden md:block">
@@ -131,7 +129,7 @@ function Home() {
               nextPath="/"
               source="homepage"
               compact
-              messagePlaceholder="Neighborhood, the job, when you want someone out."
+              messagePlaceholder="Neighborhood, the job, and when you want someone out."
             />
           </div>
         </div>
@@ -146,6 +144,7 @@ function Home() {
           insurance rebuilds. Design in-house. One crew from walkthrough to
           finish.
         </p>
+        <p className="mt-4 text-lg leading-relaxed text-fg">{PROJECT_FIT}</p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
           <Link
             to="/services"
@@ -214,6 +213,9 @@ function Home() {
           <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
             Reviews
           </h2>
+          <p className="mt-4 text-muted">
+            Homeowners write about remodels and other work in their own words.
+          </p>
           <figure className="mt-8 rounded-2xl border border-primary/25 bg-bg p-6 md:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
               Three years of trust
