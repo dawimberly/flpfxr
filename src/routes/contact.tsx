@@ -32,14 +32,14 @@ const GENERAL_CONTACT: ContactCopy = {
   placeholder: "Neighborhood, the job, and when you want someone out.",
 };
 
-/** One entry per service id. Roofing and kitchen keep their existing lines. */
+/** Contact copy for each service. */
 const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
   roofing: {
     eyebrow: "Roofing",
-    documentTitle: "Roof repair and replacement",
-    description: `Roof repair and replacement in San Antonio. Call ${SITE.phoneDisplay}. We walk the job. ${AREA_LINE}`,
-    title: "Roof repair and replacement in San Antonio.",
-    intro: "Leaks, storm damage, or a roof that is done. We walk it and give you a number.",
+    documentTitle: "Schedule a roof inspection",
+    description: `Schedule a roof inspection in San Antonio. Call ${SITE.phoneDisplay}. Schedule an inspection with our roofing specialist. ${AREA_LINE}`,
+    title: "Schedule an inspection with our roofing specialist.",
+    intro: "Leaks, storm damage, or an aging roof? Contact us to schedule an inspection with our roofing specialist.",
     placeholder: "Address, what's wrong, and when you want someone out.",
   },
   kitchen: {
@@ -108,18 +108,18 @@ const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
   },
   "insurance-claims": {
     eyebrow: "Insurance claims",
-    documentTitle: "Insurance claim rebuilds",
-    description: `Fire and storm claim rebuilds in San Antonio. ${AREA_LINE}`,
-    title: "Insurance claim rebuilds in San Antonio.",
-    intro: "Fire or storm damage, from tear-out through finish. Tell us the address and what happened.",
+    documentTitle: "Insurance claim rebuild specialists",
+    description: `Insurance claim rebuild specialists in San Antonio. Contact us. ${AREA_LINE}`,
+    title: "Insurance claim rebuild specialists in San Antonio.",
+    intro: "We specialize in insurance claim rebuilds after fire or storm damage, from tear-out through finish. Contact us to discuss your project.",
     placeholder: "Address, what happened, and when you want someone out.",
   },
   consulting: {
     eyebrow: "Walkthrough",
     documentTitle: "Walkthrough",
-    description: `A walkthrough and a price in San Antonio. ${AREA_LINE}`,
-    title: "A walkthrough in San Antonio.",
-    intro: "We'll walk the job, tell you what's worth doing, and give you a number.",
+    description: `Schedule a walkthrough in San Antonio. ${AREA_LINE}`,
+    title: "Schedule a walkthrough.",
+    intro: "Contact us to schedule a walkthrough. Tell us what you want looked at and when you are available.",
     placeholder: "Neighborhood, what you want looked at, and when you want someone out.",
   },
 };
