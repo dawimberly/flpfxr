@@ -122,7 +122,7 @@ function ServicesPage() {
         })}
       </div>
 
-      <CtaBand />
+      <CtaBand contact />
     </div>
   );
 }
