@@ -39,7 +39,7 @@ function newSubmissionId(): string {
 export function LeadForm({
   sent = false,
   nextPath = "/contact",
-  service = "",
+  service: initialService = "",
   source = "contact",
   messagePlaceholder,
   compact = false,
@@ -59,6 +59,14 @@ export function LeadForm({
   showEmail?: boolean;
   children?: ReactNode;
 }) {
+  const [selectedService, setSelectedService] = useState(initialService);
+  const showJobType = source === "contact" || source === "homepage";
+  const service = showJobType ? selectedService : initialService;
+
+  useEffect(() => {
+    setSelectedService(initialService);
+  }, [initialService]);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -93,7 +101,7 @@ export function LeadForm({
     if (sent) setDone(true);
   }, [sent]);
 
-  const subject = `The Flip Fixer — ${service || "job"} (${source})`;
+  const subject = `The Flip Fixer - ${service || "job"} (${source})`;
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -290,6 +298,30 @@ export function LeadForm({
         <input type="hidden" name="email" value={email} />
       )}
       {children}
+      {showJobType ? (
+        <div className="space-y-2">
+          <Label htmlFor={`${source}-job-type`}>Job type</Label>
+          <select
+            id={`${source}-job-type`}
+            value={selectedService}
+            onChange={(e) => setSelectedService(e.target.value)}
+            className="flex h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+          >
+            <option value="">Select a job type (optional)</option>
+            <option value="kitchen">Kitchen remodel</option>
+            <option value="bathroom">Bathroom remodel</option>
+            <option value="kitchen-bath">Kitchen and bathroom</option>
+            <option value="flooring">Flooring</option>
+            <option value="paint">Painting</option>
+            <option value="make-ready">Make-ready</option>
+            <option value="handyman">Repairs / handyman</option>
+            <option value="outdoor">Outdoor work</option>
+            <option value="roofing">Roofing</option>
+            <option value="insurance-claims">Insurance rebuild</option>
+            <option value="consulting">Walkthrough / other</option>
+          </select>
+        </div>
+      ) : null}
       {showAffiliation ? (
         <div className="space-y-2">
           <p className="text-sm leading-relaxed text-muted">
@@ -345,14 +377,14 @@ export function LeadForm({
           <CallLink className="font-medium underline">
             Call <CallNumber />
           </CallLink>
-          {" · "}
+          {" � "}
           <TextLink className="font-medium underline">
             Text {SITE.phoneDisplay}
           </TextLink>
         </p>
       ) : null}
       <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
-        {submitting ? "Sending…" : "Send it over"}
+        {submitting ? "Sending." : "Send it over"}
       </Button>
       <p className="text-center text-xs text-subtle sm:text-left">
         We call or text you back.
