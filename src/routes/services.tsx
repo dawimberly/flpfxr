@@ -65,22 +65,19 @@ function ServiceCard({
         {service.body}
       </p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-        {service.id === "roofing" ? (
-          <Link
-            to="/roof"
-            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
-          >
-            Measure this roof
-          </Link>
-        ) : (
-          <Link
-            to="/contact"
-            search={{ service: service.id }}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
-          >
-            Get a price
-          </Link>
-        )}
+        <Link
+          to="/contact"
+          search={{ service: service.id }}
+          className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+        >
+          {service.id === "roofing"
+            ? "Schedule an inspection with our roofing specialist"
+            : service.id === "insurance-claims"
+              ? "Contact us"
+              : service.id === "consulting"
+                ? "Schedule a walkthrough"
+                : "Get a price"}
+        </Link>
         {serviceHasWork(service.id) ? (
           <Link
             to="/gallery"
