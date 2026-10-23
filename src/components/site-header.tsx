@@ -31,19 +31,19 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-3 px-4">
         <Link
           to="/"
-          className="flex items-center gap-3 text-fg"
+          className="flex shrink-0 items-center gap-3 text-fg"
           onClick={() => setOpen(false)}
         >
           <LogoMark />
-          <span className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl">
+          <span className="whitespace-nowrap font-display text-xl font-semibold leading-none tracking-tight text-primary sm:text-2xl">
             {SITE.name}
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:flex">
+        <nav className="hidden min-w-0 items-center gap-0.5 xl:flex">
           {NAV.map((item) => {
             const active =
               item.to === "/"
@@ -54,7 +54,7 @@ export function SiteHeader() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "rounded-md px-3 py-2 text-sm font-medium uppercase tracking-wide transition-[color,background-color] duration-150",
+                  "rounded-md px-2 py-2 text-sm font-medium uppercase tracking-wide transition-[color,background-color] duration-150",
                   active
                     ? "text-primary"
                     : "text-muted hover:bg-surface-2 hover:text-fg",
