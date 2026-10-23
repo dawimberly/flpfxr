@@ -73,7 +73,7 @@ function Home() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-display text-3xl font-semibold text-fg">Recent remodels</h2>
-            <p className="mt-3 text-muted">See what we've built for homeowners around San Antonio.</p>
+            <p className="mt-3 text-muted">See what we’ve built for homeowners around San Antonio.</p>
           </div>
           <Link to="/gallery" className="font-medium text-primary hover:underline">See the full gallery</Link>
         </div>
@@ -112,7 +112,7 @@ function Home() {
             </blockquote>
             <figcaption className="mt-4 text-sm">
               <span className="font-medium text-fg">{FEATURED_REVIEW.name}</span>
-              <span className="text-subtle"> � {FEATURED_REVIEW.source}</span>
+              <span className="text-subtle"> · {FEATURED_REVIEW.source}</span>
             </figcaption>
             <Link to="/testimonials" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
               Read her full review

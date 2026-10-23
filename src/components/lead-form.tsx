@@ -101,7 +101,7 @@ export function LeadForm({
     if (sent) setDone(true);
   }, [sent]);
 
-  const subject = `The Flip Fixer - ${service || "job"} (${source})`;
+  const subject = `The Flip Fixer — ${service || "job"} (${source})`;
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -377,14 +377,14 @@ export function LeadForm({
           <CallLink className="font-medium underline">
             Call <CallNumber />
           </CallLink>
-          {" � "}
+          {" · "}
           <TextLink className="font-medium underline">
             Text {SITE.phoneDisplay}
           </TextLink>
         </p>
       ) : null}
       <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
-        {submitting ? "Sending." : "Send it over"}
+        {submitting ? "Sending…" : "Send it over"}
       </Button>
       <p className="text-center text-xs text-subtle sm:text-left">
         We call or text you back.
