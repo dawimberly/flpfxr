@@ -6,6 +6,7 @@ import {
   GOOGLE_ADS_ID,
   GOOGLE_ADS_WEBSITE_CALL_SEND_TO,
   gtag,
+  canTrackGoogle,
   pagePathFromLocation,
   trackPageView,
 } from "@/lib/google-ads";
@@ -21,12 +22,11 @@ const SCRIPT_ID = "google-gtag";
  */
 export function GoogleTag() {
   const path = useRouterState({
-    select: (s) =>
-      pagePathFromLocation(s.location.pathname, s.location.searchStr),
+    select: (s) => pagePathFromLocation(s.location.pathname, s.location.searchStr),
   });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!canTrackGoogle()) return;
 
     gtag("js", new Date());
     gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false });
@@ -54,7 +54,9 @@ export function GoogleTag() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!canTrackGoogle()) return;
+    // Refresh safe defaults for automatic GA4 events after SPA navigation.
+    gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false, update: true });
     captureAdClickIds();
     trackPageView(path, document.title);
   }, [path]);

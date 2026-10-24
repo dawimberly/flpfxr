@@ -2,6 +2,8 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  isGoogleTrackingHost,
+  gtag,
   GA4_MEASUREMENT_ID,
   GOOGLE_ADS_ID,
   GOOGLE_ADS_LEAD_SEND_TO,
@@ -56,6 +58,7 @@ describe("ads events", () => {
     store = new Map();
     cookie = "";
     const location = {
+      hostname: "theflipfixer.com",
       href: "https://theflipfixer.com/contact?service=kitchen",
     };
     Object.assign(globalThis, {
@@ -83,9 +86,7 @@ describe("ads events", () => {
               .join("; ");
             return;
           }
-          const others = cookie
-            .split("; ")
-            .filter((part) => part && !part.startsWith(`${name}=`));
+          const others = cookie.split("; ").filter((part) => part && !part.startsWith(`${name}=`));
           others.push(`${name}=${val}`);
           cookie = others.join("; ");
         },
@@ -116,6 +117,30 @@ describe("ads events", () => {
     assert.equal(destinations.includes(GOOGLE_ADS_LEAD_SEND_TO), false);
   });
 
+  it("sanitizes GA4 defaults and every manual event, including referrers", () => {
+    window.location.href =
+      "https://theflipfixer.com/contact?email=private@example.invalid#phone=2105550100";
+    Object.assign(document, { referrer: "https://example.invalid/?name=Private#message=secret" });
+    gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false });
+    trackFormStart();
+    trackPhoneClick();
+    trackSmsClick();
+    trackContactFormSubmit({ email: "private@example.invalid" });
+    const ga4 = calls.filter(
+      (call) =>
+        call[1] === GA4_MEASUREMENT_ID ||
+        (call[2] as { send_to?: string })?.send_to === GA4_MEASUREMENT_ID,
+    );
+    assert.equal(ga4.length, 5);
+    for (const call of ga4) {
+      const params = call[2] as Record<string, unknown>;
+      assert.equal(params.page_location, "https://theflipfixer.com/contact");
+      assert.equal(params.page_referrer, "https://example.invalid/");
+      assert.equal("user_data" in params, false);
+      assert.equal(JSON.stringify(params).includes("private@"), false);
+    }
+  });
+
   it("fires the primary form conversion with enhanced user_data exactly once per call site", () => {
     trackContactFormSubmit({
       name: "Jon Smith",
@@ -129,15 +154,19 @@ describe("ads events", () => {
 
     const conversions = calls.filter((call) => call[1] === "conversion");
     assert.equal(conversions.length, 1);
+    assert.equal((conversions[0][2] as { send_to: string }).send_to, GOOGLE_ADS_LEAD_SEND_TO);
     assert.equal(
-      (conversions[0][2] as { send_to: string }).send_to,
-      GOOGLE_ADS_LEAD_SEND_TO,
+      typeof (conversions[0][2] as { event_callback?: unknown }).event_callback,
+      "function",
     );
-    assert.equal(typeof (conversions[0][2] as { event_callback?: unknown }).event_callback, "function");
 
-    const userData = calls.find((call) => call[0] === "set" && call[1] === "user_data");
+    const userData = (conversions[0][2] as { user_data?: unknown }).user_data;
     assert.ok(userData);
-    assert.deepEqual(userData![2], {
+    assert.equal(
+      calls.some((call) => call[0] === "set" && call[1] === "user_data"),
+      false,
+    );
+    assert.deepEqual(userData, {
       email: "jon@theflipfixer.com",
       phone_number: "+12104369117",
       address: { first_name: "jon", last_name: "smith" },
@@ -150,6 +179,7 @@ describe("ads events", () => {
     for (const call of calls) {
       if (call[0] !== "event" || call[1] === "conversion") continue;
       assert.equal((call[2] as { send_to?: string }).send_to, GA4_MEASUREMENT_ID);
+      assert.equal("user_data" in (call[2] as object), false);
     }
   });
 
@@ -222,10 +252,8 @@ describe("ads events", () => {
   });
 
   it("shapes enhanced conversions user_data without inventing fields", () => {
-    setEnhancedUserData({ name: "Ada", phone: "210" });
-    // too-short phone is dropped; name still sets address
-    const userData = calls.find((call) => call[0] === "set" && call[1] === "user_data");
-    assert.deepEqual(userData?.[2], {
+    const userData = setEnhancedUserData({ name: "Ada", phone: "210" });
+    assert.deepEqual(userData, {
       address: { first_name: "ada" },
     });
   });
@@ -247,5 +275,45 @@ describe("ads events", () => {
   it("keeps the primary form and website-call labels", () => {
     assert.equal(GOOGLE_ADS_LEAD_SEND_TO, "AW-18251288464/XOc8CJqR8-8cEJCf8v5D");
     assert.equal(GOOGLE_ADS_WEBSITE_CALL_SEND_TO, "AW-18251288464/9UoFCLGyuY4dEJCf8v5D");
+  });
+});
+
+describe("production hostname isolation", () => {
+  it("allows only the two exact production hosts", () => {
+    for (const host of ["theflipfixer.com", "www.theflipfixer.com"])
+      assert.equal(isGoogleTrackingHost(host), true);
+    for (const host of [
+      "localhost",
+      "flpfxr-test.vercel.app",
+      "theflipfixer.com.evil.test",
+      "preview.theflipfixer.com",
+      "theflipfixer.com.",
+      "www.theflipfixer.com.",
+      "THEFLIPFIXER.COM",
+      "WWW.THEFLIPFIXER.COM",
+      "theflipfixer-com.vercel.app",
+      "www.theflipfixer.com.evil.test",
+      "",
+    ])
+      assert.equal(isGoogleTrackingHost(host), false);
+  });
+  it("does not queue events or user data on previews even with gtag present", () => {
+    const previous = globalThis.window;
+    const calls: unknown[] = [];
+    Object.assign(globalThis, {
+      window: {
+        location: { hostname: "test.vercel.app" },
+        gtag: (...args: unknown[]) => calls.push(args),
+      },
+    });
+    try {
+      trackContactFormSubmit({ email: "test@example.invalid", phone: "2105550100" });
+      trackPageView("/contact");
+      trackPhoneClick();
+      trackSmsClick();
+      assert.deepEqual(calls, []);
+    } finally {
+      Object.assign(globalThis, { window: previous });
+    }
   });
 });

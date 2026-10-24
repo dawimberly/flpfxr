@@ -96,8 +96,9 @@ async function persistLead(args: {
   await sql.query(
     `insert into contact_leads (
        submission_id, name, email, phone, message, service, source, affiliation,
-       ad_ids, has_photo, delivered_email, client_ip
-     ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12)
+       ad_ids, has_photo, delivered_email, client_ip, is_test
+     ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,
+       EXISTS (SELECT 1 FROM lead_test_exclusions WHERE submission_id = $1))
      on conflict (submission_id) do update set
        delivered_email = contact_leads.delivered_email OR excluded.delivered_email`,
     [
@@ -277,8 +278,8 @@ export async function handleLeadFormData(
       deliveredEmail: true,
       clientIp,
     });
-  } catch (err) {
-    console.error("[leads] persist after email failed:", err);
+  } catch {
+    console.error("[leads] persist after email failed");
     // Email already accepted — still report success so the visitor is not asked to resend.
   }
 

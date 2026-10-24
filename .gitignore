@@ -14,3 +14,7 @@ public/sim-spring-rain/
 public/blue-quail-local/
 
 .env*
+
+# Private lead exports must never enter source control
+private/
+lead-exports/
