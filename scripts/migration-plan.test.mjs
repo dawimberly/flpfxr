@@ -65,7 +65,7 @@ test("the auth schema ships outside the globbed directory", () => {
   const pending = pendingMigrations(entries, []);
   assert.deepEqual(
     pending.map((item) => item.name),
-    ["0001_auth.sql", "0002_estimator_jobs.sql", "0003_contact_leads.sql"],
+    ["0001_auth.sql", "0002_estimator_jobs.sql", "0003_contact_leads.sql", "0004_private_lead_log.sql"],
   );
   assert.ok(readdirSync(join(migrationsDir, "auth")).includes("0001_auth.sql"));
   // Already-applied migrations are skipped on the next Vercel build migrate.
@@ -74,6 +74,7 @@ test("the auth schema ships outside the globbed directory", () => {
       "0001_auth.sql",
       "0002_estimator_jobs.sql",
       "0003_contact_leads.sql",
+      "0004_private_lead_log.sql",
     ]),
     [],
   );

@@ -17,18 +17,25 @@ export const GOOGLE_ADS_ID = "AW-18251288464";
  * click-to-call, text) must not be sent — Tag Manager was counting those too.
  * Click and text stay in GA4 only. Calls count when they last 60 seconds.
  */
-export const GOOGLE_ADS_LEAD_SEND_TO =
-  "AW-18251288464/XOc8CJqR8-8cEJCf8v5D";
+export const GOOGLE_ADS_LEAD_SEND_TO = "AW-18251288464/XOc8CJqR8-8cEJCf8v5D";
 
 /** "Calls from website (60s+)" — Google forwarding number, counts answered calls. */
-export const GOOGLE_ADS_WEBSITE_CALL_SEND_TO =
-  "AW-18251288464/9UoFCLGyuY4dEJCf8v5D";
+export const GOOGLE_ADS_WEBSITE_CALL_SEND_TO = "AW-18251288464/9UoFCLGyuY4dEJCf8v5D";
 
 declare global {
   interface Window {
     dataLayer: IArguments[];
     gtag: (...args: unknown[]) => void;
   }
+}
+
+/** Exact production allowlist; preview and local hosts must never queue Google hits. */
+export function isGoogleTrackingHost(hostname: string): boolean {
+  return hostname === "theflipfixer.com" || hostname === "www.theflipfixer.com";
+}
+
+export function canTrackGoogle(): boolean {
+  return typeof window !== "undefined" && isGoogleTrackingHost(window.location.hostname);
 }
 
 function ensureGtag() {
@@ -42,20 +49,36 @@ function ensureGtag() {
   }
 }
 
+/** Strip untrusted URL parameters from every GA4 config/event, not just page views. */
+export function safeAnalyticsUrl(value: string): string {
+  return value.split(/[?#]/, 1)[0];
+}
+
+export function ga4PageContext() {
+  return {
+    page_location: safeAnalyticsUrl(window.location.href),
+    page_referrer: safeAnalyticsUrl(typeof document !== "undefined" ? document.referrer || "" : ""),
+  };
+}
+
 export function gtag(...args: unknown[]) {
-  if (typeof window === "undefined") return;
+  if (!canTrackGoogle()) return;
+  const params = args[2] as Record<string, unknown> | undefined;
+  const isGa4 =
+    (args[0] === "config" && args[1] === GA4_MEASUREMENT_ID) ||
+    (args[0] === "event" && params?.send_to === GA4_MEASUREMENT_ID);
+  if (isGa4) {
+    const clean: Record<string, unknown> = { ...params, ...ga4PageContext() };
+    delete clean.user_data;
+    args[2] = clean;
+  }
   ensureGtag();
   window.gtag(...args);
 }
 
 export function pagePathFromLocation(pathname: string, search = ""): string {
   const path = pathname || "/";
-  const raw =
-    !search || search === "?"
-      ? ""
-      : search.startsWith("?")
-        ? search.slice(1)
-        : search;
+  const raw = !search || search === "?" ? "" : search.startsWith("?") ? search.slice(1) : search;
   const params = new URLSearchParams(raw);
   // Thank-you flag is not a separate page for reporting.
   params.delete("sent");
@@ -84,11 +107,12 @@ function ga4Event(name: string, params: Record<string, unknown> = {}) {
 
 /** SPA navigations do not reload the document, so config's automatic page_view is not enough. */
 export function trackPageView(path: string, title?: string) {
-  if (typeof window === "undefined") return;
+  if (!canTrackGoogle()) return;
   const payload = {
-    page_path: path,
+    // Do not forward arbitrary query strings or fragments containing contact data.
+    page_path: path.split(/[?#]/, 1)[0],
     page_title: title || document.title,
-    page_location: window.location.href,
+    page_location: window.location.href.split(/[?#]/, 1)[0],
   };
   for (const sendTo of PAGE_VIEW_DESTINATIONS) {
     gtag("event", "page_view", { ...payload, send_to: sendTo });
@@ -111,8 +135,8 @@ export type EnhancedUserData = {
 };
 
 /**
- * Set first-party user data before a conversion event so Google can match
- * leads more accurately (Enhanced Conversions). Pass plain text; gtag hashes.
+ * Build first-party data for the Ads conversion event only. Never set global
+ * user_data: GA4 must not inherit contact details.
  */
 export function setEnhancedUserData(data: EnhancedUserData) {
   if (typeof window === "undefined") return;
@@ -148,7 +172,7 @@ export function setEnhancedUserData(data: EnhancedUserData) {
 
   if (Object.keys(userData).length === 0) return;
 
-  gtag("set", "user_data", userData);
+  return userData;
 }
 
 function writeCookie(name: string, value: string, maxAgeSec: number) {
@@ -243,9 +267,7 @@ export function consumePendingLeadSubmit(): boolean {
 export function trackContactFormSubmit(userData?: EnhancedUserData) {
   if (typeof window === "undefined") return;
 
-  if (userData) {
-    setEnhancedUserData(userData);
-  }
+  const adsUserData = userData ? setEnhancedUserData(userData) : undefined;
 
   ga4Event("generate_lead", {
     currency: "USD",
@@ -254,6 +276,7 @@ export function trackContactFormSubmit(userData?: EnhancedUserData) {
   // event_callback keeps the hit alive if a native redirect races the tag.
   gtag("event", "conversion", {
     send_to: GOOGLE_ADS_LEAD_SEND_TO,
+    ...(adsUserData ? { user_data: adsUserData } : {}),
     value: 1.0,
     currency: "USD",
     event_callback: () => {},
