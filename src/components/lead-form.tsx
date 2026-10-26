@@ -235,6 +235,7 @@ export function LeadForm({
       onFocusCapture={trackFormStart}
       className={compact ? "space-y-3" : "space-y-5"}
       noValidate
+      data-clarity-mask="true"
     >
       <input type="hidden" name="_subject" value={subject} />
       <input type="hidden" name="Job" value={service || "n/a"} />
