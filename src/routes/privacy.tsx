@@ -28,6 +28,7 @@ function PrivacyPage() {
         </div>
         <div className="space-y-3">
           <h2 className="font-display text-2xl text-fg">Analytics and advertising measurement</h2>
+          <p>We use Google Analytics and Microsoft Clarity to understand how visitors use the site and improve it; see <a className="text-primary underline" href="https://www.microsoft.com/en-us/privacy/privacystatement">Microsoft’s privacy statement</a>.</p>
           <p>We use Google Analytics and Google Ads to understand website visits and measure advertising results. Google tags and cookies can collect information about your browser, device, pages visited, and interactions, including call and text link clicks.</p>
           <p>We share information with Google to perform advertising measurement on our behalf. After an accepted form submission, Google Ads enhanced conversions can use your provided email address, phone number, and name in hashed form to help match the inquiry to an ad interaction. Google call tracking can replace the displayed phone number with a forwarding number to measure calls and their duration.</p>
           <p><a className="text-primary underline" href="https://business.safety.google/privacy/">How Google uses information from sites that use its services</a>.</p>
