@@ -3,6 +3,7 @@ import { useEffect } from "react";
 /** Optional, non-blocking Clarity install for all client-side routes. */
 export function MicrosoftClarity() {
   useEffect(() => {
+    if (location.pathname.startsWith("/estimator") || location.pathname.startsWith("/login")) return;
     const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID?.trim();
     if (!projectId || document.getElementById("microsoft-clarity")) return;
 
