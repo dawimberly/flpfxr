@@ -513,7 +513,7 @@ export function EstimatorApp() {
   );
 
   return (
-    <>
+    <div data-clarity-mask="true">
       <div className="app-shell min-h-dvh w-full max-w-full overflow-x-clip pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-10">
         <header className="sticky top-0 z-30 border-b border-border/80 bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
           <div className="mx-auto flex w-full min-w-0 max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -738,7 +738,7 @@ export function EstimatorApp() {
           <DownloadPdfButtons job={job} compact />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

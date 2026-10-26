@@ -141,6 +141,7 @@ function CommunityPage() {
               method="POST"
               onSubmit={onSubmit}
               className="space-y-5"
+              data-clarity-mask="true"
             >
               <input
                 type="hidden"

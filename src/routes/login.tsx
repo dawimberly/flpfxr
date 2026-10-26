@@ -35,16 +35,16 @@ function GoToEstimator() {
 
 function LoginPage() {
   if (!authEnabled) {
-    return <GoToEstimator />;
+    return <div data-clarity-mask="true"><GoToEstimator /></div>;
   }
 
   return (
-    <>
+    <div data-clarity-mask="true">
       <SignedIn>
         <GoToEstimator />
       </SignedIn>
       <LoginForm />
-    </>
+    </div>
   );
 }
 
