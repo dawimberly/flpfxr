@@ -1,4 +1,11 @@
 /** Shared lead-form validation and delivery result shapes (client + server). */
+import { SITE } from "./site.ts";
+import {
+  buildAttributionSubject,
+  formatLeadSource,
+  sanitizeLeadAttribution,
+  type LeadAttribution,
+} from "./lead-attribution.ts";
 
 export const LEAD_API_PATH = "/api/leads";
 export const MAX_LEAD_PHOTO_BYTES = 3 * 1024 * 1024;
@@ -11,16 +18,7 @@ export const LEAD_PHOTO_TYPES = new Set([
   "image/gif",
 ]);
 
-export type LeadAdIds = {
-  gclid?: string;
-  gbraid?: string;
-  wbraid?: string;
-  utm_source?: string;
-  utm_campaign?: string;
-  utm_medium?: string;
-  landing_path?: string;
-  page_url?: string;
-};
+export type LeadAdIds = LeadAttribution;
 
 export type LeadPayload = {
   submissionId: string;
@@ -123,8 +121,20 @@ export function validateLeadPhoto(file: File | null | undefined): {
 }
 
 export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string }): string {
+  let ad: LeadAdIds = { source_label: "Direct/unknown" };
+  try {
+    ad = sanitizeLeadAttribution(payload.adIds);
+  } catch {
+    ad = { source_label: "Direct/unknown" };
+  }
+  let host = SITE.legalName;
+  try {
+    host = new URL(SITE.url).host;
+  } catch {
+    host = SITE.legalName;
+  }
   const lines = [
-    "New lead from theflipfixer.com",
+    `New lead from ${host}`,
     "",
     `Name: ${payload.name.trim()}`,
     `Phone: ${payload.phone.trim()} (${payload.phoneDigits})`,
@@ -138,20 +148,22 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     payload.message.trim(),
     "",
     "Ad / landing:",
-    `gclid: ${payload.adIds.gclid || ""}`,
-    `gbraid: ${payload.adIds.gbraid || ""}`,
-    `wbraid: ${payload.adIds.wbraid || ""}`,
-    `utm_source: ${payload.adIds.utm_source || ""}`,
-    `utm_campaign: ${payload.adIds.utm_campaign || ""}`,
-    `utm_medium: ${payload.adIds.utm_medium || ""}`,
-    `landing_path: ${payload.adIds.landing_path || ""}`,
-    `page_url: ${payload.adIds.page_url || ""}`,
+    `gclid: ${ad.gclid || ""}`,
+    `gbraid: ${ad.gbraid || ""}`,
+    `wbraid: ${ad.wbraid || ""}`,
+    `utm_source: ${ad.utm_source || ""}`,
+    `utm_campaign: ${ad.utm_campaign || ""}`,
+    `utm_medium: ${ad.utm_medium || ""}`,
+    `landing_path: ${ad.landing_path || ""}`,
+    `page_url: ${ad.page_url || ""}`,
+    "",
+    formatLeadSource(ad),
   ];
   return lines.join("\n");
 }
 
-export function buildLeadSubject(service: string, source: string): string {
-  return `The Flip Fixer — ${service || "job"} (${source || "contact"})`;
+export function buildLeadSubject(service: string, source: string, label?: string): string {
+  return buildAttributionSubject(service, source, label);
 }
 
 /** Client parsing of /api/leads JSON. */

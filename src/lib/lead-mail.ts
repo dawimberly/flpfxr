@@ -2,6 +2,7 @@
  * Transactional lead email via Resend's HTTP API (no SDK).
  * Requires RESEND_API_KEY on the server. Never import from client components.
  */
+import { SITE } from "./site.ts";
 
 export type LeadMailAttachment = {
   filename: string;
@@ -29,9 +30,9 @@ export function leadMailConfigFromEnv(env: NodeJS.ProcessEnv = process.env): {
   from: string;
 } {
   const apiKey = env.RESEND_API_KEY?.trim() || null;
-  const to = env.LEAD_TO_EMAIL?.trim() || "Jon@TheFlipFixer.com";
+  const to = env.LEAD_TO_EMAIL?.trim() || SITE.email;
   const from =
-    env.LEAD_FROM_EMAIL?.trim() || "The Flip Fixer <onboarding@resend.dev>";
+    env.LEAD_FROM_EMAIL?.trim() || `${SITE.legalName} <onboarding@resend.dev>`;
   return { apiKey, to, from };
 }
 
