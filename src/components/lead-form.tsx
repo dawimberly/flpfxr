@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { captureAdClickIds } from "@/lib/formsubmit";
+import { submissionAttribution } from "@/lib/lead-attribution";
 import {
   LEAD_API_PATH,
   claimAcceptedLeadConversion,
@@ -78,7 +78,7 @@ export function LeadForm({
   const [phoneError, setPhoneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [adIds, setAdIds] = useState<Record<string, string>>({});
+
   const sending = useRef(false);
   const trackedThisSubmit = useRef(false);
   const submissionIdRef = useRef<string | null>(null);
@@ -93,7 +93,7 @@ export function LeadForm({
     if (draft.submissionId && isValidSubmissionId(draft.submissionId)) {
       submissionIdRef.current = draft.submissionId;
     }
-    setAdIds(captureAdClickIds());
+
   }, [nextPath]);
 
   // ?sent=1 restores the thank-you UI after a reload. It is not a new lead.
@@ -145,7 +145,7 @@ export function LeadForm({
     data.set("Affiliation", affiliation || "n/a");
     data.set("Source", source);
     data.set("Phone_digits", digits);
-    for (const [key, value] of Object.entries(adIds)) {
+    for (const [key, value] of Object.entries(submissionAttribution())) {
       if (value) data.set(key, value);
     }
 
@@ -323,6 +323,13 @@ export function LeadForm({
           </select>
         </div>
       ) : null}
+      <div className="space-y-2">
+        <Label htmlFor={`${source}-heard-from`}>How did you hear about us? (optional)</Label>
+        <select id={`${source}-heard-from`} name="heard_from" defaultValue="" className="flex h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm">
+          <option value="">Select an option</option>
+          <option>Google search</option><option>Google Ads</option><option>Google Maps / Business Profile</option><option>Referral from friend/family</option><option>Past customer</option><option>Social media</option><option>Other</option>
+        </select>
+      </div>
       {showAffiliation ? (
         <div className="space-y-2">
           <p className="text-sm leading-relaxed text-muted">
