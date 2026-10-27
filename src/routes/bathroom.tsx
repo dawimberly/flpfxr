@@ -1,3 +1,4 @@
+import { RemodelDetails } from "@/components/remodel-details";
 import { createFileRoute } from "@tanstack/react-router";
 import { LeadForm } from "@/components/lead-form";
 import {
@@ -59,6 +60,7 @@ function BathroomLanding() {
         </div>
       </section>
 
+      <RemodelDetails service="bathroom" />
       <MoreProjectPhotos service="bathroom" />
     </div>
   );
