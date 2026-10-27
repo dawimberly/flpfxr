@@ -54,13 +54,19 @@ function readAdIds(form: FormData): LeadAdIds {
     "utm_source",
     "utm_campaign",
     "utm_medium",
+    "utm_term",
+    "utm_content",
+    "referrer",
+    "submitting_path",
+    "device",
+    "heard_from",
     "landing_path",
     "page_url",
   ] as const;
   const adIds: LeadAdIds = {};
   for (const key of keys) {
     const value = str(form, key).trim();
-    if (value) adIds[key] = value.slice(0, 500);
+    if (value) adIds[key] = value.replace(/[\r\n]/g, " ").slice(0, 500);
   }
   return adIds;
 }
@@ -241,7 +247,7 @@ export async function handleLeadFormData(
       submissionId,
       from: mailCfg.from,
       replyTo: payload.email.trim() || undefined,
-      subject: buildLeadSubject(payload.service, payload.source),
+      subject: buildLeadSubject(payload.service, payload.source, payload.adIds),
       text: buildLeadEmailText({ ...payload, phoneDigits: fields.phoneDigits }),
       attachments: attachment ? [attachment] : undefined,
     },

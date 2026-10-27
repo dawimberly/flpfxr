@@ -24,7 +24,7 @@ function PrivacyPage() {
           <h2 className="font-display text-2xl text-fg">When you contact us</h2>
           <p>We use the name, phone number, email address, job details, and optional photo you provide to respond to your inquiry and discuss the work. Please avoid including sensitive personal information in your message or photo.</p>
           <p>Our job inquiry forms send messages through our email delivery provider, Resend, and store them in our website database hosted by Neon. The separate Community partnership form sends information through FormSubmit. Our website is hosted by Vercel. These service providers process information to operate the website and deliver your request.</p>
-          <p>The form can save a draft in your browser so you can retry a failed submission. Advertising click identifiers and the page where you arrived may be included with your inquiry to help us understand how you found us.</p>
+          <p>The form can save a draft in your browser so you can retry a failed submission. With form submissions, we record how you found our site, such as an ad click or referring site, to respond to your inquiry and improve our marketing.</p>
         </div>
         <div className="space-y-3">
           <h2 className="font-display text-2xl text-fg">Analytics and advertising measurement</h2>
