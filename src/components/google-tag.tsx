@@ -10,7 +10,6 @@ import {
   pagePathFromLocation,
   trackPageView,
 } from "@/lib/google-ads";
-import { captureAdClickIds } from "@/lib/formsubmit";
 import { SITE } from "@/lib/site";
 
 const SCRIPT_ID = "google-gtag";
@@ -57,7 +56,6 @@ export function GoogleTag() {
     if (!canTrackGoogle()) return;
     // Refresh safe defaults for automatic GA4 events after SPA navigation.
     gtag("config", GA4_MEASUREMENT_ID, { send_page_view: false, update: true });
-    captureAdClickIds();
     trackPageView(path, document.title);
   }, [path]);
 
