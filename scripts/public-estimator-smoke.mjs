@@ -73,6 +73,8 @@ try {
     assert.ok(overflow <= 3, "Horizontal overflow at " + viewport.width + "px: " + overflow);
     await page.getByRole("link", { name: "Request an on-site estimate" }).click();
     await page.waitForURL(/\/contact/);
+    // Contact form hydrates asynchronously after client navigation.
+    await page.waitForFunction(() => document.querySelector('textarea[name="message"]')?.value.includes("bathroom remodeling"), null, { timeout: 15000 });
     const message = await page.locator("textarea[name=message]").inputValue();
     assert.match(message, /bathroom remodeling \(medium scope\)/);
     assert.match(message, /\$5,250/);
