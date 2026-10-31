@@ -41,6 +41,9 @@ try {
   browser = await chromium.launch({ headless: true });
   for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
     const page = await browser.newPage({ viewport });
+    const browserErrors = [];
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+    page.on("console", (msg) => { if (msg.type() === "error") browserErrors.push(msg.text()); });
     const response = await page.goto(base + "/estimate", { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200, "/estimate HTTP status");
     await page.getByRole("heading", { name: "Plan your next project." }).waitFor();
@@ -48,7 +51,12 @@ try {
     await page.getByLabel("Base crew days").fill("4");
     await page.getByLabel("Materials at cost ($)").fill("2000");
     await page.getByLabel("Other costs ($)").fill("0");
-    await page.getByText("$5,250", { exact: true }).waitFor();
+    await page.waitForTimeout(1800);
+    const estimatorText = await page.locator("body").innerText();
+    const inputValues = await page.locator("input[type=number]").evaluateAll((inputs) => inputs.map((input) => input.value));
+    console.log("ESTIMATOR DEBUG", JSON.stringify({ viewport, inputValues, browserErrors, excerpt: estimatorText.slice(0, 1800) }));
+    await page.screenshot({ path: "public-estimator-smoke-" + viewport.width + ".png", fullPage: true });
+    assert.match(estimatorText, /\\$5,250/, "Expected 4+1 crew days at $650 and $2,000 materials");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 3, "Horizontal overflow at " + viewport.width + "px: " + overflow);
     await page.getByRole("link", { name: "Request an on-site estimate" }).click();
