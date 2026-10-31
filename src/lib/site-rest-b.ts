@@ -112,6 +112,8 @@ export type LeadDraft = {
   name?: string;
   address?: string;
   pitchId?: string;
+  pitch?: string;
+  roofSize?: string;
   shingleId?: string;
   email?: string;
   phone?: string;
