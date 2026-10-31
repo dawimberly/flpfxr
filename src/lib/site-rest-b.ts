@@ -110,6 +110,9 @@ export const LEAD_STORAGE_KEY = "flipfixer-lead-draft";
 
 export type LeadDraft = {
   name?: string;
+  address?: string;
+  pitchId?: string;
+  shingleId?: string;
   email?: string;
   phone?: string;
   affiliation?: string;
