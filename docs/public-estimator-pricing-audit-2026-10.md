@@ -27,3 +27,13 @@ These differ materially in scope and methodology; do not blend them into a fake 
 - Confirm whether existing catalog `cost_per_unit` is internal cost or already marked-up installed selling price.
 
 Status: research and audit plan only; **no new public prices approved**.
+
+
+## Owner-confirmed pricing rules (2026-10-30)
+- Materials: billed at actual cost, normally **no materials markup**.
+- Crew labor: **$650 per day for a two-person crew** (not per worker).
+- Duration allowance: **add one crew day for each complete four base crew days**. For integer base days D, adjusted days = D + floor(D / 4). Examples: 3→3, 4→5, 5→6, 8→10, 12→15.
+- Sourcing, shopping, takeoffs, estimating and coordinating materials take time and must be costed as a **separate service/time component**, not hidden as materials markup.
+- Procurement/estimating billing basis and whether the $650/day is a customer billing rate versus internal cost are **not yet confirmed**. Do not assume a percentage, minimum, hourly rate, or double count these activities if already included in crew days.
+- Pricing calculations should be shared by public comparison and internal estimator only after validating the catalog's installed-unit rates against the crew-day model; do not add crew labor on top of an installed price that already includes labor.
+- Do not publish market savings claims until comparable scope and verified evidence are available.
