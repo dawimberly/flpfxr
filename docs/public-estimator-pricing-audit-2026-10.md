@@ -37,3 +37,9 @@ Status: research and audit plan only; **no new public prices approved**.
 - Procurement/estimating billing basis and whether the $650/day is a customer billing rate versus internal cost are **not yet confirmed**. Do not assume a percentage, minimum, hourly rate, or double count these activities if already included in crew days.
 - Pricing calculations should be shared by public comparison and internal estimator only after validating the catalog's installed-unit rates against the crew-day model; do not add crew labor on top of an installed price that already includes labor.
 - Do not publish market savings claims until comparable scope and verified evidence are available.
+
+## Clarification: crew-day rate is an estimate, not a quote
+- The $650/day for the two-person crew is the **estimated customer-facing charge for people working on site**, not payroll expense.
+- The result is a nonbinding **planning estimate**, never a formal bid or guaranteed quote.
+- Do not apply another labor markup to this rate by default. Subcontractors are separate.
+- Public UI must label both market and Flip Fixer ranges as estimates and explain that actual scope and site conditions determine final pricing.
