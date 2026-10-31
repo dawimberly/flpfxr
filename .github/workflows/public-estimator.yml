@@ -2,9 +2,7 @@ name: Public estimator checks
 on:
   pull_request:
     paths:
-      - "src/components/public-project-estimator*"
-      - "src/lib/public-pricing.ts"
-      - "src/routes/estimate.tsx"
+      - "src/**"
       - ".github/workflows/public-estimator.yml"
   workflow_dispatch:
 jobs:
