@@ -9,11 +9,12 @@ const SIZE_HINTS: Record<Size,string> = {
   Medium: "A typical room or moderate scope",
   Large: "A larger area or more extensive work",
 };
-const RATE = 650;
-import { adjustedCrewDays } from "@/lib/public-pricing";
+const RATE = CREW_DAY_RATE;
+import { adjustedCrewDays, planningEstimate, CREW_DAY_RATE } from "@/lib/public-pricing";
 function currency(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
+function readyToCalculate(...checks: boolean[]): boolean { return checks.every(Boolean); }
 export function PublicProjectEstimator() {
   const [service, setService] = useState<(typeof SERVICES)[number]>("Bathroom remodeling");
   const [size, setSize] = useState<Size>("Medium");
@@ -24,7 +25,7 @@ export function PublicProjectEstimator() {
   const validMaterials = materials.trim() !== "" && Number.isFinite(Number(materials)) && Number(materials) >= 0;
   const validOther = other.trim() === "" || (Number.isFinite(Number(other)) && Number(other) >= 0);
   const crewDays = validDays ? adjustedCrewDays(Number(days)) : 0;
-  const estimate = crewDays * RATE + Number(materials || 0) + Number(other || 0);
+  const estimate = readyToCalculate(validDays, validMaterials, validOther) ? planningEstimate({ baseCrewDays: Number(days), materialsAtCost: Number(materials), otherProjectCosts: Number(other || 0) }) : 0;
   const ready = validDays && validMaterials && validOther;
   return (
     <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8">
