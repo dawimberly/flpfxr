@@ -48,6 +48,18 @@ try {
     assert.equal(response?.status(), 200, "/estimate HTTP status");
     await page.getByRole("heading", { name: "Plan your next project." }).waitFor();
     await page.getByText("Benchmark pending verification").waitFor();
+    // SSR HTML can arrive before React attaches event handlers. Confirm interactivity first.
+    let hydrated = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await page.getByRole("button", { name: "Small", exact: true }).click();
+      if (await page.getByRole("button", { name: "Small", exact: true }).getAttribute("aria-pressed") === "true") {
+        hydrated = true;
+        break;
+      }
+      await page.waitForTimeout(350);
+    }
+    assert.ok(hydrated, "Estimator did not hydrate: " + browserErrors.join(" | "));
+    await page.getByRole("button", { name: "Medium", exact: true }).click();
     await page.getByLabel("Base crew days").fill("4");
     await page.getByLabel("Materials at cost ($)").fill("2000");
     await page.getByLabel("Other costs ($)").fill("0");
