@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { BeforeAfterSlider } from "@/components/before-after-slider";
-import { BEFORE_AFTER } from "@/lib/site";
+import { GALLERY } from "@/lib/site";
+
+const BEFORE_AFTER = GALLERY.filter((photo) => photo.caption.toLowerCase() === "before").map((before) => {
+  const stem = before.src.match(/gallery-(\\d+)/)?.[1];
+  const after = GALLERY.find((photo) => photo.caption.toLowerCase() === "after" && stem && photo.src.includes(`gallery-${stem}-`));
+  return after ? { title: before.title, before: before.src, after: after.src, beforeAlt: before.alt, afterAlt: after.alt } : null;
+}).filter((job): job is NonNullable<typeof job> => job !== null).slice(0, 2);
 
 export function BeforeAfterBand() {
   return (
