@@ -43,3 +43,9 @@ Status: research and audit plan only; **no new public prices approved**.
 - The result is a nonbinding **planning estimate**, never a formal bid or guaranteed quote.
 - Do not apply another labor markup to this rate by default. Subcontractors are separate.
 - Public UI must label both market and Flip Fixer ranges as estimates and explain that actual scope and site conditions determine final pricing.
+
+## Release scope for manual-input estimator
+- The owner authorized deploying after verification. This release only calculates a **user-entered** planning total from the owner-confirmed two-person crew-day rate and no-markup materials. It does not calculate prices from the unverified 171-item catalog or infer crew days from Small/Medium/Large.
+- The retail comparison remains **withheld** and explicitly says verification is pending. No competitive-savings claim is approved.
+- Passing the public estimator CI validates formula, handoff and source-level safety invariants; it does not establish independently verified market pricing or substitute for a real device/browser QA session.
+- Do not enable automatic scope-based ranges or retail comparisons until the earlier audit requirements are completed.
