@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
+import { compareAuthInvariant, probeDevAuthEnabled, buildAuthEnabled } from "./check-auth-invariant.mjs";
 
 const base = "http://127.0.0.1:8080";
 const server = spawn("npm", ["run", "dev"], {
@@ -29,6 +30,13 @@ try {
     await delay(1000);
   }
   assert.ok(ready, "Vite /estimate never became ready. Recent server logs:\n" + logs);
+
+  const authCheck = compareAuthInvariant({
+    devAuthEnabled: await probeDevAuthEnabled(base),
+    buildAuthEnabled: buildAuthEnabled(),
+  });
+  assert.equal(authCheck.status, "ok", authCheck.message);
+  console.log(authCheck.message);
 
   browser = await chromium.launch({ headless: true });
   for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
