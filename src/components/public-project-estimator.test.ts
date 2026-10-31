@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { adjustedCrewDays, planningEstimate, publicEstimateLeadMessage } from "../lib/public-pricing.ts";
 
 describe("public estimator crew day allowance", () => {
@@ -43,5 +44,27 @@ describe("public estimator lead handoff and pricing safety", () => {
     assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: Number.NaN }));
     assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: Number.POSITIVE_INFINITY }));
     assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: 0, otherProjectCosts: -1 }));
+  });
+});
+
+describe("public release safety checks", () => {
+  const ui = readFileSync("src/components/public-project-estimator.tsx", "utf8");
+  const route = readFileSync("src/routes/estimate.tsx", "utf8");
+  it("withholds unverified retail benchmarks and savings claims", () => {
+    assert.match(ui, /Benchmark pending verification/);
+    assert.match(ui, /will not invent competitor prices/);
+    assert.match(ui, /Size does not determine price without a defined scope/);
+    assert.doesNotMatch(ui, /\b\d+% savings\b/i);
+  });
+  it("does not import employee-only catalog or expose employee estimator on public route", () => {
+    assert.doesNotMatch(ui + route, /catalog\.json|@\/lib\/estimator|estimator-store|ESTIMATOR_APP_URL/);
+    assert.match(route, /createFileRoute\("\/estimate"\)/);
+  });
+  it("keeps mobile responsive layout and the existing contact lead handoff", () => {
+    assert.match(ui, /sm:grid-cols-3/);
+    assert.match(ui, /sm:grid-cols-2/);
+    assert.match(ui, /saveLeadDraft\(/);
+    assert.match(ui, /onClick=\{handOff\}/);
+    assert.match(ui, /to="\/contact"/);
   });
 });
