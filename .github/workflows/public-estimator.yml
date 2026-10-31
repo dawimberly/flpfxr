@@ -28,6 +28,9 @@ jobs:
       - run: npm ci
       - run: node --experimental-strip-types --test src/components/public-project-estimator.test.ts
       - run: npm run build:dev
+      - name: Validate emitted server modules under Vercel Node 24
+        run: |
+          find .output -type f \( -name "*.mjs" -o -name "*.js" \) -print0 | xargs -0 -r -P 4 -n 1 node --check
       - run: npm run typecheck
       - run: node --experimental-strip-types --test src/lib/lead-draft.test.ts src/lib/lead-conversion.test.ts src/lib/lead-submit.server.test.ts src/lib/auth/gate-identity.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-3d.test.ts
       - run: npx playwright install --with-deps chromium
