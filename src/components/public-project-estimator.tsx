@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { formatUsdRange } from "@/lib/utils";
 
 const SERVICES = ["Kitchen remodeling", "Bathroom remodeling", "Flooring", "Interior painting", "Exterior painting", "Handyman / make-ready", "Outdoor work"] as const;
 const SIZES = ["Small", "Medium", "Large"] as const;
@@ -30,7 +29,6 @@ export function PublicProjectEstimator() {
   const crewDays = validDays ? adjustedCrewDays(Number(days)) : 0;
   const estimate = crewDays * RATE + Number(materials || 0) + Number(other || 0);
   const ready = validDays && validMaterials && validOther;
-  const description = `${service}, ${size.toLowerCase()} scope; ${crewDays} estimated crew days (including scheduling allowance); materials ${currency(Number(materials || 0))}; other project costs ${currency(Number(other || 0))}; preliminary total ${currency(estimate)}. This is not a quote.`;
   return (
     <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Project planning tool</p>
@@ -70,7 +68,7 @@ export function PublicProjectEstimator() {
         </div>
       </div>
       <p className="mt-4 text-sm text-muted">Illustrative planning estimate only, not a quote, offer or guaranteed price. Site conditions, selections and actual scope can change the final amount.</p>
-      <Link to="/contact" search={{ service: undefined, side: undefined }} onClick={() => { if (ready && typeof window !== "undefined") sessionStorage.setItem("flipfixer-estimate-summary", description); }} className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg">Request an on-site estimate</Link>
+      <Link to="/contact" search={{ service: undefined, side: undefined }} className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg">Request an on-site estimate</Link>
     </div>
   );
 }
