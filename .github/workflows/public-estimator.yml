@@ -5,9 +5,19 @@ on:
       - "src/**"
       - "scripts/public-estimator-smoke.mjs"
       - ".github/workflows/public-estimator.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "src/components/public-project-estimator*"
+      - "src/lib/public-pricing.ts"
+      - "src/routes/estimate.tsx"
+      - "src/routes/index.tsx"
+      - "scripts/verify-public-estimator-live.mjs"
+      - ".github/workflows/public-estimator.yml"
   workflow_dispatch:
 jobs:
   verify:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,3 +38,13 @@ jobs:
           name: public-estimator-browser-shots
           path: public-estimator-smoke-*.png
           if-no-files-found: ignore
+
+  verify-production:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node scripts/verify-public-estimator-live.mjs
