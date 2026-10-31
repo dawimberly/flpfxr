@@ -76,7 +76,7 @@ function GalleryPage() {
                   filter.view
                     ? { view: "before-after" }
                     : filter.id
-                      ? { service: filter.id }
+                      ? { service: filter.id as import("@/lib/site").ServiceId }
                       : {}
                 }
                 className={cn(
