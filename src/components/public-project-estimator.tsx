@@ -10,10 +10,7 @@ const SIZE_HINTS: Record<Size,string> = {
   Large: "A larger area or more extensive work",
 };
 const RATE = 650;
-export function adjustedCrewDays(days: number): number {
-  const wholeDays = Math.max(0, Math.ceil(Number.isFinite(days) ? days : 0));
-  return wholeDays + Math.floor(wholeDays / 4);
-}
+import { adjustedCrewDays } from "@/lib/public-pricing";
 function currency(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
