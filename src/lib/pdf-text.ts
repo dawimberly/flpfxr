@@ -7,7 +7,6 @@ export async function extractPdfText(data: ArrayBuffer | Uint8Array): Promise<st
   bytes.set(src);
   const doc = await pdfjs.getDocument({
     data: bytes,
-    isEvalSupported: false,
   }).promise;
   const pages = Math.min(doc.numPages, 14);
   const chunks: string[] = [];
