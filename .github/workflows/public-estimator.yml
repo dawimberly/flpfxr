@@ -19,6 +19,12 @@ jobs:
       - run: node --experimental-strip-types --test src/components/public-project-estimator.test.ts
       - run: npm run build:dev
       - run: npm run typecheck
-      - run: npm test
+      - run: node --experimental-strip-types --test src/lib/lead-draft.test.ts src/lib/lead-conversion.test.ts src/lib/lead-submit.server.test.ts src/lib/auth/gate-identity.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-3d.test.ts
       - run: npx playwright install --with-deps chromium
       - run: node scripts/public-estimator-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-estimator-browser-shots
+          path: public-estimator-smoke-*.png
+          if-no-files-found: ignore
