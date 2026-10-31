@@ -20,3 +20,23 @@ export function planningEstimate(input: {
   }
   return adjustedCrewDays(baseCrewDays) * CREW_DAY_RATE + materialsAtCost + otherProjectCosts;
 }
+
+/** Carry a customer's own planning inputs into the existing contact form. */
+export function publicEstimateLeadMessage(input: {
+  service: string;
+  size: "Small" | "Medium" | "Large";
+  baseCrewDays: number;
+  materialsAtCost: number;
+  otherProjectCosts: number;
+}): string {
+  const total = planningEstimate(input);
+  const adjusted = adjustedCrewDays(input.baseCrewDays);
+  const dollars = (amount: number) => new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", maximumFractionDigits: 0,
+  }).format(amount);
+  return [
+    `I'd like an on-site estimate for ${input.service.toLowerCase()} (${input.size.toLowerCase()} scope).`,
+    `My preliminary inputs: ${input.baseCrewDays} base crew days (${adjusted} adjusted crew days at $650/day), materials ${dollars(input.materialsAtCost)} at cost, other costs ${dollars(input.otherProjectCosts)}.`,
+    `Illustrative planning total: ${dollars(total)}. This is not a quote; please confirm the actual scope and pricing on site.`,
+  ].join(" ");
+}
