@@ -98,7 +98,7 @@ export function extraMap3dPinElements(root: {
   shadowRoot?: { querySelectorAll: (selector: string) => ArrayLike<Element> } | null;
 }): Element[] {
   const from = (node: { querySelectorAll: (selector: string) => ArrayLike<Element> } | null | undefined) =>
-    node ? [...node.querySelectorAll(MAP3D_STRAY_PIN_SELECTOR)] : [];
+    node ? Array.from(node.querySelectorAll(MAP3D_STRAY_PIN_SELECTOR)) : [];
   return [...from(root), ...from(root.shadowRoot)].filter(
     (el) => (el as HTMLElement).dataset?.ffPin !== "1",
   );

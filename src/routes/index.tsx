@@ -69,6 +69,16 @@ function Home() {
       </section>
 
 
+      <section className="border-b border-border bg-surface px-4 py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="font-display text-2xl font-semibold text-fg">How much might your project cost?</h2>
+            <p className="mt-2 text-muted">Select kitchen, bathroom, paint, flooring or another service and a project size.</p>
+          </div>
+          <Link to="/estimate" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-6 py-3 font-semibold text-primary-fg hover:opacity-90">Get a ballpark estimate</Link>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-4 py-12 md:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

@@ -110,6 +110,11 @@ export const LEAD_STORAGE_KEY = "flipfixer-lead-draft";
 
 export type LeadDraft = {
   name?: string;
+  address?: string;
+  pitchId?: string;
+  pitch?: string;
+  roofSize?: string;
+  shingleId?: string;
   email?: string;
   phone?: string;
   affiliation?: string;
@@ -146,3 +151,20 @@ export function loadLeadDraft(): LeadDraft {
     return {};
   }
 }
+
+/** Legacy ballpark selector: price ranges withheld until scope-matched values are verified. */
+export type EstimateScope = "small" | "medium" | "large";
+export type RoomScope = EstimateScope | "none";
+export const SCOPE_LABELS: Record<EstimateScope, string> = { small: "Small", medium: "Medium", large: "Large" };
+type LegacyService = import("./site.ts").ServiceId;
+type LegacyEstimateType = { id: LegacyService; label: string; ranges: Record<EstimateScope, [number, number] | null>; includes: Record<EstimateScope, string> };
+const noRanges = { small: null, medium: null, large: null };
+const description = { small: "Final scope and materials require an on-site assessment.", medium: "Final scope and materials require an on-site assessment.", large: "Final scope and materials require an on-site assessment." };
+export const ESTIMATE_TYPES: LegacyEstimateType[] = [
+  { id: "kitchen", label: "Kitchen remodeling", ranges: noRanges, includes: description },
+  { id: "bathroom", label: "Bathroom remodeling", ranges: noRanges, includes: description },
+  { id: "flooring", label: "Flooring", ranges: noRanges, includes: description },
+  { id: "paint", label: "Painting", ranges: noRanges, includes: description },
+  { id: "handyman", label: "Handyman", ranges: noRanges, includes: description },
+  { id: "make-ready", label: "Make-ready", ranges: noRanges, includes: description },
+];

@@ -5,11 +5,13 @@ export async function extractPdfText(data: ArrayBuffer | Uint8Array): Promise<st
   const src = data instanceof Uint8Array ? data : new Uint8Array(data);
   const bytes = new Uint8Array(src.byteLength);
   bytes.set(src);
-  const doc = await pdfjs.getDocument({
+  // Preserve the original safe PDF parsing settings despite incomplete library typings.
+  const options = {
     data: bytes,
     disableWorker: true,
     isEvalSupported: false,
-  }).promise;
+  } as unknown as Parameters<typeof pdfjs.getDocument>[0];
+  const doc = await pdfjs.getDocument(options).promise;
   const pages = Math.min(doc.numPages, 14);
   const chunks: string[] = [];
   for (let i = 1; i <= pages; i++) {

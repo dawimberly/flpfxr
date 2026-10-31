@@ -9,11 +9,8 @@ export function MicrosoftClarity() {
 
     // Official Clarity queue stub: events are buffered until the async script loads.
     const win = window as Window & { clarity?: (...args: unknown[]) => void };
-    win.clarity = win.clarity || function (...args: unknown[]) {
-      (win.clarity as typeof win.clarity & { q?: unknown[][] }).q =
-        (win.clarity as typeof win.clarity & { q?: unknown[][] }).q || [];
-      (win.clarity as typeof win.clarity & { q?: unknown[][] }).q!.push(args);
-    };
+    const queued: unknown[][] = [];
+    win.clarity = win.clarity || Object.assign((...args: unknown[]) => { queued.push(args); }, { q: queued });
     const script = document.createElement("script");
     script.id = "microsoft-clarity";
     script.async = true;

@@ -462,7 +462,7 @@ function writeRoofCodeNote(pdf: PdfWriter, job: JobEstimate, client: ClientInfo)
 }
 
 function writeRoofWorkOrder(pdf: PdfWriter, job: JobEstimate) {
-  const wo = roofWorkOrderMaterials(job.completeLineItems, job.grandTotal);
+  const wo = roofWorkOrderMaterials(job.completeLineItems.map((item) => ({ name: item.description, description: item.description, quantity: item.quantity })), job.grandTotal);
   if (!wo) return;
   pdf.kicker("Work order materials");
   pdf.paragraph(
