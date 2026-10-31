@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { adjustedCrewDays, planningEstimate, CREW_DAY_RATE } from "@/lib/public-pricing";
 
 const SERVICES = ["Kitchen remodeling", "Bathroom remodeling", "Flooring", "Interior painting", "Exterior painting", "Handyman / make-ready", "Outdoor work"] as const;
 const SIZES = ["Small", "Medium", "Large"] as const;
@@ -10,7 +11,6 @@ const SIZE_HINTS: Record<Size,string> = {
   Large: "A larger area or more extensive work",
 };
 const RATE = CREW_DAY_RATE;
-import { adjustedCrewDays, planningEstimate, CREW_DAY_RATE } from "@/lib/public-pricing";
 function currency(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
