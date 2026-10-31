@@ -56,7 +56,7 @@ try {
     const inputValues = await page.locator("input[type=number]").evaluateAll((inputs) => inputs.map((input) => input.value));
     console.log("ESTIMATOR DEBUG", JSON.stringify({ viewport, inputValues, browserErrors, excerpt: estimatorText.slice(0, 1800) }));
     await page.screenshot({ path: "public-estimator-smoke-" + viewport.width + ".png", fullPage: true });
-    assert.match(estimatorText, /\\$5,250/, "Expected 4+1 crew days at $650 and $2,000 materials");
+    assert.match(estimatorText, /\$5,250/, "Expected 4+1 crew days at $650 and $2,000 materials");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 3, "Horizontal overflow at " + viewport.width + "px: " + overflow);
     await page.getByRole("link", { name: "Request an on-site estimate" }).click();
