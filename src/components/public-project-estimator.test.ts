@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { adjustedCrewDays, planningEstimate } from "../lib/public-pricing.ts";
+import { adjustedCrewDays, planningEstimate, publicEstimateLeadMessage } from "../lib/public-pricing.ts";
 
 describe("public estimator crew day allowance", () => {
   it("does not add a day before four full base days", () => {
@@ -24,5 +24,24 @@ describe("public estimator crew day allowance", () => {
   it("rounds partial working days up before allowance", () => {
     assert.equal(adjustedCrewDays(3.5), 5);
     assert.equal(adjustedCrewDays(-1), 0);
+  });
+});
+
+describe("public estimator lead handoff and pricing safety", () => {
+  it("carries service, size and owner-defined inputs into the contact message", () => {
+    const message = publicEstimateLeadMessage({
+      service: "Bathroom remodeling", size: "Medium", baseCrewDays: 4,
+      materialsAtCost: 2000, otherProjectCosts: 0,
+    });
+    assert.match(message, /bathroom remodeling \(medium scope\)/);
+    assert.match(message, /5 adjusted crew days at \$650\/day/);
+    assert.match(message, /\$2,000/);
+    assert.match(message, /\$5,250/);
+    assert.match(message, /not a quote/);
+  });
+  it("does not invent a comparison when costs are unknown", () => {
+    assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: Number.NaN }));
+    assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: Number.POSITIVE_INFINITY }));
+    assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: 0, otherProjectCosts: -1 }));
   });
 });
