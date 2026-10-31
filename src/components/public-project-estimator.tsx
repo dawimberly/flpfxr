@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { adjustedCrewDays, planningEstimate, CREW_DAY_RATE } from "@/lib/public-pricing";
+import { adjustedCrewDays, planningEstimate, publicEstimateLeadMessage, CREW_DAY_RATE } from "@/lib/public-pricing";
+import { saveLeadDraft, type ServiceId } from "@/lib/site";
 
 const SERVICES = ["Kitchen remodeling", "Bathroom remodeling", "Flooring", "Interior painting", "Exterior painting", "Handyman / make-ready", "Outdoor work"] as const;
 const SIZES = ["Small", "Medium", "Large"] as const;
@@ -11,6 +12,15 @@ const SIZE_HINTS: Record<Size,string> = {
   Large: "A larger area or more extensive work",
 };
 const RATE = CREW_DAY_RATE;
+const SERVICE_IDS: Record<(typeof SERVICES)[number], ServiceId> = {
+  "Kitchen remodeling": "kitchen",
+  "Bathroom remodeling": "bathroom",
+  "Flooring": "flooring",
+  "Interior painting": "paint",
+  "Exterior painting": "paint",
+  "Handyman / make-ready": "make-ready",
+  "Outdoor work": "outdoor",
+};
 function currency(n: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
@@ -27,6 +37,17 @@ export function PublicProjectEstimator() {
   const crewDays = validDays ? adjustedCrewDays(Number(days)) : 0;
   const estimate = readyToCalculate(validDays, validMaterials, validOther) ? planningEstimate({ baseCrewDays: Number(days), materialsAtCost: Number(materials), otherProjectCosts: Number(other || 0) }) : 0;
   const ready = validDays && validMaterials && validOther;
+  const serviceId = SERVICE_IDS[service];
+  const handOff = () => {
+    if (!ready) return;
+    saveLeadDraft({
+      service: serviceId,
+      scope: size.toLowerCase(),
+      message: publicEstimateLeadMessage({
+        service, size, baseCrewDays: Number(days), materialsAtCost: Number(materials), otherProjectCosts: Number(other || 0),
+      }),
+    });
+  };
   return (
     <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Project planning tool</p>
@@ -66,7 +87,7 @@ export function PublicProjectEstimator() {
         </div>
       </div>
       <p className="mt-4 text-sm text-muted">Illustrative planning estimate only, not a quote, offer or guaranteed price. Site conditions, selections and actual scope can change the final amount.</p>
-      <Link to="/contact" search={{ service: undefined, side: undefined }} className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg">Request an on-site estimate</Link>
+      <Link to="/contact" search={{ service: serviceId, side: "interior" }} onClick={handOff} className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg">Request an on-site estimate</Link>
     </div>
   );
 }
