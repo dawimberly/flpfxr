@@ -39,13 +39,15 @@ export function PublicProjectEstimator() {
   const ready = validDays && validMaterials && validOther;
   const serviceId = SERVICE_IDS[service];
   const handOff = () => {
-    if (!ready) return;
     saveLeadDraft({
       service: serviceId,
       scope: size.toLowerCase(),
-      message: publicEstimateLeadMessage({
-        service, size, baseCrewDays: Number(days), materialsAtCost: Number(materials), otherProjectCosts: Number(other || 0),
-      }),
+      submissionId: undefined,
+      message: ready
+        ? publicEstimateLeadMessage({
+            service, size, baseCrewDays: Number(days), materialsAtCost: Number(materials), otherProjectCosts: Number(other || 0),
+          })
+        : "I'd like an on-site estimate for " + service.toLowerCase() + " (" + size.toLowerCase() + " scope). I have not entered project quantities yet.",
     });
   };
   return (
