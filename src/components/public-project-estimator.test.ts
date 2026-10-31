@@ -65,6 +65,7 @@ describe("public release safety checks", () => {
     assert.match(ui, /sm:grid-cols-2/);
     assert.match(ui, /saveLeadDraft\(/);
     assert.match(ui, /onClick=\{handOff\}/);
+    assert.doesNotMatch(ui, /if \(!ready\) return/);
     assert.match(ui, /to="\/contact"/);
   });
 });
