@@ -109,6 +109,8 @@ export const FAQS = [
 export const LEAD_STORAGE_KEY = "flipfixer-lead-draft";
 
 export type LeadDraft = {
+  /** Planner handoff is independent of the visitor-editable message. */
+  estimate?: import("./lead-delivery.ts").LeadEstimateMetadata;
   name?: string;
   address?: string;
   pitchId?: string;

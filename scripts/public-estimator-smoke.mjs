@@ -1,4 +1,4 @@
-/** Local-only browser smoke. Never submits a lead or creates a deployment. */
+/** Local-only browser smoke. All lead requests are intercepted; no real delivery or Google hits. */
 import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
@@ -46,7 +46,12 @@ try {
     const pageErrors=[];
     const leadRequests=[];
     page.on("pageerror",e=>pageErrors.push(e.message));
-    await page.route("**/api/leads",route=>{leadRequests.push(route.request().method());return route.abort();});
+    await page.route("**/api/leads",async route=>{
+      const request = route.request();
+      const form = await new Request(request.url(), { method: "POST", headers: request.headers(), body: request.postDataBuffer() }).formData();
+      leadRequests.push(Object.fromEntries([...form.entries()].filter(([,value])=>typeof value === "string")));
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, submissionId: form.get("submissionId") }) });
+    });
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
     await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only — not a quote. Final price is set after Jon sees the space.",{exact:true}).waitFor();
@@ -120,11 +125,27 @@ try {
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
     assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
-    assert.deepEqual(leadRequests,[],"No lead submission is allowed");
+    assert.equal(await page.locator('input[name="Source"]').inputValue(),"estimate");
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem("ff-first-landing-path")),"/estimate");
+    await page.locator('input[name="name"]').fill("LOCAL MOCK ONLY");
+    await page.locator('input[name="phone"]').fill("2105550100");
+    await page.locator('textarea[name="message"]').fill("Please call me tomorrow about this project.");
+    await page.getByRole("button",{name:"Send it over",exact:true}).click();
+    await page.getByRole("heading",{name:"Sent.",exact:true}).waitFor();
+    assert.equal(leadRequests.length,1,"Exactly one mocked request");
+    assert.equal(leadRequests[0].Source,"estimate");
+    assert.equal(leadRequests[0].estimate_service,"bathroom");
+    assert.equal(leadRequests[0].estimate_size,"Medium");
+    assert.equal(leadRequests[0].estimate_range,"between $9,000 and $11,200");
+    assert.equal(leadRequests[0].first_landing_path,"/estimate");
+    assert.match(leadRequests[0].landing_path,/^\/contact/);
+    assert.doesNotMatch(leadRequests[0].message,/\$/);
+    assert.equal(await page.evaluate(()=>(window.dataLayer??[]).length),0,"Local hosts must not queue Google hits");
+    assert.equal(await page.evaluate(()=>JSON.parse(sessionStorage.getItem("flipfixer-lead-draft")).estimate),undefined,"Successful handoff clears stale estimate metadata");
     assert.deepEqual(pageErrors,[],"Browser page errors");
     for(const path of ["/kitchen","/bathroom"]) assert.equal((await page.request.get(base+path)).status(),200,path);
     await page.close();
-    console.log("PASS",width,"px: plain range, materials, coats, tap targets, no overflow, handoff; no lead submitted");
+    console.log("PASS",width,"px: unchanged ranges, handoff source, first landing, structured range after message edit; mocked delivery only");
   }
   console.log("Screenshots:",artifacts);
 } finally {

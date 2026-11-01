@@ -13,6 +13,7 @@ import {
   isValidSubmissionId,
   parseLeadApiResponse,
   shouldTrackAcceptedLead,
+  type LeadEstimateMetadata,
 } from "@/lib/lead-delivery";
 import { trackContactFormSubmit, trackFormStart } from "@/lib/google-ads";
 import {
@@ -41,6 +42,7 @@ export function LeadForm({
   nextPath = "/contact",
   service: initialService = "",
   source = "contact",
+  estimateHandoff = false,
   messagePlaceholder,
   compact = false,
   showAffiliation = !compact,
@@ -52,6 +54,7 @@ export function LeadForm({
   nextPath?: string;
   service?: string;
   source?: string;
+  estimateHandoff?: boolean;
   messagePlaceholder: string;
   compact?: boolean;
   showAffiliation?: boolean;
@@ -60,6 +63,8 @@ export function LeadForm({
   children?: ReactNode;
 }) {
   const [selectedService, setSelectedService] = useState(initialService);
+  const [estimateMetadata, setEstimateMetadata] = useState<LeadEstimateMetadata | null>(null);
+  const leadSource = estimateHandoff && estimateMetadata ? "estimate" : source;
   const showJobType = source === "contact" || source === "homepage";
   const service = showJobType ? selectedService : initialService;
 
@@ -85,6 +90,7 @@ export function LeadForm({
 
   useEffect(() => {
     const draft = loadLeadDraft();
+    setEstimateMetadata(estimateHandoff ? draft.estimate ?? null : null);
     setName(draft.name ?? "");
     setEmail(draft.email ?? "");
     setPhone(draft.phone ?? "");
@@ -94,14 +100,14 @@ export function LeadForm({
       submissionIdRef.current = draft.submissionId;
     }
     setAdIds(captureAdClickIds());
-  }, [nextPath]);
+  }, [nextPath, estimateHandoff]);
 
   // ?sent=1 restores the thank-you UI after a reload. It is not a new lead.
   useEffect(() => {
     if (sent) setDone(true);
   }, [sent]);
 
-  const subject = `The Flip Fixer — ${service || "job"} (${source})`;
+  const subject = `The Flip Fixer — ${service || "job"} (${leadSource})`;
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -143,7 +149,12 @@ export function LeadForm({
     data.set("_subject", subject);
     data.set("Job", service || "n/a");
     data.set("Affiliation", affiliation || "n/a");
-    data.set("Source", source);
+    data.set("Source", leadSource);
+    if (leadSource === "estimate" && estimateMetadata) {
+      for (const key of ["estimate_service", "estimate_size", "estimate_range"] as const) {
+        if (estimateMetadata[key]) data.set(key, estimateMetadata[key]);
+      }
+    }
     data.set("Phone_digits", digits);
     for (const [key, value] of Object.entries(adIds)) {
       if (value) data.set(key, value);
@@ -184,6 +195,7 @@ export function LeadForm({
           affiliation,
           message,
           submissionId: "",
+          estimate: undefined,
         });
         try {
           const url = new URL(window.location.href);
@@ -239,7 +251,7 @@ export function LeadForm({
     >
       <input type="hidden" name="_subject" value={subject} />
       <input type="hidden" name="Job" value={service || "n/a"} />
-      <input type="hidden" name="Source" value={source} />
+      <input type="hidden" name="Source" value={leadSource} />
       <div className="hidden" aria-hidden="true">
         <Label htmlFor={`${source}-company`}>Company</Label>
         <Input

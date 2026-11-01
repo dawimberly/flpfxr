@@ -55,6 +55,7 @@ function readAdIds(form: FormData): LeadAdIds {
     "utm_campaign",
     "utm_medium",
     "landing_path",
+    "first_landing_path",
     "page_url",
   ] as const;
   const adIds: LeadAdIds = {};
@@ -163,6 +164,9 @@ export async function handleLeadFormData(
     message: str(form, "message"),
     service: str(form, "Job") || str(form, "service"),
     source: str(form, "Source") || str(form, "source"),
+    estimate_service: str(form, "estimate_service").trim().slice(0, 80),
+    estimate_size: str(form, "estimate_size").trim().slice(0, 40),
+    estimate_range: str(form, "estimate_range").trim().slice(0, 100),
     affiliation: str(form, "Affiliation") || str(form, "affiliation"),
     honey,
     adIds: readAdIds(form),

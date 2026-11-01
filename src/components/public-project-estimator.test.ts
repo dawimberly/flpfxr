@@ -154,7 +154,7 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.equal(message.includes(PRELIMINARY_ESTIMATE_WORDING),true);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|demolition|sq ft|allowance/i);
   });
-  it("preserves accessibility, blocks invalid navigation and adds no tracking", () => {
+  it("preserves accessibility and blocks invalid navigation without adding scripts", () => {
     const ui=readFileSync("src/components/public-project-estimator.tsx","utf8");
     const pricing=readFileSync("src/lib/public-pricing.ts","utf8");
     assert.match(ui,/aria-live="polite"/);

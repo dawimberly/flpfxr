@@ -69,6 +69,33 @@ describe("lead submit server", () => {
     assert.equal(requestHeaders.get("Idempotency-Key"), `contact-lead/${submissionId}`);
   });
 
+  it("emails structured planner context even when the visitor replaces the message", async () => {
+    const res = await handleLeadFormData(form({
+      submissionId, name: "Planner visitor", phone: "2104369117",
+      message: "Please call me tomorrow.", Source: "estimate", Job: "bathroom",
+      estimate_service: "bathroom", estimate_size: "Medium", estimate_range: "between $9,000 and $11,200",
+      landing_path: "/contact?origin=estimate", first_landing_path: "/estimate",
+    }), new Request("https://theflipfixer.com/api/leads", { method: "POST" }));
+    assert.equal(res.status, 200);
+    const sent = mailCalls[0] as { init: { body: string } };
+    const email = JSON.parse(sent.init.body);
+    assert.match(email.subject, /\(estimate\)/);
+    assert.match(email.text, /Source: estimate/);
+    assert.match(email.text, /Estimate service: bathroom/);
+    assert.match(email.text, /Estimate size: Medium/);
+    assert.match(email.text, /Preliminary estimate range: between \$9,000 and \$11,200/);
+    assert.match(email.text, /first_landing_path: \/estimate/);
+    assert.match(email.text, /Please call me tomorrow\./);
+  });
+
+  it("accepts planner handoffs without optional estimate fields", async () => {
+    const res = await handleLeadFormData(form({
+      submissionId, name: "Planner visitor", phone: "2104369117",
+      message: "A custom project, please call.", Source: "estimate",
+    }), new Request("https://theflipfixer.com/api/leads", { method: "POST" }));
+    assert.equal(res.status, 200);
+  });
+
   it("discards honeypot without emailing", async () => {
     const res = await handleLeadFormData(
       form({
