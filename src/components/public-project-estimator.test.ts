@@ -35,7 +35,7 @@ describe("public estimator lead handoff and pricing safety", () => {
       materialsAtCost: 2000, otherProjectCosts: 0,
     });
     assert.match(message, /bathroom remodeling \(medium scope\)/);
-    assert.match(message, /5 adjusted crew days at \$650\/day/);
+    assert.doesNotMatch(message, /650|per (?:crew )?day|\/day/);
     assert.match(message, /\$2,000/);
     assert.match(message, /\$5,250/);
     assert.match(message, /not a quote/);
@@ -59,6 +59,9 @@ describe("public release safety checks", () => {
   it("does not import employee-only catalog or expose employee estimator on public route", () => {
     assert.doesNotMatch(ui + route, /catalog\.json|@\/lib\/estimator|estimator-store|ESTIMATOR_APP_URL/);
     assert.match(route, /createFileRoute\("\/estimate"\)/);
+  });
+  it("keeps the internal daily rate out of public copy and breakdowns", () => {
+    assert.doesNotMatch(ui, /650|CREW_DAY_RATE|currency\(RATE\)|crewDays/);
   });
   it("keeps mobile responsive layout and the existing contact lead handoff", () => {
     assert.match(ui, /sm:grid-cols-3/);
