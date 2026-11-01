@@ -44,10 +44,14 @@ export type ProjectInputs = {
   showerSqft?: number | null;
   counterSqft?: number | null;
   roomSqft?: number | null;
+  /** Bathroom vanity SKU. Unset uses the size example: 30-inch, or 60-inch double when Large. */
+  vanity?: string;
+  /** Bathroom only. True includes a basic new toilet. */
+  newToilet: boolean;
 };
 export const DEFAULT_PROJECT_INPUTS: ProjectInputs = {
   service: "kitchen", size: "Medium", floor: "lvp", counter: "quartz",
-  shower: "ceramic", prime: true, exteriorCoats: 1, delivery: 0, specialist: 0,
+  shower: "ceramic", prime: true, exteriorCoats: 1, delivery: 0, specialist: 0, newToilet: true,
 };
 /** Optional measured areas. Omit a key to keep the size example. Null means the box was left blank. */
 export type ScopeAreas = {
@@ -99,20 +103,68 @@ export function parseSqft(raw: string): { value: number | null; error: string | 
   if (!Number.isFinite(value)) return { value: null, error: "Use a number of square feet, like 168 or 40.5." };
   return { value, error: null };
 }
+/**
+ * Styles by Design contractor catalog stores Northville list prices in `cost_per_unit`
+ * (Elegant White Shaker matches the Northville MSRP file). The contractor portal sells at 20% off.
+ * Customers are not charged that list price. Their price is 10% off, which is above the contractor price.
+ */
+export const CUSTOMER_LIST_DISCOUNT = 0.1;
+export const CONTRACTOR_LIST_DISCOUNT = 0.2;
+export function priceOffList(list: number, discount: number) {
+  return Math.round(list * (1 - discount) * 100) / 100;
+}
+export type VanitySize = { id: string; label: string; list: number; double: boolean };
+export const VANITY_SIZES: VanitySize[] = [
+  { id: "VA24", label: "24-inch vanity", list: 186, double: false },
+  { id: "VA27", label: "27-inch vanity", list: 288, double: false },
+  { id: "VA30", label: "30-inch vanity", list: 220, double: false },
+  { id: "VA36", label: "36-inch vanity", list: 273, double: false },
+  { id: "VA42DL", label: "42-inch vanity", list: 345, double: false },
+  { id: "VA48D", label: "48-inch vanity", list: 429, double: false },
+  { id: "VA60D", label: "60-inch vanity", list: 499, double: false },
+  { id: "VA60DD", label: "60-inch double vanity", list: 463, double: true },
+];
+export function vanityForSize(size: ProjectSize) {
+  return size === "Large" ? "VA60DD" : "VA30";
+}
+export function getVanity(id: string) {
+  return VANITY_SIZES.find(row => row.id === id) ?? null;
+}
+export function selectedVanity(size: ProjectSize, vanityId?: string) {
+  return (vanityId ? getVanity(vanityId) : null) ?? getVanity(vanityForSize(size))!;
+}
+/** Base fillers are Northville MSRP and were not copied into the contractor file. Closet fillers are in that file. */
+export const FILLER_STRIPS = [
+  { sku: "BF336", name: "3 in × 36 in base filler", list: 24, source: "Northville MSRP" },
+  { sku: "BF636", name: "6 in × 36 in base filler", list: 50, source: "Northville MSRP" },
+  { sku: "TK8", name: "Toe kick", list: 19, source: "Northville MSRP" },
+  { sku: "TF196", name: "Closet filler 1.5 in × 96 in", list: 22, source: "Styles by Design contractor catalog" },
+  { sku: "TF396", name: "Closet filler 3 in × 96 in", list: 67, source: "Styles by Design contractor catalog" },
+  { sku: "TF696", name: "Closet filler 6 in × 96 in", list: 136, source: "Styles by Design contractor catalog" },
+] as const;
+export function fillerCostAnalysis() {
+  return FILLER_STRIPS.map(row => ({
+    ...row,
+    contractor: priceOffList(row.list, CONTRACTOR_LIST_DISCOUNT),
+    customer: priceOffList(row.list, CUSTOMER_LIST_DISCOUNT),
+  }));
+}
+export const INCLUDED_FILLER_SKU = "BF336";
 const sqftText = (n: number) => {
   const tenths = Math.round(n * 10) / 10;
   return Number.isInteger(tenths) ? String(tenths) : tenths.toFixed(1);
 };
 const scaleFrom = (presetValue: number, presetBase: number, actualBase: number) =>
   actualBase === presetBase ? presetValue : presetValue * actualBase / presetBase;
-export function projectScope(service: ProjectService, size: ProjectSize, areas: ScopeAreas = {}) {
+export function projectScope(service: ProjectService, size: ProjectSize, areas: ScopeAreas = {}, vanityId?: string) {
   const i = PROJECT_SIZES.indexOf(size);
   if (i < 0) throw new Error("Invalid project size");
   const bath = [
-    { floor: 40, wall: 190, trim: 26, shower: 60, vanity: "30-inch vanity" },
-    { floor: 80, wall: 270, trim: 36, shower: 80, vanity: "30-inch vanity" },
-    { floor: 120, wall: 330, trim: 44, shower: 100, vanity: "60-inch double vanity" },
+    { floor: 40, wall: 190, trim: 26, shower: 60 },
+    { floor: 80, wall: 270, trim: 36, shower: 80 },
+    { floor: 120, wall: 330, trim: 44, shower: 100 },
   ][i];
+  const vanity = selectedVanity(size, vanityId);
   const kitchen = [
     { floor: 120, wall: 300, trim: 44, counters: 32, backsplash: 20, base: 6, wallUnits: 6 },
     { floor: 168, wall: 350, trim: 52, counters: 40, backsplash: 30, base: 8, wallUnits: 8 },
@@ -126,9 +178,9 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       const shower = areas.showerSqft == null ? scaleFrom(bath.shower, bath.floor, floor) : areas.showerSqft;
       const surroundNote = areas.showerSqft == null ? ", scaled from that example because none was entered" : "";
       return {
-        floor, wall, trim, shower, counters: 0, backsplash: 0, base: 0, wallUnits: 0, doubleVanity: i === 2,
-        summary: `Example: ${sqftText(floor)} sq ft bathroom, ${sqftText(shower)} sq ft surround, ${bath.vanity}, floor, trim, wall paint, demolition, setting materials, waterproofing and a basic fixture allowance.`,
-        assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft) and trim (${sqftText(trim)} ft) are scaled from the ${size} example. Surround is ${sqftText(shower)} sq ft${surroundNote}. Vanity, fixtures and demolition stay with the ${size} example.`,
+        floor, wall, trim, shower, counters: 0, backsplash: 0, base: 0, wallUnits: 0, doubleVanity: vanity.double,
+        summary: `Example: ${sqftText(floor)} sq ft bathroom, ${sqftText(shower)} sq ft surround, ${vanity.label}, one 3-inch filler strip, floor, trim, wall paint, demolition, setting materials, waterproofing and a basic fixture allowance.`,
+        assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft) and trim (${sqftText(trim)} ft) are scaled from the ${size} example. Surround is ${sqftText(shower)} sq ft${surroundNote}. Vanity is a ${vanity.label}, priced at 10% off the cabinet list. One 3-inch filler strip is included at that same discount. Fixtures and demolition stay with the ${size} example.`,
         exclusions: "Existing layout retained. Basic finish demolition and shower waterproofing materials included. Plumbing relocation, electrical, permits and concealed repairs require separate allowances.",
       };
     }

@@ -1,6 +1,8 @@
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
-  SHOWER_MATERIALS, projectScope, scopeAreaError, type ProjectInputs, type ScopeAreas,
+  SHOWER_MATERIALS, projectScope, scopeAreaError, selectedVanity, getVanity,
+  priceOffList, CUSTOMER_LIST_DISCOUNT, FILLER_STRIPS, INCLUDED_FILLER_SKU,
+  type ProjectInputs, type ScopeAreas,
 } from "./public-estimate-options.ts";
 
 export const CREW_DAY_RATE = 650;
@@ -30,7 +32,7 @@ const SHOWER_MATERIAL_COST = { ceramic: 5.50, porcelain: 6.25 };
 const REFERENCE_COST = {
   trim: 2.85, interiorPaint: 0.45, exteriorPaint: 0.55,
   interiorPrimer: 0.22, exteriorPrimer: 0.28,
-  baseCabinet: 185, wallCabinet: 145, singleVanity: 289, doubleVanity: 620, backsplash: 8.75,
+  baseCabinet: 185, wallCabinet: 145, backsplash: 8.75,
 };
 
 /**
@@ -168,7 +170,8 @@ function validate(input: ProjectInputs) {
   if (!input || !PROJECT_SERVICES.some(s => s.id === input.service) ||
       !PROJECT_SIZES.includes(input.size) ||
       !Object.hasOwn(FLOOR_COST, input.floor) || !validCounter(input.counter) ||
-      !validShower(input.shower) || typeof input.prime !== "boolean" ||
+      !validShower(input.shower) || (input.vanity != null && !getVanity(input.vanity)) ||
+      typeof input.newToilet !== "boolean" || typeof input.prime !== "boolean" ||
       (input.exteriorCoats !== 1 && input.exteriorCoats !== 2) ||
       ![input.delivery, input.specialist].every(n => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= ALLOWANCE_CAP)) {
     throw new Error("Invalid project selections or allowances");
@@ -208,7 +211,10 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
     add("demolition", 1, 0, KITCHEN_DEMO_HOURS[input.size]);
   }
   if (input.service === "bathroom") {
-    add("vanity", 1, scope.doubleVanity ? REFERENCE_COST.doubleVanity : REFERENCE_COST.singleVanity, TRADE_HOURS.cabinetBox);
+    const vanity = selectedVanity(input.size, input.vanity);
+    add("vanity", 1, priceOffList(vanity.list, CUSTOMER_LIST_DISCOUNT), TRADE_HOURS.cabinetBox);
+    const filler = FILLER_STRIPS.find(row => row.sku === INCLUDED_FILLER_SKU)!;
+    add("filler", 1, priceOffList(filler.list, CUSTOMER_LIST_DISCOUNT), 0);
     if (input.shower === "stone") {
       const coverage = stoneCoverage(scope.shower, false);
       remnantStone = coverage.remnant;
@@ -220,7 +226,10 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
     const tiledSurround = input.shower === "stone" ? 0 : scope.shower;
     const tileArea = tiledSurround + (input.floor === "tile" ? scope.floor : 0);
     for (const [name, cost] of Object.entries(BATH_SETTING_COST)) add(name, tileArea, cost, 0);
-    add("fixture-allowance", 1, BATH_FIXTURES[input.size], TRADE_HOURS.fixture * CREW_FIXTURE_ITEMS);
+    // Allowance covers a toilet, vanity faucet, and shower valve trim. Skipping the toilet drops one third.
+    const fixtureShare = input.newToilet ? 1 : 2 / 3;
+    const fixtureItems = input.newToilet ? CREW_FIXTURE_ITEMS : 1;
+    add("fixture-allowance", 1, Math.round(BATH_FIXTURES[input.size] * fixtureShare * 100) / 100, TRADE_HOURS.fixture * fixtureItems);
     add("licensed-plumber-valve", 1, LICENSED_PLUMBER_VALVE_ALLOWANCE, 0);
     add("demolition", 1, 0, BATH_DEMO_HOURS[input.size]);
   }
@@ -255,7 +264,7 @@ export function projectPlanningEstimate(input: ProjectInputs) {
   validate(input);
   const areas = areasFrom(input);
   if (scopeAreaError(input.service, areas)) return null;
-  const scope = projectScope(input.service, input.size, areas);
+  const scope = projectScope(input.service, input.size, areas, input.vanity);
   if (!scope) return null;
   const built = buildLines(input, scope);
   let result = finalize(input, scope, built.lines, built.remnantStone);
@@ -263,7 +272,7 @@ export function projectPlanningEstimate(input: ProjectInputs) {
   const stoneBath = input.service === "bathroom" && input.shower === "stone";
   if (stoneKitchen || stoneBath) {
     const alternate = stoneKitchen ? { ...input, counter: "laminate" as const } : { ...input, shower: "ceramic" as const };
-    const altScope = projectScope(alternate.service, alternate.size, areasFrom(alternate))!;
+    const altScope = projectScope(alternate.service, alternate.size, areasFrom(alternate), alternate.vanity)!;
     const alt = finalize(alternate, altScope, buildLines(alternate, altScope).lines, false);
     const stoneLine = built.lines.find(row => row.id === (stoneKitchen ? "counter" : "surround"));
     // Installed stone includes fabrication labor, so a day-boundary drop must not undercut laminate or ceramic.
@@ -279,7 +288,7 @@ const dollars = (n: number) => new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", maximumFractionDigits: 0,
 }).format(n);
 export const formatEstimateRange = (result: { low: number; high: number }) =>
-  dollars(result.low) + "-" + dollars(result.high);
+  `between ${dollars(result.low)} and ${dollars(result.high)}`;
 
 export const PRELIMINARY_ESTIMATE_WORDING =
   "Preliminary estimate only — not a quote. Final price is set after Jon sees the space.";
@@ -290,7 +299,9 @@ export function projectEstimateLeadMessage(input: ProjectInputs): string {
   const selections = [
     result?.scope.floor ? FLOOR_MATERIALS.find(m => m.id === input.floor)!.label : "",
     input.service === "kitchen" ? COUNTER_MATERIALS.find(m => m.id === input.counter)!.label + " counters" : "",
-    input.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === input.shower)!.label + " surround" : "",
+    input.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === input.shower)!.label + " shower wall" : "",
+    input.service === "bathroom" ? selectedVanity(input.size, input.vanity).label : "",
+    input.service === "bathroom" ? (input.newToilet ? "New toilet" : "Existing toilet") : "",
     result?.scope.wall ? (input.prime ? "Primer and paint" : "Paint only") : "",
     input.service === "exterior-paint" ? (input.exteriorCoats === 2 ? "2 coats" : "1 coat (standard)") : "",
   ].filter(Boolean).join(", ");

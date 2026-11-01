@@ -2,7 +2,8 @@ import { useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   DEFAULT_PROJECT_INPUTS, PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
-  COUNTER_MATERIALS, SHOWER_MATERIALS, projectScope, presetAreas, parseSqft, scopeAreaError,
+  COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, projectScope, presetAreas, parseSqft, scopeAreaError,
+  vanityForSize, fillerCostAnalysis,
   type ExteriorCoats, type ProjectInputs, type ScopeAreas,
 } from "@/lib/public-estimate-options";
 import {
@@ -14,6 +15,9 @@ import { saveLeadDraft, type ServiceId } from "@/lib/site";
 const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p-3 text-fg";
 const money = (n: number) => new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", maximumFractionDigits: 0,
+}).format(n);
+const moneyExact = (n: number) => new Intl.NumberFormat("en-US", {
+  style: "currency", currency: "USD", minimumFractionDigits: 2,
 }).format(n);
 const serviceId = (id: ProjectInputs["service"]): ServiceId =>
   id === "interior-paint" || id === "exterior-paint" ? "paint" : id === "custom" ? "make-ready" : id;
@@ -66,17 +70,23 @@ export function PublicProjectEstimator() {
         const service = e.target.value as ProjectInputs["service"];
         // Material change drops the previous surface. Stone price is calculated; nothing is typed for it.
         setAreas(presetAreas(service, inputs.size));
-        setInputs(prev => ({ ...prev, service, floor: service === "bathroom" ? "tile" : "lvp" }));
+        setInputs(prev => ({
+          ...prev, service, floor: service === "bathroom" ? "tile" : "lvp",
+          vanity: service === "bathroom" ? vanityForSize(prev.size) : prev.vanity,
+        }));
       }} className={fieldClass}>
         {PROJECT_SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
       {scope ? <>
         <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-fg">Quick pick</legend>
-          <p className="mt-1 text-xs text-muted">Fills the areas below. You can change them.</p>
+          <legend className="text-sm font-semibold text-fg">Starting point</legend>
+          <p className="mt-1 text-xs text-muted">Fills the square footage. Then choose flooring, shower wall, toilet, vanity, and countertop. Those choices change the range.</p>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {PROJECT_SIZES.map(size => <button key={size} type="button" aria-pressed={inputs.size === size}
-              onClick={() => { patch("size", size); setAreas(presetAreas(inputs.service, size)); }}
+              onClick={() => {
+                setInputs(prev => ({ ...prev, size, vanity: prev.service === "bathroom" ? vanityForSize(size) : prev.vanity }));
+                setAreas(presetAreas(inputs.service, size));
+              }}
               className={`min-h-11 rounded-lg border p-3 text-sm font-semibold ${inputs.size === size ? "border-primary bg-primary text-primary-fg" : "border-border bg-bg text-fg"}`}>{size}</button>)}
           </div>
         </fieldset>
@@ -107,23 +117,34 @@ export function PublicProjectEstimator() {
           <h3 className="text-sm font-semibold text-fg">Included in this example</h3>
           <p className="mt-2 text-sm text-muted" data-testid="estimate-scope">{scope.summary}</p>
           <p className="mt-2 text-xs text-muted">{scope.exclusions}</p>
-          {inputs.service === "bathroom" ? <p className="mt-2 text-xs text-muted">Includes thinset, grout, backer board and waterproofing membrane on tiled surfaces, basic finish demolition, a basic toilet, vanity faucet and shower valve/trim supply, and licensed plumber work for the shower valve.</p> : null}
+          {inputs.service === "bathroom" ? <p className="mt-2 text-xs text-muted">Includes thinset, grout, backer board and waterproofing membrane on tiled surfaces, basic finish demolition, a vanity faucet and shower valve/trim supply, licensed plumber work for the shower valve, and one 3-inch filler strip. {inputs.newToilet ? "A basic new toilet is included." : "The existing toilet stays."}</p> : null}
           {inputs.service === "kitchen" ? <p className="mt-2 text-xs text-muted">Includes basic finish demolition. Stone counters are priced as installed material. A full slab is used unless the counter area is 10 sq ft or less.</p> : null}
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring material
+          {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring type
             <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
               {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
-          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop material
+          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop type
             <select id="estimate-counter" value={inputs.counter} onChange={e => patch("counter", e.target.value as ProjectInputs["counter"])} className={fieldClass}>
               {COUNTER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
-          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-shower">Shower surround material
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-vanity">Vanity size
+            <select id="estimate-vanity" value={inputs.vanity ?? vanityForSize(inputs.size)} onChange={e => patch("vanity", e.target.value)} className={fieldClass}>
+              {VANITY_SIZES.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}
+            </select>
+          </label> : null}
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-shower">Shower wall
             <select id="estimate-shower" value={inputs.shower} onChange={e => patch("shower", e.target.value as ProjectInputs["shower"])} className={fieldClass}>
               {SHOWER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label> : null}
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-toilet">New toilet
+            <select id="estimate-toilet" value={inputs.newToilet ? "yes" : "no"} onChange={e => patch("newToilet", e.target.value === "yes")} className={fieldClass}>
+              <option value="yes">Yes, include a basic toilet</option>
+              <option value="no">No, keep the existing toilet</option>
             </select>
           </label> : null}
           {scope.wall ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-paint">Paint preparation
@@ -171,7 +192,13 @@ export function PublicProjectEstimator() {
           <p className="mt-3 break-words font-display text-2xl text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{estimate ? formatEstimateRange(estimate) : (areaError ?? "Enter valid allowances")}</p>
           {estimate ? <p className="mt-2 text-sm text-muted" data-testid="estimate-assumptions">{estimate.scope.assumptions}</p> : null}
           <p className="mt-2 text-sm font-semibold text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
-          <p className="mt-2 text-sm text-muted">Estimated materials, installation and project support for the example scope. Materials have no markup. The upper end allows for estimating uncertainty.</p>
+          <p className="mt-2 text-sm text-muted">Estimated materials, installation and project support for the example scope. The vanity is 10% off the cabinet list, not full retail. Other materials in this planner are not marked up. The upper end allows for estimating uncertainty.</p>
+          {inputs.service === "bathroom" ? <div className="mt-3 text-sm text-muted" data-testid="estimate-filler-analysis">
+            <p className="font-semibold text-fg">Filler strip prices, 10% off list</p>
+            <ul className="mt-1 space-y-1">
+              {fillerCostAnalysis().filter(row => row.source === "Northville MSRP").map(row => <li key={row.sku}>{row.name}: {moneyExact(row.customer)} (list {moneyExact(row.list)}){row.sku === "BF336" ? ", included" : ""}</li>)}
+            </ul>
+          </div> : null}
           {estimate ? <p className="mt-2 text-sm text-muted" data-testid="estimate-support">Project support included: {money(estimate.support)} for protection, routine haul-off/disposal, cleanup and consumables.</p> : null}
           <p className="mt-2 text-xs text-muted">A project minimum applies to labor and materials. Project support is added after that. Delivery, shipping and other specialist work are included only through the allowances entered above. Large or hazardous disposal requires a separate allowance.</p>
         </div>

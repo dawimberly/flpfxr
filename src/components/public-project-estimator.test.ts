@@ -7,7 +7,10 @@ import {
   stoneCoverage, SLAB_SQFT, LICENSED_PLUMBER_VALVE_ALLOWANCE, PRELIMINARY_ESTIMATE_WORDING,
   REMNANT_MAY_BE_AVAILABLE_PER_SQFT,
 } from "../lib/public-pricing.ts";
-import { DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, presetAreas, projectScope, scopeAreaError, type ProjectInputs } from "../lib/public-estimate-options.ts";
+import {
+  DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, fillerCostAnalysis, presetAreas, priceOffList,
+  projectScope, scopeAreaError, selectedVanity, type ProjectInputs,
+} from "../lib/public-estimate-options.ts";
 const input = (changes: Partial<ProjectInputs> = {}): ProjectInputs => ({ ...DEFAULT_PROJECT_INPUTS, ...changes });
 const line = (changes: Partial<ProjectInputs>, id: string) =>
   projectPlanningEstimate(input(changes))!.lines.find(row => row.id === id)!;
@@ -55,7 +58,7 @@ describe("trade productivity and bathroom completeness", () => {
     close(line({service:"exterior-paint",exteriorCoats:2},"paint").personHours,1200*0.04*2);
     close(line({service:"exterior-paint",exteriorCoats:2},"paint").materials,1200*0.55*2);
     assert.ok(two.total>one.total);
-    assert.equal(formatEstimateRange(one),"$5,300-$6,700");
+    assert.equal(formatEstimateRange(one),"between $5,300 and $6,700");
   });
   it("uses cabinet-box labor and removes selected stone surface labor", () => {
     assert.equal(line({service:"kitchen"},"base-cabinets").personHours,8*1.5);
@@ -69,7 +72,7 @@ describe("trade productivity and bathroom completeness", () => {
   it("shows a kitchen range by default and keeps stone at or above laminate and ceramic", () => {
     const kitchen=projectPlanningEstimate(input())!;
     assert.equal(kitchen.scope.summary.includes("kitchen"),true);
-    assert.equal(formatEstimateRange(kitchen),"$12,300-$15,400");
+    assert.equal(formatEstimateRange(kitchen),"between $12,300 and $15,400");
     assert.equal(stoneCoverage(8,false).remnant,true);
     assert.equal(stoneCoverage(32,true).billableSqft,SLAB_SQFT);
     assert.ok(stoneCoverage(60,true).billableSqft>=SLAB_SQFT*2);
@@ -100,11 +103,11 @@ describe("trade productivity and bathroom completeness", () => {
     assert.equal(line({service:"kitchen",size:"Small"},"demolition").personHours,8);
     assert.doesNotMatch(result.scope.exclusions,/Demolition|waterproofing[^.]*require/);
     assert.doesNotMatch(projectPlanningEstimate(input({service:"kitchen"}))!.scope.exclusions,/Demolition/);
-    close(result.materials,3419);
+    close(result.materials,3349.6);
     close(result.baseCrewDays,110.15/16);
     assert.equal(result.adjustedDays,8);
-    close(result.total,9069);
-    assert.equal(formatEstimateRange(result),"$9,100-$11,300");
+    close(result.total,8999.6);
+    assert.equal(formatEstimateRange(result),"between $9,000 and $11,200");
   });
   it("adds shipping and specialists only once without markup", () => {
     const a=projectPlanningEstimate(input({service:"bathroom"}))!;
@@ -145,8 +148,8 @@ describe("raw allowance validation and limited customer handoff", () => {
   });
   it("passes only range, type, size and materials with estimate status", () => {
     const message=projectEstimateLeadMessage(input({service:"bathroom",floor:"tile",delivery:300,specialist:750}));
-    assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Ceramic tile surround, Primer and paint/);
-    assert.match(message,/\$10,100-\$12,600/);
+    assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Ceramic tile shower wall, 30-inch vanity, New toilet, Primer and paint/);
+    assert.match(message,/between \$10,000 and \$12,600/);
     assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
     assert.equal(message.includes(PRELIMINARY_ESTIMATE_WORDING),true);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|demolition|sq ft|allowance/i);
@@ -161,7 +164,13 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/1 coat \(standard\)/);
     assert.match(ui,/Discounted stone remnants may be available — visit our stone yard with Jon to choose\./);
     assert.match(ui,/data-testid="estimate-assumptions"/);
-    assert.match(ui,/Quick pick/);
+    assert.match(ui,/Starting point/);
+    assert.match(ui,/Flooring type/);
+    assert.match(ui,/Shower wall/);
+    assert.match(ui,/Countertop type/);
+    assert.match(ui,/estimate-toilet/);
+    assert.match(ui,/estimate-vanity/);
+    assert.match(ui,/estimate-filler-analysis/);
     assert.match(ui,/PRELIMINARY_ESTIMATE_WORDING/);
     assert.match(pricing,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
     assert.ok(ui.indexOf("estimate-delivery-line")>ui.indexOf("</details>"));
@@ -233,6 +242,54 @@ describe("measured square footage", () => {
     assert.equal(projectPlanningEstimate(input({ service: "kitchen", floorSqft: 700 })), null);
     assert.equal(scopeAreaError("kitchen", {}), null);
     assert.match(scopeAreaError("flooring", { roomSqft: 10 })!, /20/);
+  });
+});
+describe("selectable vanity and filler strips", () => {
+  it("prices the size example at 10% off list and lets a chosen size replace it", () => {
+    assert.equal(selectedVanity("Medium").id, "VA30");
+    assert.equal(selectedVanity("Large").id, "VA60DD");
+    assert.equal(priceOffList(220, 0.1), 198);
+    assert.equal(priceOffList(463, 0.1), 416.7);
+    assert.equal(priceOffList(220, 0.2), 176);
+    const medium = projectPlanningEstimate(input({ service: "bathroom", floor: "tile" }))!;
+    const chosen = projectPlanningEstimate(input({ service: "bathroom", floor: "tile", vanity: "VA24" }))!;
+    assert.equal(medium.lines.find(row => row.id === "vanity")!.materials, 198);
+    assert.equal(medium.lines.find(row => row.id === "filler")!.materials, 21.6);
+    assert.equal(chosen.lines.find(row => row.id === "vanity")!.materials, 167.4);
+    assert.equal(chosen.scope.summary.includes("24-inch vanity"), true);
+    assert.notEqual(chosen.total, medium.total);
+    const large = projectPlanningEstimate(input({ service: "bathroom", floor: "tile", size: "Large" }))!;
+    assert.equal(large.lines.find(row => row.id === "vanity")!.materials, 416.7);
+    assert.equal(projectScope("bathroom", "Large", {}, "VA30")!.summary.includes("30-inch vanity"), true);
+  });
+  it("drops one third of the fixture allowance when the existing toilet stays", () => {
+    const withToilet = projectPlanningEstimate(input({ service: "bathroom", floor: "tile", newToilet: true }))!;
+    const keep = projectPlanningEstimate(input({ service: "bathroom", floor: "tile", newToilet: false }))!;
+    assert.equal(withToilet.lines.find(row => row.id === "fixture-allowance")!.materials, BATH_FIXTURES.Medium);
+    assert.equal(keep.lines.find(row => row.id === "fixture-allowance")!.materials, Math.round(BATH_FIXTURES.Medium * 2 / 3 * 100) / 100);
+    assert.equal(keep.lines.find(row => row.id === "fixture-allowance")!.personHours, TRADE_HOURS.fixture);
+    assert.notEqual(formatEstimateRange(keep), formatEstimateRange(withToilet));
+    assert.match(projectEstimateLeadMessage(input({ service: "bathroom", floor: "tile", newToilet: false })), /Existing toilet/);
+  });
+  it("compares filler strips at contractor price and at 10% off list", () => {
+    const rows = fillerCostAnalysis();
+    const bySku = Object.fromEntries(rows.map(row => [row.sku, row]));
+    assert.deepEqual(
+      rows.map(row => row.sku),
+      ["BF336", "BF636", "TK8", "TF196", "TF396", "TF696"],
+    );
+    assert.equal(bySku.BF336.list, 24);
+    assert.equal(bySku.BF336.contractor, 19.2);
+    assert.equal(bySku.BF336.customer, 21.6);
+    assert.equal(bySku.BF636.customer, 45);
+    assert.equal(bySku.TK8.customer, 17.1);
+    assert.equal(bySku.TF196.customer, 19.8);
+    assert.equal(bySku.TF396.customer, 60.3);
+    assert.equal(bySku.TF696.customer, 122.4);
+    for (const row of rows) {
+      assert.ok(row.customer > row.contractor, row.sku);
+      assert.ok(row.customer < row.list, row.sku);
+    }
   });
 });
 type CalibrationJob = { id:string; input:ProjectInputs; actualTotal:number; actualDays:number };
