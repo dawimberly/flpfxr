@@ -49,7 +49,8 @@ try {
     await page.route("**/api/leads",route=>{leadRequests.push(route.request().method());return route.abort();});
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
-    await page.getByText("This is an estimate, not a quote.",{exact:true}).waitFor();
+    await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only — not a quote. Final price is set after Jon sees the space.",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,300-$15,400",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Small",exact:true}).click();
@@ -59,7 +60,7 @@ try {
     assert.ok(interactive,"Estimator hydration failed");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     const total=page.getByTestId("estimate-total");
-    await page.getByText("$8,800-$11,100",{exact:true}).waitFor();
+    await page.getByText("$12,300-$15,400",{exact:true}).waitFor();
     assert.doesNotMatch(await page.locator("body").innerText(),/\$650|crew.?days?|per day|\/day/i);
 
     // Raw invalid values remain visible and block calculation + navigation.
@@ -78,31 +79,42 @@ try {
       await field.fill("");
     }
 
-    // A required stone-install allowance cannot be omitted or silently zeroed.
+    // Kitchen quartz shows a range with no fabrication input. Switching materials drops that surface price.
     await page.getByLabel("Project type",{exact:true}).selectOption("kitchen");
-    const fabrication=page.getByLabel("Fabrication / installation allowance ($)",{exact:true});
-    await fabrication.waitFor();
-    await page.getByText("Enter valid allowances",{exact:true}).waitFor();
-    for(const bad of ["0","abc","-1","50001"]) {
-      await fabrication.fill(bad);
-      assert.equal(await fabrication.getAttribute("aria-invalid"),"true");
-    }
-    await fabrication.fill("1500");
-    assert.match(await total.innerText(),/\$[\d,]+-\$[\d,]+/);
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
+    await page.getByText("$12,300-$15,400",{exact:true}).waitFor();
+    await page.getByText("Discounted stone remnants may be available — visit our stone yard with Jon to choose.",{exact:true}).waitFor();
     await page.getByLabel("Countertop material").selectOption("laminate");
-    assert.equal(await fabrication.count(),0);
+    await page.getByText("$10,900-$13,600",{exact:true}).waitFor();
+    await page.getByLabel("Countertop material").selectOption("quartz");
+
+    await delivery.fill("$100");
+    await specialist.fill("1,000");
+    await page.getByTestId("estimate-delivery-line").waitFor();
+    await page.getByTestId("estimate-specialist-line").waitFor();
+    assert.match(await total.innerText(),/\$[\d,]+-\$[\d,]+/);
+    await delivery.fill("");
+    await specialist.fill("");
 
     await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.getByLabel("Shower surround material").selectOption("stone");
-    await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).waitFor();
-    await page.getByText("Enter valid allowances",{exact:true}).waitFor();
+    assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
+    assert.match(await total.innerText(),/\$[\d,]+-\$[\d,]+/);
     await page.getByLabel("Shower surround material").selectOption("ceramic");
+    await page.getByLabel("Project type",{exact:true}).selectOption("exterior-paint");
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await page.getByText("$5,300-$6,700",{exact:true}).waitFor();
+    await page.locator("#estimate-coats").selectOption("2");
+    await page.getByText("$8,600-$10,800",{exact:true}).waitFor();
+    await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
     const details=page.locator("details");
     if(!await details.evaluate(el=>el.open)) await page.getByText("Delivery and additional allowances",{exact:true}).click();
     await delivery.fill("300");
     await specialist.fill("750");
-    await page.getByText("$9,900-$12,400",{exact:true}).waitFor();
+    await page.getByText("$10,100-$12,600",{exact:true}).waitFor();
     const undersized=await page.locator("main select, main input, main button, main summary, main a").evaluateAll(elements=>
       elements.filter(el=>el.getBoundingClientRect().width>0 && el.getBoundingClientRect().height>0)
         .filter(el=>el.getBoundingClientRect().height<44).map(el=>el.id||el.textContent));
@@ -115,15 +127,15 @@ try {
     await page.waitForURL(/\/contact/);
     await page.waitForFunction(()=>document.querySelector('textarea[name="message"]')?.value.includes("Preliminary estimate:"));
     const message=await page.locator('textarea[name="message"]').inputValue();
-    assert.match(message,/\$9,900-\$12,400/);
+    assert.match(message,/\$10,100-\$12,600/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
-    assert.match(message,/estimate, not a quote/);
+    assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
     assert.deepEqual(leadRequests,[],"No lead submission is allowed");
     assert.deepEqual(pageErrors,[],"Browser page errors");
     for(const path of ["/kitchen","/bathroom"]) assert.equal((await page.request.get(base+path)).status(),200,path);
     await page.close();
-    console.log("PASS",width,"px: ranges, validation, required fabrication, tap targets, no overflow, handoff; no lead submitted");
+    console.log("PASS",width,"px: kitchen range, stone, coats, allowances, tap targets, no overflow, handoff; no lead submitted");
   }
   console.log("Screenshots:",artifacts);
 } finally {

@@ -19,7 +19,8 @@ for (let attempt = 0; attempt < 45; attempt++) {
     last = "status " + page.status + ", heading " + page.text.includes("Plan your next project.");
     if (page.status === 200 &&
         page.text.includes("Plan your next project.") &&
-        page.text.includes("This is an estimate, not a quote.") &&
+        page.text.includes("Preliminary estimate only — not a quote. Final price is set after Jon sees the space.") &&
+        /\$[\d,]+-\$[\d,]+/.test(page.text) &&
         page.text.includes("Request an on-site estimate")) {
       ready = true;
       break;
@@ -32,6 +33,7 @@ for (const [path, marker] of [
   ["/", "Get a ballpark estimate"],
   ["/kitchen", "kitchen"],
   ["/bathroom", "bathroom"],
+  ["/contact", "Call or send the job."],
 ]) {
   const page = await read(path);
   assert.equal(page.status, 200, path + " returned " + page.status);

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import {
   adjustedCrewDays, planningEstimate, projectPlanningEstimate, projectEstimateLeadMessage,
   parseAllowance, formatEstimateRange, TRADE_HOURS, BATH_SETTING_COST, BATH_FIXTURES,
+  stoneCoverage, SLAB_SQFT, LICENSED_PLUMBER_VALVE_ALLOWANCE, PRELIMINARY_ESTIMATE_WORDING,
 } from "../lib/public-pricing.ts";
 import { DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, type ProjectInputs } from "../lib/public-estimate-options.ts";
 const input = (changes: Partial<ProjectInputs> = {}): ProjectInputs => ({ ...DEFAULT_PROJECT_INPUTS, ...changes });
@@ -37,7 +38,7 @@ describe("trade productivity and bathroom completeness", () => {
   it("uses tile and LVP person-hours instead of generic area labor", () => {
     assert.equal(line({service:"flooring",floor:"tile"},"floor").personHours,400*0.35);
     assert.equal(line({service:"flooring",floor:"lvp"},"floor").personHours,400*0.06);
-    assert.equal(line({},"surround").personHours,80*0.5);
+    assert.equal(line({service:"bathroom"},"surround").personHours,80*0.5);
   });
   it("prices two interior finish coats and only half a coat of primer labor", () => {
     close(line({service:"interior-paint"},"paint").personHours,800*0.03*2);
@@ -46,51 +47,74 @@ describe("trade productivity and bathroom completeness", () => {
     assert.ok(!projectPlanningEstimate(input({service:"interior-paint",prime:false}))!.lines.some(l=>l.id==="primer"));
     close(line({service:"exterior-paint"},"paint").personHours,1200*0.04);
   });
+  it("prices a second exterior finish coat above the one-coat standard", () => {
+    const one=projectPlanningEstimate(input({service:"exterior-paint",exteriorCoats:1}))!;
+    const two=projectPlanningEstimate(input({service:"exterior-paint",exteriorCoats:2}))!;
+    close(line({service:"exterior-paint",exteriorCoats:1},"paint").personHours,1200*0.04);
+    close(line({service:"exterior-paint",exteriorCoats:2},"paint").personHours,1200*0.04*2);
+    close(line({service:"exterior-paint",exteriorCoats:2},"paint").materials,1200*0.55*2);
+    assert.ok(two.total>one.total);
+    assert.equal(formatEstimateRange(one),"$5,300-$6,700");
+  });
   it("uses cabinet-box labor and removes selected stone surface labor", () => {
-    assert.equal(line({service:"kitchen",fabrication:1500},"base-cabinets").personHours,8*1.5);
+    assert.equal(line({service:"kitchen"},"base-cabinets").personHours,8*1.5);
     for (const counter of ["quartz","granite"] as const) {
-      assert.equal(line({service:"kitchen",counter,fabrication:1500},"counter").personHours,0);
+      assert.equal(line({service:"kitchen",counter},"counter").personHours,0);
     }
-    assert.equal(line({shower:"stone",fabrication:1500},"surround").personHours,0);
+    assert.equal(line({service:"bathroom",shower:"stone"},"surround").personHours,0);
     assert.ok(line({service:"kitchen",counter:"laminate"},"counter").personHours>0);
     assert.equal(TRADE_HOURS.cabinetBox,1.5);
   });
-  it("requires a positive fabrication/install allowance and charges it once", () => {
-    for (const fabrication of [null,0]) {
-      assert.throws(()=>projectPlanningEstimate(input({service:"kitchen",fabrication})),/required/);
-      assert.throws(()=>projectPlanningEstimate(input({shower:"stone",fabrication})),/required/);
+  it("shows a kitchen range by default and keeps stone at or above laminate and ceramic", () => {
+    const kitchen=projectPlanningEstimate(input())!;
+    assert.equal(kitchen.scope.summary.includes("kitchen"),true);
+    assert.equal(formatEstimateRange(kitchen),"$12,300-$15,400");
+    assert.equal(stoneCoverage(8,false).remnant,true);
+    assert.equal(stoneCoverage(32,true).billableSqft,SLAB_SQFT);
+    assert.ok(stoneCoverage(60,true).billableSqft>=SLAB_SQFT*2);
+    for (const size of PROJECT_SIZES) {
+      for (const counter of ["quartz","granite"] as const) {
+        const stone=projectPlanningEstimate(input({service:"kitchen",size,counter}))!;
+        const laminate=projectPlanningEstimate(input({service:"kitchen",size,counter:"laminate"}))!;
+        assert.ok(stone.total>=laminate.total,`${size} ${counter} below laminate`);
+      }
+      const slab=projectPlanningEstimate(input({service:"bathroom",size,shower:"stone"}))!;
+      const ceramic=projectPlanningEstimate(input({service:"bathroom",size,shower:"ceramic"}))!;
+      assert.ok(slab.total>=ceramic.total,`${size} stone below ceramic`);
+      assert.equal(slab.remnantStone,false);
     }
-    const a=projectPlanningEstimate(input({service:"kitchen",fabrication:1500}))!;
-    const b=projectPlanningEstimate(input({service:"kitchen",fabrication:2000}))!;
-    close(b.total-a.total,500);
-    assert.equal(b.labor,a.labor);
-    assert.equal(projectPlanningEstimate(input({fabrication:1500}))!.fabrication,0);
   });
   it("includes bathroom demolition, fixtures and each setting-material component", () => {
-    const result=projectPlanningEstimate(input())!;
+    const bath=input({service:"bathroom",floor:"tile"});
+    const result=projectPlanningEstimate(bath)!;
     const ids=result.lines.map(l=>l.id);
-    for (const name of ["thinset","grout","backerBoard","membrane","fixture-allowance","demolition"]) assert.ok(ids.includes(name));
-    for (const [name,cost] of Object.entries(BATH_SETTING_COST)) close(line({},name).materials,160*cost);
-    assert.equal(line({},"fixture-allowance").materials,BATH_FIXTURES.Medium);
-    assert.equal(line({},"demolition").materials,0);
-    assert.equal(line({},"demolition").personHours,12);
+    for (const name of ["thinset","grout","backerBoard","membrane","fixture-allowance","licensed-plumber-valve","demolition"]) assert.ok(ids.includes(name));
+    for (const [name,cost] of Object.entries(BATH_SETTING_COST)) close(line(bath,name).materials,160*cost);
+    assert.equal(line(bath,"fixture-allowance").materials,BATH_FIXTURES.Medium);
+    assert.equal(line(bath,"fixture-allowance").personHours,TRADE_HOURS.fixture*2);
+    assert.equal(line(bath,"licensed-plumber-valve").materials,LICENSED_PLUMBER_VALVE_ALLOWANCE);
+    assert.equal(line(bath,"licensed-plumber-valve").personHours,0);
+    assert.equal(line(bath,"demolition").materials,0);
+    assert.equal(line(bath,"demolition").personHours,12);
+    assert.equal(line({service:"kitchen",size:"Small"},"demolition").personHours,8);
     assert.doesNotMatch(result.scope.exclusions,/Demolition|waterproofing[^.]*require/);
-    close(result.materials,3194);
-    close(result.baseCrewDays,111.65/16);
+    assert.doesNotMatch(projectPlanningEstimate(input({service:"kitchen"}))!.scope.exclusions,/Demolition/);
+    close(result.materials,3419);
+    close(result.baseCrewDays,110.15/16);
     assert.equal(result.adjustedDays,8);
-    close(result.total,8844);
-    assert.equal(formatEstimateRange(result),"$8,800-$11,100");
+    close(result.total,9069);
+    assert.equal(formatEstimateRange(result),"$9,100-$11,300");
   });
   it("adds shipping and specialists only once without markup", () => {
-    const a=projectPlanningEstimate(input())!;
-    const b=projectPlanningEstimate(input({delivery:300.25,specialist:750.50}))!;
+    const a=projectPlanningEstimate(input({service:"bathroom"}))!;
+    const b=projectPlanningEstimate(input({service:"bathroom",delivery:300.25,specialist:750.50}))!;
     close(b.total-a.total,1050.75);
     assert.equal(a.materials,b.materials);
     assert.equal(a.labor,b.labor);
   });
   it("returns rounded ranges for all supported project/size combinations", () => {
     for (const service of PROJECT_SERVICES) for (const size of PROJECT_SIZES) {
-      const result=projectPlanningEstimate(input({service:service.id,size,fabrication:1500}));
+      const result=projectPlanningEstimate(input({service:service.id,size}));
       if(service.id==="custom") { assert.equal(result,null); continue; }
       assert.equal(result!.low,Math.round(result!.total/100)*100);
       assert.equal(result!.high,Math.round(result!.total*1.25/100)*100);
@@ -100,37 +124,45 @@ describe("trade productivity and bathroom completeness", () => {
 });
 describe("raw allowance validation and limited customer handoff", () => {
   it("accepts optional blanks and valid dollar values, including the cap", () => {
-    for(const [s,value] of [["",0],["  ",0],["0",0],[".50",0.5],["12.34",12.34],["50000",50000]] as const) {
+    for(const [s,value] of [["",0],["  ",0],["0",0],[".50",0.5],["12.34",12.34],["50000",50000],["$100",100],["1,000",1000],["$1,000.50",1000.5]] as const) {
       assert.deepEqual(parseAllowance(s),{value,error:null});
     }
     assert.ok(parseAllowance("",true).error);
     assert.ok(parseAllowance("0",true).error);
   });
   it("rejects malformed, negative, nonfinite and excessive raw strings without coercion", () => {
-    for(const raw of ["abc","-1","NaN","Infinity","1e3","0x10","50,000","50000.01","1.234","+2","-",".","1..2"]) {
+    for(const raw of ["abc","-1","NaN","Infinity","1e3","0x10","$-1","-$5","$50,001","50000.01","1.234","+2","-",".","1..2"]) {
       const parsed=parseAllowance(raw);
       assert.equal(parsed.value,null,raw);
       assert.ok(parsed.error,raw);
     }
   });
   it("rejects invalid programmatic allowance values and option identifiers", () => {
-    for(const changes of [{delivery:"3"},{specialist:null},{delivery:NaN},{delivery:-1},{specialist:50001},{fabrication:Infinity},{floor:"__proto__"},{size:"Tiny"}]) {
+    for(const changes of [{delivery:"3"},{specialist:null},{delivery:NaN},{delivery:-1},{specialist:50001},{exteriorCoats:0},{floor:"__proto__"},{size:"Tiny"}]) {
       assert.throws(()=>projectPlanningEstimate(input(changes as Partial<ProjectInputs>)));
     }
   });
   it("passes only range, type, size and materials with estimate status", () => {
-    const message=projectEstimateLeadMessage(input({delivery:300,specialist:750}));
+    const message=projectEstimateLeadMessage(input({service:"bathroom",floor:"tile",delivery:300,specialist:750}));
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Ceramic tile surround, Primer and paint/);
-    assert.match(message,/\$9,900-\$12,400/);
-    assert.match(message,/estimate, not a quote/);
+    assert.match(message,/\$10,100-\$12,600/);
+    assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
+    assert.equal(message.includes(PRELIMINARY_ESTIMATE_WORDING),true);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|demolition|sq ft|allowance/i);
   });
   it("preserves accessibility, blocks invalid navigation and adds no tracking", () => {
     const ui=readFileSync("src/components/public-project-estimator.tsx","utf8");
+    const pricing=readFileSync("src/lib/public-pricing.ts","utf8");
     assert.match(ui,/aria-live="polite"/);
     assert.match(ui,/min-h-11/);
     assert.match(ui,/aria-invalid/);
     assert.match(ui,/event.preventDefault/);
+    assert.match(ui,/1 coat \(standard\)/);
+    assert.match(ui,/Discounted stone remnants may be available — visit our stone yard with Jon to choose\./);
+    assert.match(ui,/PRELIMINARY_ESTIMATE_WORDING/);
+    assert.match(pricing,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
+    assert.ok(ui.indexOf("estimate-delivery-line")>ui.indexOf("</details>"));
+    assert.doesNotMatch(ui,/fabrication/i);
     assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days/);
     assert.doesNotMatch(ui,/gtag|dataLayer|fbq|fetch\(/);
     assert.doesNotMatch(ui.toLowerCase(),new RegExp("waterfall"+" counter"));
