@@ -1,90 +1,132 @@
-/** Browser smoke for the public estimator and existing lead funnel (no lead submission). */
+/** Local-only browser smoke. Never submits a lead or creates a deployment. */
 import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium } from "playwright";
 import { compareAuthInvariant, probeDevAuthEnabled, buildAuthEnabled } from "./check-auth-invariant.mjs";
+import { mergeAppEnv, readAppEnv } from "./with-app-env.mjs";
 
 const base = "http://127.0.0.1:8080";
-const server = spawn("npm", ["run", "dev"], {
-  detached: true, stdio: ["ignore", "pipe", "pipe"],
-  env: { ...process.env, CI: "1" },
-});
+const artifacts = process.env.GITHUB_ACTIONS ? process.cwd() : mkdtempSync(join(tmpdir(), "flipfixer-estimator-smoke-"));
+const server = spawn(process.execPath, [
+  "node_modules/vite/bin/vite.js",
+  "dev", "--host", "127.0.0.1", "--port", "8080", "--strictPort",
+], { detached: process.platform !== "win32", windowsHide: true,
+  stdio: ["ignore", "pipe", "pipe"], env: mergeAppEnv(readAppEnv(process.cwd()), { ...process.env, CI: "1" }) });
 let logs = "";
-for (const stream of [server.stdout, server.stderr]) {
-  stream.on("data", (chunk) => { logs = (logs + String(chunk)).slice(-12000); });
-}
-const stopServer = () => {
+for (const stream of [server.stdout, server.stderr]) stream.on("data", c => { logs=(logs+String(c)).slice(-12000); });
+server.on("error", error => { logs += String(error); });
+function stopServer() {
   if (!server.pid) return;
-  try { process.kill(-server.pid, "SIGTERM"); } catch { /* already exited */ }
-};
+  if (process.platform === "win32") {
+    server.kill("SIGTERM");
+  } else { try { process.kill(-server.pid,"SIGTERM"); } catch { /* already stopped */ } }
+  server.stdout.destroy();
+  server.stderr.destroy();
+  server.unref();
+}
 let browser;
 try {
-  let ready = false;
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (server.exitCode !== null) break;
-    try {
-      const response = await fetch(base + "/estimate");
-      if (response.ok) { ready = true; break; }
-    } catch { /* server starting */ }
-    await delay(1000);
+  let ready=false;
+  for(let i=0;i<60;i++) {
+    if(server.exitCode!==null) break;
+    try { if((await fetch(base+"/estimate")).ok) { ready=true; break; } } catch { /* startup */ }
+    await delay(500);
   }
-  assert.ok(ready, "Vite /estimate never became ready. Recent server logs:\n" + logs);
+  assert.ok(ready,"Local /estimate not ready: "+logs);
+  const auth=compareAuthInvariant({devAuthEnabled:await probeDevAuthEnabled(base),buildAuthEnabled:buildAuthEnabled()});
+  assert.equal(auth.status,"ok",auth.message);
+  browser=await chromium.launch({headless:true});
+  const widths=process.env.ESTIMATOR_SMOKE_WIDTH ? [Number(process.env.ESTIMATOR_SMOKE_WIDTH)] : [390,1280];
+  for(const width of widths) {
+    const page=await browser.newPage({viewport:{width,height:844}});
+    const pageErrors=[];
+    const leadRequests=[];
+    page.on("pageerror",e=>pageErrors.push(e.message));
+    await page.route("**/api/leads",route=>{leadRequests.push(route.request().method());return route.abort();});
+    const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
+    assert.equal(response.status(),200);
+    await page.getByText("This is an estimate, not a quote.",{exact:true}).waitFor();
+    let interactive=false;
+    for(let i=0;i<30;i++) {
+      await page.getByRole("button",{name:"Small",exact:true}).click();
+      if(await page.getByRole("button",{name:"Small",exact:true}).getAttribute("aria-pressed")==="true") { interactive=true;break; }
+      await delay(100);
+    }
+    assert.ok(interactive,"Estimator hydration failed");
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    const total=page.getByTestId("estimate-total");
+    await page.getByText("$8,800-$11,100",{exact:true}).waitFor();
+    assert.doesNotMatch(await page.locator("body").innerText(),/\$650|crew.?days?|per day|\/day/i);
 
-  const authCheck = compareAuthInvariant({
-    devAuthEnabled: await probeDevAuthEnabled(base),
-    buildAuthEnabled: buildAuthEnabled(),
-  });
-  assert.equal(authCheck.status, "ok", authCheck.message);
-  console.log(authCheck.message);
-
-  browser = await chromium.launch({ headless: true });
-  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
-    const page = await browser.newPage({ viewport });
-    const browserErrors = [];
-    page.on("pageerror", (error) => browserErrors.push(error.message));
-    page.on("console", (msg) => { if (msg.type() === "error") browserErrors.push(msg.text()); });
-    const response = await page.goto(base + "/estimate", { waitUntil: "domcontentloaded" });
-    assert.equal(response?.status(), 200, "/estimate HTTP status");
-    await page.getByRole("heading", { name: "Plan your next project." }).waitFor();
-    await page.getByText("This is an estimate, not a quote.", { exact: true }).waitFor();
-    // SSR HTML can arrive before React attaches event handlers. Confirm interactivity first.
-    let hydrated = false;
-    for (let attempt = 0; attempt < 30; attempt++) {
-      await page.getByRole("button", { name: "Small", exact: true }).click();
-      if (await page.getByRole("button", { name: "Small", exact: true }).getAttribute("aria-pressed") === "true") {
-        hydrated = true;
-        break;
+    // Raw invalid values remain visible and block calculation + navigation.
+    await page.getByText("Delivery and additional allowances",{exact:true}).click();
+    const delivery=page.getByLabel("Delivery / shipping allowance ($)",{exact:true});
+    const specialist=page.getByLabel("Specialist / other allowance ($)",{exact:true});
+    for(const field of [delivery,specialist]) {
+      for(const bad of ["abc","-1","50001","1e3"]) {
+        await field.fill(bad);
+        await page.getByText("Enter valid allowances",{exact:true}).waitFor();
+        assert.equal(await field.getAttribute("aria-invalid"),"true");
+        assert.equal(await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("aria-disabled"),"true");
+        await page.getByRole("link",{name:"Request an on-site estimate"}).click({force:true});
+        assert.ok(page.url().includes("/estimate"),"Invalid inputs must not navigate");
       }
-      await page.waitForTimeout(350);
+      await field.fill("");
     }
-    assert.ok(hydrated, "Estimator did not hydrate: " + browserErrors.join(" | "));
-    await page.getByRole("button", { name: "Medium", exact: true }).click();
+
+    // A required stone-install allowance cannot be omitted or silently zeroed.
+    await page.getByLabel("Project type",{exact:true}).selectOption("kitchen");
+    const fabrication=page.getByLabel("Fabrication / installation allowance ($)",{exact:true});
+    await fabrication.waitFor();
+    await page.getByText("Enter valid allowances",{exact:true}).waitFor();
+    for(const bad of ["0","abc","-1","50001"]) {
+      await fabrication.fill(bad);
+      assert.equal(await fabrication.getAttribute("aria-invalid"),"true");
+    }
+    await fabrication.fill("1500");
+    assert.match(await total.innerText(),/\$[\d,]+-\$[\d,]+/);
+    await page.getByLabel("Countertop material").selectOption("laminate");
+    assert.equal(await fabrication.count(),0);
+
+    await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await page.getByLabel("Shower surround material").selectOption("stone");
+    await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).waitFor();
+    await page.getByText("Enter valid allowances",{exact:true}).waitFor();
     await page.getByLabel("Shower surround material").selectOption("ceramic");
-    await page.waitForTimeout(1800);
-    const estimatorText = await page.locator("body").innerText();
-    const inputValues = await page.locator("input[type=number]").evaluateAll((inputs) => inputs.map((input) => input.value));
-    console.log("ESTIMATOR DEBUG", JSON.stringify({ viewport, inputValues, browserErrors, excerpt: estimatorText.slice(0, 1800) }));
-    await page.screenshot({ path: "public-estimator-smoke-" + viewport.width + ".png", fullPage: true });
-    assert.match(estimatorText, /\$4,603/, "Expected automatic medium bathroom estimate");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    assert.ok(overflow <= 3, "Horizontal overflow at " + viewport.width + "px: " + overflow);
-    await page.getByRole("link", { name: "Request an on-site estimate" }).click();
+    const details=page.locator("details");
+    if(!await details.evaluate(el=>el.open)) await page.getByText("Delivery and additional allowances",{exact:true}).click();
+    await delivery.fill("300");
+    await specialist.fill("750");
+    await page.getByText("$9,900-$12,400",{exact:true}).waitFor();
+    const undersized=await page.locator("main select, main input, main button, main summary, main a").evaluateAll(elements=>
+      elements.filter(el=>el.getBoundingClientRect().width>0 && el.getBoundingClientRect().height>0)
+        .filter(el=>el.getBoundingClientRect().height<44).map(el=>el.id||el.textContent));
+    assert.deepEqual(undersized,[],"Tap targets must be at least 44px high");
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=3,"Horizontal overflow");
+    await page.evaluate(()=>window.scrollTo(0,0));
+    await page.screenshot({path:join(artifacts,"public-estimator-smoke-"+width+".png"),fullPage:true});
+
+    await page.getByRole("link",{name:"Request an on-site estimate"}).click();
     await page.waitForURL(/\/contact/);
-    // Contact form hydrates asynchronously after client navigation.
-    await page.waitForFunction(() => document.querySelector('textarea[name="message"]')?.value.includes("bathroom remodeling"), null, { timeout: 15000 });
-    const message = await page.locator("textarea[name=message]").inputValue();
-    assert.match(message, /bathroom remodeling \(medium scope\)/);
-    assert.match(message, /\$4,603/);
-    assert.match(message, /not a quote/);
-    for (const path of ["/kitchen", "/bathroom"]) {
-      const res = await page.request.get(base + path);
-      assert.equal(res.status(), 200, path + " landing page status");
-    }
+    await page.waitForFunction(()=>document.querySelector('textarea[name="message"]')?.value.includes("Preliminary estimate:"));
+    const message=await page.locator('textarea[name="message"]').inputValue();
+    assert.match(message,/\$9,900-\$12,400/);
+    assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
+    assert.match(message,/estimate, not a quote/);
+    assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
+    assert.deepEqual(leadRequests,[],"No lead submission is allowed");
+    assert.deepEqual(pageErrors,[],"Browser page errors");
+    for(const path of ["/kitchen","/bathroom"]) assert.equal((await page.request.get(base+path)).status(),200,path);
     await page.close();
-    console.log("PASS public estimator mobile/desktop, size/material pricing and lead handoff:", viewport.width);
+    console.log("PASS",width,"px: ranges, validation, required fabrication, tap targets, no overflow, handoff; no lead submitted");
   }
+  console.log("Screenshots:",artifacts);
 } finally {
-  if (browser) await browser.close();
+  if(browser) await browser.close();
   stopServer();
 }

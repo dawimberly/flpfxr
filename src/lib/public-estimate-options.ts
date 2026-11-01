@@ -36,10 +36,11 @@ export type ProjectInputs = {
   prime: boolean;
   delivery: number;
   specialist: number;
+  fabrication: number | null;
 };
 export const DEFAULT_PROJECT_INPUTS: ProjectInputs = {
   service: "bathroom", size: "Medium", floor: "tile", counter: "quartz",
-  shower: "ceramic", prime: true, delivery: 0, specialist: 0,
+  shower: "ceramic", prime: true, delivery: 0, specialist: 0, fabrication: null,
 };
 export function projectScope(service: ProjectService, size: ProjectSize) {
   const i = PROJECT_SIZES.indexOf(size);
@@ -58,19 +59,19 @@ export function projectScope(service: ProjectService, size: ProjectSize) {
     case "bathroom": return {
       floor: bath.floor, wall: bath.wall, trim: bath.trim, shower: bath.shower,
       counters: 0, backsplash: 0, base: 0, wallUnits: 0, doubleVanity: i === 2,
-      summary: `Example: ${bath.floor} sq ft bathroom, ${bath.shower} sq ft surround, ${bath.vanity}, floor, trim and wall paint.`,
-      exclusions: "Existing layout retained. Demolition, waterproofing, plumbing, electrical, permits and concealed repairs require separate allowances.",
+      summary: `Example: ${bath.floor} sq ft bathroom, ${bath.shower} sq ft surround, ${bath.vanity}, floor, trim, wall paint, demolition, setting materials, waterproofing and a basic fixture allowance.`,
+      exclusions: "Existing layout retained. Basic finish demolition and shower waterproofing materials included. Plumbing relocation, electrical, permits and concealed repairs require separate allowances.",
     };
     case "kitchen": return {
       ...kitchen, shower: 0, doubleVanity: false,
       summary: `Example: ${kitchen.floor} sq ft kitchen, ${kitchen.base + kitchen.wallUnits} standard cabinet units, ${kitchen.counters} sq ft counter, ${kitchen.backsplash} sq ft backsplash, floor, trim and wall paint.`,
-      exclusions: "Existing layout retained. Demolition, appliances, plumbing, electrical, specialist fabrication, permits and concealed repairs require separate allowances.",
+      exclusions: "Existing layout retained. Demolition, appliances, plumbing, electrical, permits and concealed repairs require separate allowances. Fabrication/install allowance is required for stone counters.",
     };
     case "flooring": return {
       floor: [120, 400, 800][i], wall: 0, trim: 0, shower: 0, counters: 0,
       backsplash: 0, base: 0, wallUnits: 0, doubleVanity: false,
       summary: `Example: ${[120, 400, 800][i]} sq ft of new floor covering on a prepared surface.`,
-      exclusions: "Demolition, haul-off, subfloor repairs, leveling, stairs and new trim are not included.",
+      exclusions: "Floor demolition, subfloor repairs, leveling, stairs and new trim are not included. Routine protection, cleanup and haul-off allowance included.",
     };
     case "interior-paint":
     case "exterior-paint": {
