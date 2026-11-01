@@ -59,7 +59,7 @@ export function PublicProjectEstimator() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring material
             <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
-              {FLOOR_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
           {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop material
