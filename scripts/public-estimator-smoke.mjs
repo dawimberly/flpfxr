@@ -10,7 +10,7 @@ import { compareAuthInvariant, probeDevAuthEnabled, buildAuthEnabled } from "./c
 import { mergeAppEnv, readAppEnv } from "./with-app-env.mjs";
 
 const base = "http://127.0.0.1:8080";
-const artifacts = mkdtempSync(join(tmpdir(), "flipfixer-estimator-smoke-"));
+const artifacts = process.env.GITHUB_ACTIONS ? process.cwd() : mkdtempSync(join(tmpdir(), "flipfixer-estimator-smoke-"));
 const server = spawn(process.execPath, [
   "node_modules/vite/bin/vite.js",
   "dev", "--host", "127.0.0.1", "--port", "8080", "--strictPort",
