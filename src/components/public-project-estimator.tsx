@@ -2,9 +2,12 @@ import { useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   DEFAULT_PROJECT_INPUTS, PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
-  COUNTER_MATERIALS, SHOWER_MATERIALS, projectScope, type ProjectInputs,
+  COUNTER_MATERIALS, SHOWER_MATERIALS, projectScope, type ExteriorCoats, type ProjectInputs,
 } from "@/lib/public-estimate-options";
-import { projectPlanningEstimate, projectEstimateLeadMessage, needsFabrication, parseAllowance, formatEstimateRange } from "@/lib/public-pricing";
+import {
+  projectPlanningEstimate, projectEstimateLeadMessage, parseAllowance, formatEstimateRange,
+  PRELIMINARY_ESTIMATE_WORDING, SMALL_PIECE_SQFT,
+} from "@/lib/public-pricing";
 import { saveLeadDraft, type ServiceId } from "@/lib/site";
 
 const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p-3 text-fg";
@@ -13,21 +16,18 @@ const money = (n: number) => new Intl.NumberFormat("en-US", {
 }).format(n);
 const serviceId = (id: ProjectInputs["service"]): ServiceId =>
   id === "interior-paint" || id === "exterior-paint" ? "paint" : id === "custom" ? "make-ready" : id;
+const STONE_NOTE = "Discounted stone remnants may be available — visit our stone yard with Jon to choose.";
 
 export function PublicProjectEstimator() {
   const [inputs, setInputs] = useState<ProjectInputs>(DEFAULT_PROJECT_INPUTS);
   const [delivery, setDelivery] = useState("");
   const [specialist, setSpecialist] = useState("");
-  const [fabrication, setFabrication] = useState("");
   const scope = projectScope(inputs.service, inputs.size);
-  const requiredFabrication = needsFabrication(inputs);
   const deliveryValue = parseAllowance(scope ? delivery : "");
   const specialistValue = parseAllowance(scope ? specialist : "");
-  const fabricationValue = parseAllowance(requiredFabrication ? fabrication : "", requiredFabrication);
-  const valid = !deliveryValue.error && !specialistValue.error && !fabricationValue.error;
+  const valid = !deliveryValue.error && !specialistValue.error;
   const current: ProjectInputs | null = valid ? {
     ...inputs, delivery: deliveryValue.value!, specialist: specialistValue.value!,
-    fabrication: requiredFabrication ? fabricationValue.value : null,
   } : null;
   // Invalid input never reaches the calculation or handoff.
   const estimate = current ? projectPlanningEstimate(current) : null;
@@ -40,6 +40,8 @@ export function PublicProjectEstimator() {
       message: projectEstimateLeadMessage(current),
     });
   };
+  const showStoneNote = inputs.service === "kitchen" || inputs.service === "bathroom";
+  const remnantLabel = Boolean(estimate?.remnantStone && scope && scope.shower <= SMALL_PIECE_SQFT);
   return (
     <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Project planning estimate</p>
@@ -47,8 +49,8 @@ export function PublicProjectEstimator() {
       <label className="mt-6 block text-sm font-semibold text-fg" htmlFor="estimate-service">Project type</label>
       <select id="estimate-service" value={inputs.service} onChange={e => {
         const service = e.target.value as ProjectInputs["service"];
+        // Material change drops the previous surface. Stone price is calculated; nothing is typed for it.
         setInputs(prev => ({ ...prev, service, floor: service === "bathroom" ? "tile" : "lvp" }));
-        setFabrication("");
       }} className={fieldClass}>
         {PROJECT_SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
@@ -65,7 +67,8 @@ export function PublicProjectEstimator() {
           <h3 className="text-sm font-semibold text-fg">Included in this example</h3>
           <p className="mt-2 text-sm text-muted" data-testid="estimate-scope">{scope.summary}</p>
           <p className="mt-2 text-xs text-muted">{scope.exclusions}</p>
-          {inputs.service === "bathroom" ? <p className="mt-2 text-xs text-muted">Includes thinset, grout, backer board, waterproofing membrane, basic finish demolition, and a basic toilet, vanity faucet and shower valve/trim allowance.</p> : null}
+          {inputs.service === "bathroom" ? <p className="mt-2 text-xs text-muted">Includes thinset, grout, backer board and waterproofing membrane on tiled surfaces, basic finish demolition, a basic toilet, vanity faucet and shower valve/trim supply, and licensed plumber work for the shower valve.</p> : null}
+          {inputs.service === "kitchen" ? <p className="mt-2 text-xs text-muted">Includes basic finish demolition. Stone counters are priced as installed material, including at least one full slab.</p> : null}
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring material
@@ -89,16 +92,15 @@ export function PublicProjectEstimator() {
               <option value="paint">Paint only on prepared surfaces</option>
             </select>
           </label> : null}
+          {inputs.service === "exterior-paint" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-coats">Finish coats
+            <select id="estimate-coats" value={String(inputs.exteriorCoats)} onChange={e => patch("exteriorCoats", Number(e.target.value) as ExteriorCoats)} className={fieldClass}>
+              <option value="1">1 coat (standard)</option>
+              <option value="2">2 coats</option>
+            </select>
+          </label> : null}
         </div>
-        {requiredFabrication ? <div className="mt-5 rounded-xl border border-border p-4">
-          <label className="text-sm font-semibold text-fg" htmlFor="estimate-fabrication">Fabrication / installation allowance ($)
-            <input id="estimate-fabrication" type="text" inputMode="decimal" required
-              aria-invalid={Boolean(fabricationValue.error)} aria-describedby="fabrication-help fabrication-error"
-              value={fabrication} onChange={e => setFabrication(e.target.value)} placeholder="Required for selected stone" className={fieldClass} />
-          </label>
-          <p id="fabrication-help" className="mt-2 text-xs text-muted">Required for the selected stone. Enter fabrication and installation only; material cost is already included and crew installation is not added for that surface. Supplier confirmation required.</p>
-          <p id="fabrication-error" role={fabricationValue.error ? "alert" : undefined} className="mt-2 text-sm text-fg">{fabricationValue.error}</p>
-        </div> : null}
+        {showStoneNote ? <p className="mt-4 text-sm text-muted" data-testid="estimate-stone-note">{STONE_NOTE}</p> : null}
+        {remnantLabel ? <p className="mt-2 text-sm text-muted">Small-piece remnant pricing, subject to availability.</p> : null}
         <details className="mt-6 rounded-xl border border-border p-4">
           <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-fg">Delivery and additional allowances</summary>
           <p className="mt-3 text-xs text-muted">Add known delivery, shipping, subcontractor or other costs once. Blank optional fields add no allowance. Supplier and specialist costs must be confirmed.</p>
@@ -121,17 +123,20 @@ export function PublicProjectEstimator() {
             </div>
           </div>
         </details>
+        {current && current.delivery > 0 ? <p className="mt-3 text-sm text-fg" data-testid="estimate-delivery-line">Delivery / shipping allowance: {money(current.delivery)}</p> : null}
+        {current && current.specialist > 0 ? <p className="mt-2 text-sm text-fg" data-testid="estimate-specialist-line">Specialist / other allowance: {money(current.specialist)}</p> : null}
         {deliveryValue.error || specialistValue.error ? <p role="alert" className="mt-3 text-sm text-fg">Review the delivery and specialist allowance fields: {deliveryValue.error || specialistValue.error}</p> : null}
         <div className="mt-8 rounded-xl border border-primary/40 bg-bg p-5">
           <h3 className="text-sm font-semibold text-fg">The Flip Fixer planning range</h3>
           <p className="mt-3 break-words font-display text-2xl text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{estimate ? formatEstimateRange(estimate) : "Enter valid allowances"}</p>
+          <p className="mt-2 text-sm font-semibold text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
           <p className="mt-2 text-sm text-muted">Estimated materials, installation and project support for the example scope. Materials have no markup. The upper end allows for estimating uncertainty.</p>
           {estimate ? <p className="mt-2 text-sm text-muted" data-testid="estimate-support">Project support included: {money(estimate.support)} for protection, routine haul-off/disposal, cleanup and consumables.</p> : null}
-          <p className="mt-2 text-xs text-muted">A project minimum applies. Delivery, shipping, fabrication and other specialist work are included only through the allowances entered above. Large or hazardous disposal requires a separate allowance.</p>
+          <p className="mt-2 text-xs text-muted">A project minimum applies to labor and materials. Project support is added after that. Delivery, shipping and other specialist work are included only through the allowances entered above. Large or hazardous disposal requires a separate allowance.</p>
         </div>
       </> : <p className="mt-6 text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
-      <p className="mt-5 text-sm font-semibold text-fg">This is an estimate, not a quote.</p>
-      <p className="mt-2 text-sm text-muted">Based on example quantities and provisional reference pricing. Measurements, selections, site conditions and current supplier costs can change the total. Final scope and pricing require an on-site assessment.</p>
+      <p className="mt-5 text-sm font-semibold text-fg">{PRELIMINARY_ESTIMATE_WORDING}</p>
+      <p className="mt-2 text-sm text-muted">Based on example quantities and public market pricing where noted. Measurements, selections, site conditions and current supplier costs can change the total.</p>
       <Link to="/contact" search={{ service: serviceId(inputs.service), side: inputs.service === "exterior-paint" ? "exterior" : "interior" }}
         onClick={handOff} aria-disabled={!valid}
         className={`mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg ${valid ? "" : "opacity-60"}`}>Request an on-site estimate</Link>

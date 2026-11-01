@@ -27,6 +27,7 @@ export const SHOWER_MATERIALS = [
   { id: "porcelain", label: "Porcelain tile" },
   { id: "stone", label: "Stone slab" },
 ] as const;
+export type ExteriorCoats = 1 | 2;
 export type ProjectInputs = {
   service: ProjectService;
   size: ProjectSize;
@@ -34,13 +35,14 @@ export type ProjectInputs = {
   counter: typeof COUNTER_MATERIALS[number]["id"];
   shower: typeof SHOWER_MATERIALS[number]["id"];
   prime: boolean;
+  /** Exterior finish coats. 1 is the standard. Ignored for every other project type. */
+  exteriorCoats: ExteriorCoats;
   delivery: number;
   specialist: number;
-  fabrication: number | null;
 };
 export const DEFAULT_PROJECT_INPUTS: ProjectInputs = {
-  service: "bathroom", size: "Medium", floor: "tile", counter: "quartz",
-  shower: "ceramic", prime: true, delivery: 0, specialist: 0, fabrication: null,
+  service: "kitchen", size: "Medium", floor: "lvp", counter: "quartz",
+  shower: "ceramic", prime: true, exteriorCoats: 1, delivery: 0, specialist: 0,
 };
 export function projectScope(service: ProjectService, size: ProjectSize) {
   const i = PROJECT_SIZES.indexOf(size);
@@ -64,8 +66,8 @@ export function projectScope(service: ProjectService, size: ProjectSize) {
     };
     case "kitchen": return {
       ...kitchen, shower: 0, doubleVanity: false,
-      summary: `Example: ${kitchen.floor} sq ft kitchen, ${kitchen.base + kitchen.wallUnits} standard cabinet units, ${kitchen.counters} sq ft counter, ${kitchen.backsplash} sq ft backsplash, floor, trim and wall paint.`,
-      exclusions: "Existing layout retained. Demolition, appliances, plumbing, electrical, permits and concealed repairs require separate allowances. Fabrication/install allowance is required for stone counters.",
+      summary: `Example: ${kitchen.floor} sq ft kitchen, ${kitchen.base + kitchen.wallUnits} standard cabinet units, ${kitchen.counters} sq ft counter, ${kitchen.backsplash} sq ft backsplash, floor, trim, wall paint and basic finish demolition.`,
+      exclusions: "Existing layout retained. Appliances, plumbing, electrical, permits and concealed repairs require separate allowances.",
     };
     case "flooring": return {
       floor: [120, 400, 800][i], wall: 0, trim: 0, shower: 0, counters: 0,

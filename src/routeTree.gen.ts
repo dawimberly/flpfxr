@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as BathroomRouteImport } from './routes/bathroom'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as EstimateRouteImport } from './routes/estimate'
 import { Route as EstimatorRouteImport } from './routes/estimator'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as KitchenRouteImport } from './routes/kitchen'
@@ -52,6 +53,11 @@ const CommunityRoute = CommunityRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EstimateRoute = EstimateRouteImport.update({
+  id: '/estimate',
+  path: '/estimate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EstimatorRoute = EstimatorRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
+  '/estimate': typeof EstimateRoute
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
+  '/estimate': typeof EstimateRoute
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
+  '/estimate': typeof EstimateRoute
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/bathroom'
     | '/community'
     | '/contact'
+    | '/estimate'
     | '/estimator'
     | '/gallery'
     | '/kitchen'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/bathroom'
     | '/community'
     | '/contact'
+    | '/estimate'
     | '/gallery'
     | '/kitchen'
     | '/login'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/bathroom'
     | '/community'
     | '/contact'
+    | '/estimate'
     | '/estimator'
     | '/gallery'
     | '/kitchen'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   BathroomRoute: typeof BathroomRoute
   CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
+  EstimateRoute: typeof EstimateRoute
   EstimatorRoute: typeof EstimatorRouteWithChildren
   GalleryRoute: typeof GalleryRoute
   KitchenRoute: typeof KitchenRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estimate': {
+      id: '/estimate'
+      path: '/estimate'
+      fullPath: '/estimate'
+      preLoaderRoute: typeof EstimateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/estimator': {
@@ -431,6 +451,7 @@ const rootRouteChildren: RootRouteChildren = {
   BathroomRoute: BathroomRoute,
   CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
+  EstimateRoute: EstimateRoute,
   EstimatorRoute: EstimatorRouteWithChildren,
   GalleryRoute: GalleryRoute,
   KitchenRoute: KitchenRoute,
