@@ -19,7 +19,7 @@ for (let attempt = 0; attempt < 45; attempt++) {
     last = "status " + page.status + ", heading " + page.text.includes("Plan your next project.");
     if (page.status === 200 &&
         page.text.includes("Plan your next project.") &&
-        page.text.includes("Benchmark pending verification") &&
+        page.text.includes("This is an estimate, not a quote.") &&
         page.text.includes("Request an on-site estimate")) {
       ready = true;
       break;

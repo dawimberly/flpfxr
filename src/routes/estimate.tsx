@@ -16,7 +16,7 @@ function EstimatePage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-12 md:py-20">
       <h1 className="font-display text-3xl font-semibold text-fg md:text-5xl">Plan your next project.</h1>
-      <p className="mb-8 mt-4 text-muted">Select a service and project size, then enter rough quantities for a preliminary estimate. This is not a quote; final pricing requires an on-site assessment.</p>
+      <p className="mb-8 mt-4 text-muted">Choose a project size and materials to explore a preliminary estimate with labor included. This is an estimate, not a quote; final pricing requires an on-site assessment.</p>
       <PublicProjectEstimator />
     </main>
   );

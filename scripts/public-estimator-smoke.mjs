@@ -47,7 +47,7 @@ try {
     const response = await page.goto(base + "/estimate", { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200, "/estimate HTTP status");
     await page.getByRole("heading", { name: "Plan your next project." }).waitFor();
-    await page.getByText("Benchmark pending verification").waitFor();
+    await page.getByText("This is an estimate, not a quote.", { exact: true }).waitFor();
     // SSR HTML can arrive before React attaches event handlers. Confirm interactivity first.
     let hydrated = false;
     for (let attempt = 0; attempt < 30; attempt++) {
@@ -60,15 +60,13 @@ try {
     }
     assert.ok(hydrated, "Estimator did not hydrate: " + browserErrors.join(" | "));
     await page.getByRole("button", { name: "Medium", exact: true }).click();
-    await page.getByLabel("Base crew days").fill("4");
-    await page.getByLabel("Materials at cost ($)").fill("2000");
-    await page.getByLabel("Other costs ($)").fill("0");
+    await page.getByLabel("Shower surround material").selectOption("ceramic");
     await page.waitForTimeout(1800);
     const estimatorText = await page.locator("body").innerText();
     const inputValues = await page.locator("input[type=number]").evaluateAll((inputs) => inputs.map((input) => input.value));
     console.log("ESTIMATOR DEBUG", JSON.stringify({ viewport, inputValues, browserErrors, excerpt: estimatorText.slice(0, 1800) }));
     await page.screenshot({ path: "public-estimator-smoke-" + viewport.width + ".png", fullPage: true });
-    assert.match(estimatorText, /\$5,250/, "Expected 4+1 crew days at $650 and $2,000 materials");
+    assert.match(estimatorText, /\$4,603/, "Expected automatic medium bathroom estimate");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 3, "Horizontal overflow at " + viewport.width + "px: " + overflow);
     await page.getByRole("link", { name: "Request an on-site estimate" }).click();
@@ -77,14 +75,14 @@ try {
     await page.waitForFunction(() => document.querySelector('textarea[name="message"]')?.value.includes("bathroom remodeling"), null, { timeout: 15000 });
     const message = await page.locator("textarea[name=message]").inputValue();
     assert.match(message, /bathroom remodeling \(medium scope\)/);
-    assert.match(message, /\$5,250/);
+    assert.match(message, /\$4,603/);
     assert.match(message, /not a quote/);
     for (const path of ["/kitchen", "/bathroom"]) {
       const res = await page.request.get(base + path);
       assert.equal(res.status(), 200, path + " landing page status");
     }
     await page.close();
-    console.log("PASS public estimator mobile/desktop, pricing, retail guard and lead handoff:", viewport.width);
+    console.log("PASS public estimator mobile/desktop, size/material pricing and lead handoff:", viewport.width);
   }
 } finally {
   if (browser) await browser.close();
