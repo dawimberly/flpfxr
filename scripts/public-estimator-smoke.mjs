@@ -61,47 +61,40 @@ try {
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     const total=page.getByTestId("estimate-total");
     await page.getByText("between $12,300 and $15,400",{exact:true}).waitFor();
-    assert.doesNotMatch(await page.locator("body").innerText(),/\$650|crew.?days?|per day|\/day/i);
+    const bodyText=async()=>page.locator("body").innerText();
+    assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
+    await page.getByTestId("estimate-included").waitFor();
+    await page.getByText("Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage.",{exact:true}).waitFor();
 
-    // Raw invalid values remain visible and block calculation + navigation.
-    await page.getByText("Delivery and additional allowances",{exact:true}).click();
-    const delivery=page.getByLabel("Delivery / shipping allowance ($)",{exact:true});
-    const specialist=page.getByLabel("Specialist / other allowance ($)",{exact:true});
-    for(const field of [delivery,specialist]) {
-      for(const bad of ["abc","-1","50001","1e3"]) {
-        await field.fill(bad);
-        await page.getByText("Enter valid allowances",{exact:true}).waitFor();
-        assert.equal(await field.getAttribute("aria-invalid"),"true");
-        assert.equal(await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("aria-disabled"),"true");
-        await page.getByRole("link",{name:"Request an on-site estimate"}).click({force:true});
-        assert.ok(page.url().includes("/estimate"),"Invalid inputs must not navigate");
-      }
-      await field.fill("");
+    const floor=page.getByLabel("Kitchen floor (sq ft)",{exact:true});
+    for(const bad of ["abc","10"]) {
+      await floor.fill(bad);
+      await page.getByTestId("estimate-area-error").waitFor();
+      assert.equal(await floor.getAttribute("aria-invalid"),"true");
+      assert.equal(await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("aria-disabled"),"true");
+      await page.getByRole("link",{name:"Request an on-site estimate"}).click({force:true});
+      assert.ok(page.url().includes("/estimate"),"Invalid inputs must not navigate");
     }
+    await floor.fill("168");
+    await page.getByText("between $12,300 and $15,400",{exact:true}).waitFor();
 
-    // Kitchen quartz shows a range with no fabrication input. Switching materials drops that surface price.
     await page.getByLabel("Project type",{exact:true}).selectOption("kitchen");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
     await page.getByText("between $12,300 and $15,400",{exact:true}).waitFor();
-    await page.getByText("Discounted stone remnants may be available — visit our stone yard with Jon to choose.",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("laminate");
     await page.getByText("between $10,900 and $13,600",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("quartz");
 
-    await delivery.fill("$100");
-    await specialist.fill("1,000");
-    await page.getByTestId("estimate-delivery-line").waitFor();
-    await page.getByTestId("estimate-specialist-line").waitFor();
-    assert.match(await total.innerText(),/between \$[\d,]+ and \$[\d,]+/);
-    await delivery.fill("");
-    await specialist.fill("");
-
     await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await page.getByText("Demolition",{exact:true}).waitFor();
+    await page.getByText("between $9,000 and $11,200",{exact:true}).waitFor();
     await page.getByLabel("Shower wall").selectOption("stone");
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
     assert.match(await total.innerText(),/between \$[\d,]+ and \$[\d,]+/);
+    assert.match(await page.getByTestId("estimate-materials").innerText(),/Stone slab/);
+    assert.doesNotMatch(await page.getByTestId("estimate-summary").innerText(),/remnant|10% off|allowance|full slab|licensed|insured|waterfall/i);
     await page.getByLabel("Shower wall").selectOption("ceramic");
     await page.getByLabel("Project type",{exact:true}).selectOption("exterior-paint");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
@@ -110,11 +103,7 @@ try {
     await page.getByText("between $8,600 and $10,800",{exact:true}).waitFor();
     await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
-    const details=page.locator("details");
-    if(!await details.evaluate(el=>el.open)) await page.getByText("Delivery and additional allowances",{exact:true}).click();
-    await delivery.fill("300");
-    await specialist.fill("750");
-    await page.getByText("between $10,000 and $12,600",{exact:true}).waitFor();
+    await page.getByText("between $9,000 and $11,200",{exact:true}).waitFor();
     const undersized=await page.locator("main select, main input, main button, main summary, main a").evaluateAll(elements=>
       elements.filter(el=>el.getBoundingClientRect().width>0 && el.getBoundingClientRect().height>0)
         .filter(el=>el.getBoundingClientRect().height<44).map(el=>el.id||el.textContent));
@@ -127,7 +116,7 @@ try {
     await page.waitForURL(/\/contact/);
     await page.waitForFunction(()=>document.querySelector('textarea[name="message"]')?.value.includes("Preliminary estimate:"));
     const message=await page.locator('textarea[name="message"]').inputValue();
-    assert.match(message,/between \$10,000 and \$12,600/);
+    assert.match(message,/between \$9,000 and \$11,200/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
     assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
@@ -135,7 +124,7 @@ try {
     assert.deepEqual(pageErrors,[],"Browser page errors");
     for(const path of ["/kitchen","/bathroom"]) assert.equal((await page.request.get(base+path)).status(),200,path);
     await page.close();
-    console.log("PASS",width,"px: kitchen range, stone, coats, allowances, tap targets, no overflow, handoff; no lead submitted");
+    console.log("PASS",width,"px: plain range, materials, coats, tap targets, no overflow, handoff; no lead submitted");
   }
   console.log("Screenshots:",artifacts);
 } finally {

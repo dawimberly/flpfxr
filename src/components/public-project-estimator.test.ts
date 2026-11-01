@@ -162,25 +162,78 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/aria-invalid/);
     assert.match(ui,/event.preventDefault/);
     assert.match(ui,/1 coat \(standard\)/);
-    assert.match(ui,/Discounted stone remnants may be available — visit our stone yard with Jon to choose\./);
-    assert.match(ui,/data-testid="estimate-assumptions"/);
     assert.match(ui,/Starting point/);
     assert.match(ui,/Flooring type/);
     assert.match(ui,/Shower wall/);
     assert.match(ui,/Countertop type/);
     assert.match(ui,/estimate-toilet/);
     assert.match(ui,/estimate-vanity/);
-    assert.match(ui,/estimate-filler-analysis/);
+    assert.match(ui,/What's included/);
+    assert.match(ui,/Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage\./);
     assert.match(ui,/PRELIMINARY_ESTIMATE_WORDING/);
     assert.match(pricing,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
-    assert.ok(ui.indexOf("estimate-delivery-line")>ui.indexOf("</details>"));
-    assert.doesNotMatch(ui,/fabrication/i);
+    assert.doesNotMatch(ui,/fabrication|10% off|cabinet list|remnant|slab|allowance|market pricing|licensed|insured|filler strip|person-hours|personHours/i);
     assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days/);
     assert.doesNotMatch(ui,/gtag|dataLayer|fbq|fetch\(/);
     assert.doesNotMatch(ui.toLowerCase(),new RegExp("waterfall"+" counter"));
   });
 });
 describe("measured square footage", () => {
+  it("keeps the displayed range identical for every preset and for typed square footage", () => {
+    const presetRanges: Record<string, string | null> = {
+      "kitchen Small": "between $10,400 and $13,100",
+      "kitchen Medium": "between $12,300 and $15,400",
+      "kitchen Large": "between $19,000 and $23,700",
+      "bathroom Small": "between $6,600 and $8,200",
+      "bathroom Medium": "between $9,000 and $11,200",
+      "bathroom Large": "between $12,600 and $15,800",
+      "flooring Small": "between $1,800 and $2,200",
+      "flooring Medium": "between $3,600 and $4,500",
+      "flooring Large": "between $6,100 and $7,600",
+      "interior-paint Small": "between $2,200 and $2,800",
+      "interior-paint Medium": "between $4,600 and $5,700",
+      "interior-paint Large": "between $9,000 and $11,300",
+      "exterior-paint Small": "between $2,300 and $2,900",
+      "exterior-paint Medium": "between $5,300 and $6,700",
+      "exterior-paint Large": "between $9,900 and $12,400",
+      "custom Small": null,
+      "custom Medium": null,
+      "custom Large": null,
+    };
+    for (const service of PROJECT_SERVICES) for (const size of PROJECT_SIZES) {
+      const floor = service.id === "bathroom" ? "tile" as const : "lvp" as const;
+      const preset = projectPlanningEstimate(input({ service: service.id, size, floor }));
+      const filled = presetAreas(service.id, size);
+      const explicit = projectPlanningEstimate(input({
+        service: service.id, size, floor,
+        floorSqft: filled.floor ? Number(filled.floor) : undefined,
+        showerSqft: filled.shower ? Number(filled.shower) : undefined,
+        counterSqft: filled.counter ? Number(filled.counter) : undefined,
+        roomSqft: filled.room ? Number(filled.room) : undefined,
+      }));
+      const key = `${service.id} ${size}`;
+      const range = preset ? formatEstimateRange(preset) : null;
+      assert.equal(range, presetRanges[key], key);
+      assert.equal(explicit ? formatEstimateRange(explicit) : null, range, `${key} typed`);
+      if (preset && explicit) {
+        assert.equal(explicit.low, preset.low);
+        assert.equal(explicit.high, preset.high);
+        assert.equal(explicit.total, preset.total);
+      }
+    }
+    const customRanges: Array<[string, Partial<ProjectInputs>, string]> = [
+      ["kitchen floor 200", { service: "kitchen", floorSqft: 200, counterSqft: null }, "between $16,500 and $20,600"],
+      ["kitchen counter 8", { service: "kitchen", floorSqft: 168, counterSqft: 8 }, "between $9,500 and $11,900"],
+      ["kitchen counter 11", { service: "kitchen", floorSqft: 168, counterSqft: 11 }, "between $12,300 and $15,400"],
+      ["bath shower 40", { service: "bathroom", floor: "tile", floorSqft: 80, showerSqft: 40 }, "between $7,900 and $9,900"],
+      ["interior 1000", { service: "interior-paint", roomSqft: 1000 }, "between $5,500 and $6,800"],
+      ["exterior 2 coat", { service: "exterior-paint", exteriorCoats: 2 }, "between $8,600 and $10,800"],
+      ["kitchen laminate", { service: "kitchen", counter: "laminate" }, "between $10,900 and $13,600"],
+    ];
+    for (const [name, changes, range] of customRanges) {
+      assert.equal(formatEstimateRange(projectPlanningEstimate(input(changes))!), range, name);
+    }
+  });
   it("keeps today's preset totals when the example areas are omitted or typed in", () => {
     for (const service of PROJECT_SERVICES) for (const size of PROJECT_SIZES) {
       const floor = service.id === "bathroom" ? "tile" as const : "lvp" as const;
@@ -195,6 +248,8 @@ describe("measured square footage", () => {
       }));
       if (service.id === "custom") { assert.equal(preset, null); assert.equal(explicit, null); continue; }
       assert.equal(explicit!.total, preset!.total, service.id + " " + size);
+      assert.equal(explicit!.low, preset!.low, service.id + " " + size);
+      assert.equal(explicit!.high, preset!.high, service.id + " " + size);
       assert.equal(formatEstimateRange(explicit!), formatEstimateRange(preset!));
       for (const key of ["floor", "wall", "trim", "shower", "counters", "backsplash", "base", "wallUnits"] as const) {
         assert.equal(explicit!.scope[key], preset!.scope[key], service.id + " " + size + " " + key);
