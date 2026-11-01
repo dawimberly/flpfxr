@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { adjustedCrewDays, planningEstimate, publicEstimateLeadMessage, CREW_DAY_RATE } from "@/lib/public-pricing";
+import { planningEstimate, publicEstimateLeadMessage } from "@/lib/public-pricing";
 import { saveLeadDraft, type ServiceId } from "@/lib/site";
 
 const SERVICES = ["Kitchen remodeling", "Bathroom remodeling", "Flooring", "Interior painting", "Exterior painting", "Handyman / make-ready", "Outdoor work"] as const;
@@ -11,7 +11,6 @@ const SIZE_HINTS: Record<Size,string> = {
   Medium: "A typical room or moderate scope",
   Large: "A larger area or more extensive work",
 };
-const RATE = CREW_DAY_RATE;
 const SERVICE_IDS: Record<(typeof SERVICES)[number], ServiceId> = {
   "Kitchen remodeling": "kitchen",
   "Bathroom remodeling": "bathroom",
@@ -34,7 +33,6 @@ export function PublicProjectEstimator() {
   const validDays = days.trim() !== "" && Number.isFinite(Number(days)) && Number(days) > 0;
   const validMaterials = materials.trim() !== "" && Number.isFinite(Number(materials)) && Number(materials) >= 0;
   const validOther = other.trim() === "" || (Number.isFinite(Number(other)) && Number(other) >= 0);
-  const crewDays = validDays ? adjustedCrewDays(Number(days)) : 0;
   const estimate = readyToCalculate(validDays, validMaterials, validOther) ? planningEstimate({ baseCrewDays: Number(days), materialsAtCost: Number(materials), otherProjectCosts: Number(other || 0) }) : 0;
   const ready = validDays && validMaterials && validOther;
   const serviceId = SERVICE_IDS[service];
@@ -75,7 +73,7 @@ export function PublicProjectEstimator() {
           <input type="number" inputMode="decimal" min="0" step="1" value={other} onChange={e => setOther(e.target.value)} placeholder="Optional" className="mt-2 w-full rounded-lg border border-border bg-bg p-3 text-fg" />
         </label>
       </div>
-      <p className="mt-3 text-xs text-muted">Crew: two people at $650 per crew day. One additional day for each complete four-day block. Include sourcing, purchasing, subcontractors, disposal and other allowances in the quantities where applicable. No standard material markup.</p>
+      <p className="mt-3 text-xs text-muted">Your planning estimate includes a labor allowance and the costs you enter. Materials normally have no markup. Actual scope and pricing are confirmed on site.</p>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-bg p-5">
           <p className="text-sm font-semibold text-fg">Typical San Antonio retail</p>
@@ -85,7 +83,7 @@ export function PublicProjectEstimator() {
         <div className="rounded-xl border border-primary/40 bg-bg p-5">
           <p className="text-sm font-semibold text-fg">The Flip Fixer estimate</p>
           <p className="mt-3 font-display text-3xl text-fg" aria-live="polite">{ready ? currency(estimate) : "Enter quantities"}</p>
-          <p className="mt-2 text-xs text-muted">{ready ? `${crewDays} crew days × ${currency(RATE)} plus entered costs` : "Requires crew days and estimated materials"}</p>
+          <p className="mt-2 text-xs text-muted">{ready ? "Estimated labor plus entered materials and other costs" : "Requires crew days and estimated materials"}</p>
         </div>
       </div>
       <p className="mt-4 text-sm text-muted">Illustrative planning estimate only, not a quote, offer or guaranteed price. Site conditions, selections and actual scope can change the final amount.</p>
