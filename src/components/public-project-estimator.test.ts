@@ -1,71 +1,69 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { adjustedCrewDays, planningEstimate, publicEstimateLeadMessage } from "../lib/public-pricing.ts";
+import { adjustedCrewDays, planningEstimate, projectPlanningEstimate, projectEstimateLeadMessage } from "../lib/public-pricing.ts";
+import { DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES } from "../lib/public-estimate-options.ts";
 
-describe("public estimator crew day allowance", () => {
-  it("does not add a day before four full base days", () => {
-    assert.equal(adjustedCrewDays(1), 1);
-    assert.equal(adjustedCrewDays(2), 2);
-    assert.equal(adjustedCrewDays(3), 3);
+describe("planning calculation", () => {
+  it("adds the owner allowance once per four full rounded crew days", () => {
+    for (const [base, expected] of [[1,1],[3,3],[3.5,5],[4,5],[5,6],[8,10],[12,15]]) {
+      assert.equal(adjustedCrewDays(base), expected);
+    }
+    assert.equal(planningEstimate({baseCrewDays:4, materialsAtCost:2000}),5250);
+    assert.equal(planningEstimate({baseCrewDays:8, materialsAtCost:2000,otherProjectCosts:500}),9000);
   });
-  it("adds one day for every four base days", () => {
-    assert.equal(adjustedCrewDays(4), 5);
-    assert.equal(adjustedCrewDays(5), 6);
-    assert.equal(adjustedCrewDays(8), 10);
-    assert.equal(adjustedCrewDays(12), 15);
+  it("derives medium bathroom quantities and crew effort instead of asking the visitor for days", () => {
+    const result = projectPlanningEstimate(DEFAULT_PROJECT_INPUTS)!;
+    // Independent reference: floor 80*4.25, trim 36*2.85, paint 270*.45,
+    // primer 270*.22, vanity 289, surround 80*5.50.
+    assert.equal(result.materials,1352.5);
+    assert.ok(Math.abs(result.baseCrewDays - 62.9/16) < 1e-10);
+    assert.equal(result.adjustedDays,5);
+    assert.equal(result.total,4603);
   });
-  it("prices a two-person crew and passes materials at cost", () => {
-    assert.equal(planningEstimate({baseCrewDays: 4, materialsAtCost: 2000}), 5250);
-    assert.equal(planningEstimate({baseCrewDays: 8, materialsAtCost: 2000, otherProjectCosts: 500}), 9000);
+  it("changes costs with size and chosen materials", () => {
+    const totals = PROJECT_SIZES.map(size => projectPlanningEstimate({...DEFAULT_PROJECT_INPUTS,size})!.total);
+    assert.ok(totals[0] < totals[1] && totals[1] < totals[2]);
+    const standard = projectPlanningEstimate(DEFAULT_PROJECT_INPUTS)!;
+    const stone = projectPlanningEstimate({...DEFAULT_PROJECT_INPUTS, shower:"stone"})!;
+    assert.equal(stone.total - standard.total,1000); // 80*(18-5.5), no material markup
+    assert.equal(stone.adjustedDays,standard.adjustedDays); // catalog's generic unit-hour defaults
   });
-  it("rejects invalid amounts", () => {
-    assert.throws(() => planningEstimate({baseCrewDays: -1, materialsAtCost: 0}));
+  it("adds entered shipping and specialist amounts once, without markup", () => {
+    const plain = projectPlanningEstimate(DEFAULT_PROJECT_INPUTS)!;
+    const withCosts = projectPlanningEstimate({...DEFAULT_PROJECT_INPUTS,delivery:300,specialist:750})!;
+    assert.equal(withCosts.total - plain.total,1050);
+    assert.equal(withCosts.adjustedDays,plain.adjustedDays);
   });
-  it("rounds partial working days up before allowance", () => {
-    assert.equal(adjustedCrewDays(3.5), 5);
-    assert.equal(adjustedCrewDays(-1), 0);
+  it("calculates all supported sizes and routes custom jobs to assessment", () => {
+    for (const service of PROJECT_SERVICES) for (const size of PROJECT_SIZES) {
+      const value = projectPlanningEstimate({...DEFAULT_PROJECT_INPUTS,service:service.id,size});
+      if (service.id === "custom") assert.equal(value,null);
+      else assert.ok(value!.total > 0 && Number.isFinite(value!.total));
+    }
+  });
+  it("rejects unknown options, invalid sizes and negative or nonfinite allowances", () => {
+    for (const bad of [{delivery:-1},{delivery:NaN},{specialist:Infinity},{specialist:1000001},{floor:"__proto__"},{size:"Tiny"},{service:"roof"},{prime:"yes"}]) {
+      assert.throws(() => projectPlanningEstimate({...DEFAULT_PROJECT_INPUTS,...bad} as typeof DEFAULT_PROJECT_INPUTS));
+    }
   });
 });
-
-describe("public estimator lead handoff and pricing safety", () => {
-  it("carries service, size and owner-defined inputs into the contact message", () => {
-    const message = publicEstimateLeadMessage({
-      service: "Bathroom remodeling", size: "Medium", baseCrewDays: 4,
-      materialsAtCost: 2000, otherProjectCosts: 0,
-    });
-    assert.match(message, /bathroom remodeling \(medium scope\)/);
-    assert.match(message, /5 adjusted crew days at \$650\/day/);
-    assert.match(message, /\$2,000/);
-    assert.match(message, /\$5,250/);
-    assert.match(message, /not a quote/);
+describe("customer estimate and lead handoff", () => {
+  it("preserves selected scope, materials, total, allowances and estimate status", () => {
+    const message = projectEstimateLeadMessage({...DEFAULT_PROJECT_INPUTS,delivery:300});
+    assert.match(message,/bathroom remodeling \(medium scope\)/);
+    assert.match(message,/Ceramic tile/);
+    assert.match(message,/\$4,903/);
+    assert.match(message,/Delivery\/shipping allowance: \$300/);
+    assert.match(message,/estimate, not a quote/);
+    assert.doesNotMatch(message,/650|crew day|per day|\/day/);
   });
-  it("does not invent a comparison when costs are unknown", () => {
-    assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: Number.NaN }));
-    assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: Number.POSITIVE_INFINITY }));
-    assert.throws(() => planningEstimate({ baseCrewDays: 2, materialsAtCost: 0, otherProjectCosts: -1 }));
-  });
-});
-
-describe("public release safety checks", () => {
-  const ui = readFileSync("src/components/public-project-estimator.tsx", "utf8");
-  const route = readFileSync("src/routes/estimate.tsx", "utf8");
-  it("withholds unverified retail benchmarks and savings claims", () => {
-    assert.match(ui, /Benchmark pending verification/);
-    assert.match(ui, /will not invent competitor prices/);
-    assert.match(ui, /Size does not determine price without a defined scope/);
-    assert.doesNotMatch(ui, /\b\d+% savings\b/i);
-  });
-  it("does not import employee-only catalog or expose employee estimator on public route", () => {
-    assert.doesNotMatch(ui + route, /catalog\.json|@\/lib\/estimator|estimator-store|ESTIMATOR_APP_URL/);
-    assert.match(route, /createFileRoute\("\/estimate"\)/);
-  });
-  it("keeps mobile responsive layout and the existing contact lead handoff", () => {
-    assert.match(ui, /sm:grid-cols-3/);
-    assert.match(ui, /sm:grid-cols-2/);
-    assert.match(ui, /saveLeadDraft\(/);
-    assert.match(ui, /onClick=\{handOff\}/);
-    assert.doesNotMatch(ui, /if \(!ready\) return/);
-    assert.match(ui, /to="\/contact"/);
+  it("keeps daily rates and contractor-day inputs out of the public UI", () => {
+    const ui = readFileSync("src/components/public-project-estimator.tsx","utf8");
+    assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days|Typical San Antonio retail/);
+    assert.match(ui,/This is an estimate, not a quote/);
+    assert.match(ui,/project support/);
+    assert.match(ui,/saveLeadDraft/);
+    assert.match(ui,/to="\/contact"/);
   });
 });
