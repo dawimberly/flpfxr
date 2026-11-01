@@ -171,6 +171,9 @@ export default defineConfig(({ command, isPreview }) => ({
       ? [
           nitro({
             preset: "vercel",
+            // Work around invalid ssr_exports emitted by Nitro/Rolldown chunk splitting.
+            // https://github.com/TanStack/router/issues/8031
+            inlineDynamicImports: true,
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
