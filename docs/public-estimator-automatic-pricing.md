@@ -13,14 +13,15 @@ Source for requested rates, minimum and support amounts: owner's 2026-11-01 task
 - This time allowance covers estimating and material runs. Do not add another labor uplift or overhead percentage for those same activities.
 - Interior paint assumes two finish coats at 0.03 person-hours/sq ft per coat. Primer adds its material cost plus half a coat of labor. Exterior defaults to one finish coat at 0.04 person-hours/sq ft. The visitor can choose "1 coat (standard)" or "2 coats"; the second coat adds another 0.04 person-hours/sq ft and another coat of exterior paint material. Primer stays half a pass.
 - Tile flooring 0.35 person-hours/sq ft; shower surround tile 0.5; LVP 0.06; cabinet install 1.5 per box.
-- Kitchen quartz/granite and bathroom stone use installed market rates (material + fabrication + install) and zero crew surface labor. There is no visitor fabrication field. Kitchens, and any stone area above 10 sq ft, are priced in full slabs of 46 sq ft (at least one, then another whole slab when the area overflows). Pieces of 10 sq ft or under, other than kitchens, use the lower remnant rate and are labeled subject to availability. The UI does not promise a remnant. Stone totals are raised if they would otherwise fall below laminate (kitchens) or ceramic (bathrooms) at the same size.
+- Kitchen quartz/granite and bathroom stone use installed market rates (material + fabrication + install) and zero crew surface labor. There is no visitor fabrication field. Stone is priced in full slabs of 46 sq ft (at least one, then another whole slab when the area overflows) unless the counter or surround is 10 sq ft or under. Those small pieces use the lower remnant rate and are labeled subject to availability. The UI does not promise a remnant. Preset kitchen counters are 32, 40 and 60 sq ft, so they still bill full slabs. Stone totals are raised if they would otherwise fall below laminate (kitchens) or ceramic (bathrooms) at the same areas.
 - Bathroom lines include basic finish demolition, fixture supply, thinset, grout, backer board and membrane on tiled surfaces, and a separate licensed-plumber allowance for the shower valve. Toilet and vanity-faucet labor stay on the crew (two fixture items). The valve adds no crew hours. Disposal is charged only through support, not again through demolition.
 - Kitchens include the same provisional basic-finish demolition hours by size. Demolition is not an exclusion.
 - Job subtotal = max($1,500, materials + labor). Add support of $250/$450/$750 for Small/Medium/Large after that minimum. This covers protection, routine haul-off/disposal, cleanup and consumables. Large/hazardous disposal needs a separate allowance.
 - Add shipping and specialist allowances once with no markup. Blank optional fields add $0. "$100" and "1,000" are accepted. Negatives, nonfinite values and amounts over $50,000 show a visible error and block the range. A counted allowance stays visible even when the entry panel is collapsed.
 - Display low = round(total / 100) * 100 and high = round(total * 1.25 / 100) * 100. Both use the same unrounded total; high is uncertainty, not a materials markup. Nearest-$100 rounding can put the displayed low slightly below the underlying total.
-- The customer sees a range, example scope, support amount, and this sentence near the range, above the contact button, and in the handoff: "Preliminary estimate only — not a quote. Final price is set after Jon sees the space." Never render crew days, person-hours or daily rate in the estimator or contact message. The default project is a medium quartz kitchen, which shows a range with no required input.
-- Contact handoff contains only project type, size, selected materials, range and estimate status. It contains no cost breakdown, allowances, quantities or internal effort.
+- The customer sees the range as "between $X and $Y", never a single total. Assumptions, example scope, and the support amount sit with it, plus this sentence near the range, above the contact button, and in the handoff: "Preliminary estimate only — not a quote. Final price is set after Jon sees the space." Never render crew days, person-hours or daily rate in the estimator or contact message. The default project is a medium quartz kitchen, which shows a range with the medium areas already filled in.
+- Small, Medium and Large are quick picks. They fill the area boxes, and the visitor can edit them. Bathroom asks for floor square feet and an optional surround. Kitchen asks for floor square feet and optional counters. Flooring and paint ask for the room or paintable area. Blank optional surround or counters, and any wall, trim or backsplash the form does not ask for, scale from the selected size's preset ratios. Cabinet counts, fixtures, demolition hours and the support amount stay on that size. Vanity size is its own choice. Quick pick sets a 30-inch vanity, or a 60-inch double vanity on Large, and the visitor can change it. Areas outside the planning ranges show a friendly message and no price: bathroom floor 20–300, surround 0–200, kitchen floor 60–600, counters 1–200, flooring 20–2,500, interior paint 50–5,000, exterior paint 100–8,000.
+- Contact handoff contains only project type, size, selected materials, range and estimate status. It contains no cost breakdown, allowances, quantities, square footage or internal effort.
 
 ## Validation and privacy
 
@@ -41,7 +42,7 @@ Retained material-only reference costs (not the employee installed-rate catalog)
 | Counter material / sq ft | Laminate $28; butcher block $35. Quartz and granite are installed market rates below, not these catalog dollars. |
 | Surround material / sq ft | Ceramic $5.50; porcelain $6.25. Stone slab is the installed market rate below. |
 | Coatings / sq ft | Interior paint $0.45 per finish coat; primer $0.22; exterior paint $0.55; exterior primer $0.28 |
-| Other material | Trim $2.85/linear ft; base box $185; wall box $145; single vanity $289; double vanity $620; backsplash $8.75/sq ft |
+| Other material | Trim $2.85/linear ft; base box $185; wall box $145; backsplash $8.75/sq ft. Bathroom vanity and one 3-inch filler are 10% off the cabinet list below, not the old $289 / $620 placeholders. |
 
 New provisional budgeting inputs, source UNKNOWN, last reviewed 2026-11-01. These are placeholders for review, not claimed vendor prices:
 
@@ -64,13 +65,30 @@ Installed stone rates are market estimates, not supplier-verified. Customers buy
 | Granite installed / sq ft | $85 | HomeAdvisor, updated Jun 20, 2026: material $40–$60 per sq ft (midpoint $50) plus "$35 per square foot installed." https://www.homeadvisor.com/cost/cabinets-and-countertops/install-granite-countertops/ |
 | Stone slab installed / sq ft | $120 | Archie Remodels: installed slab showers commonly $60–$180 per sq ft; midpoint. TODO Jon: that page is marble slab showers. https://archieremodels.com/marble-shower-cost-what-expect-marble-shower-walls/ |
 | Remnant, very small pieces only | $50 / sq ft | HomeAdvisor builder's-grade quartz low end, $50–$60 including materials and labor. Subject to availability. TODO Jon: no public remnant price list was found. https://www.homeadvisor.com/cost/cabinets-and-countertops/quartz-countertops/ |
-| Small-piece threshold | 10 sq ft | Angi vanity size 6–10 sq ft. Kitchens never use the remnant rate. TODO Jon: confirm the small-surround cutoff. https://www.angi.com/articles/how-much-does-it-cost-install-countertops.htm |
+| Small-piece threshold | 10 sq ft | Angi vanity size 6–10 sq ft. A full slab is billed unless the counter or surround is 10 sq ft or less, which uses remnant pricing. Preset kitchens are 32/40/60 sq ft, so they still bill full slabs. TODO Jon: confirm the small-piece cutoff. https://www.angi.com/articles/how-much-does-it-cost-install-countertops.htm |
 
 Retained or provisional productivity not specified by the owner: wood and carpet 0.08 person-hours/sq ft; trim 0.15 per linear ft; non-stone counter 0.08 per sq ft; backsplash tile 0.5 per sq ft. Tile productivity includes preparation/setting effort; it is not added again for each setting-material line.
 
+## Vanity size and filler strips
+
+The Styles by Design contractor catalog stores Northville list prices in `cost_per_unit`. Elegant White Shaker matches the Northville MSRP file. The contractor portal sells those rows at 20% off. Customers are not charged the list price and they are not charged the contractor price. The customer price is 10% off the list, which is 12.5% above the contractor price.
+
+Quick pick uses VA30 ($220 list, $198 customer) for Small and Medium, and VA60DD ($463 list, $416.70 customer) for Large. The visitor can choose 24, 27, 30, 36, 42, 48, 60, or 60-inch double. Install labor stays one cabinet box (1.5 person-hours). A medium tile bathroom with the 30-inch vanity is $9,000–$11,200 before delivery or specialist allowances.
+
+One 3-inch base filler is included in every bathroom at the customer price. A wider gap or a second side is not included. Base fillers and the toe kick are in the Northville MSRP file and were not copied into the contractor catalog. Closet fillers are in that catalog. None of these rates were changed; only the discount applied to the existing list is new.
+
+| Strip | SKU | List | Contractor, 20% off | Customer, 10% off | Source |
+| --- | --- | --- | --- | --- | --- |
+| 3 in × 36 in base filler (included once) | BF336 | $24.00 | $19.20 | $21.60 | Northville MSRP |
+| 6 in × 36 in base filler | BF636 | $50.00 | $40.00 | $45.00 | Northville MSRP |
+| Toe kick | TK8 | $19.00 | $15.20 | $17.10 | Northville MSRP |
+| Closet filler 1.5 in × 96 in | TF196 | $22.00 | $17.60 | $19.80 | Contractor catalog |
+| Closet filler 3 in × 96 in | TF396 | $67.00 | $53.60 | $60.30 | Contractor catalog |
+| Closet filler 6 in × 96 in | TF696 | $136.00 | $108.80 | $122.40 | Contractor catalog |
+
 ## Before and after comparison
 
-Before = main at 3f92fa7, displayed ranges. Standard choices: LVP except bathroom tile, ceramic bathroom surround, quartz kitchen counter, primer selected, exterior one coat, delivery and specialist zero. Kitchen before-numbers include the $1,500 fabrication allowance the old UI required before it would show a price. After removes that input and prices installed stone in full slabs.
+Before = main at 3f92fa7, displayed ranges. Standard choices: LVP except bathroom tile, ceramic bathroom surround, quartz kitchen counter, primer selected, exterior one coat, delivery and specialist zero. Kitchen before-numbers include the $1,500 fabrication allowance the old UI required before it would show a price. After removes that input and prices installed stone in full slabs. Bathroom rows below are that stone update. The selectable vanity, at 10% off list plus one 3-inch filler, moves them to Small $6,600–$8,200, Medium $9,000–$11,200 and Large $12,600–$15,800.
 
 | Project | Size | Before range | After range |
 | --- | --- | ---: | ---: |

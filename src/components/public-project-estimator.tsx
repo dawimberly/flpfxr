@@ -2,7 +2,9 @@ import { useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   DEFAULT_PROJECT_INPUTS, PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
-  COUNTER_MATERIALS, SHOWER_MATERIALS, projectScope, type ExteriorCoats, type ProjectInputs,
+  COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, projectScope, presetAreas, parseSqft, scopeAreaError,
+  vanityForSize, fillerCostAnalysis,
+  type ExteriorCoats, type ProjectInputs, type ScopeAreas,
 } from "@/lib/public-estimate-options";
 import {
   projectPlanningEstimate, projectEstimateLeadMessage, parseAllowance, formatEstimateRange,
@@ -14,20 +16,37 @@ const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p
 const money = (n: number) => new Intl.NumberFormat("en-US", {
   style: "currency", currency: "USD", maximumFractionDigits: 0,
 }).format(n);
+const moneyExact = (n: number) => new Intl.NumberFormat("en-US", {
+  style: "currency", currency: "USD", minimumFractionDigits: 2,
+}).format(n);
 const serviceId = (id: ProjectInputs["service"]): ServiceId =>
   id === "interior-paint" || id === "exterior-paint" ? "paint" : id === "custom" ? "make-ready" : id;
 const STONE_NOTE = "Discounted stone remnants may be available — visit our stone yard with Jon to choose.";
 
 export function PublicProjectEstimator() {
   const [inputs, setInputs] = useState<ProjectInputs>(DEFAULT_PROJECT_INPUTS);
+  const [areas, setAreas] = useState(() => presetAreas(DEFAULT_PROJECT_INPUTS.service, DEFAULT_PROJECT_INPUTS.size));
   const [delivery, setDelivery] = useState("");
   const [specialist, setSpecialist] = useState("");
-  const scope = projectScope(inputs.service, inputs.size);
+  const floorParsed = parseSqft(areas.floor);
+  const showerParsed = parseSqft(areas.shower);
+  const counterParsed = parseSqft(areas.counter);
+  const roomParsed = parseSqft(areas.room);
+  const parseError = floorParsed.error || showerParsed.error || counterParsed.error || roomParsed.error;
+  const areaPayload: ScopeAreas = inputs.service === "bathroom"
+    ? { floorSqft: floorParsed.value, showerSqft: showerParsed.value }
+    : inputs.service === "kitchen"
+    ? { floorSqft: floorParsed.value, counterSqft: counterParsed.value }
+    : inputs.service === "flooring" || inputs.service === "interior-paint" || inputs.service === "exterior-paint"
+    ? { roomSqft: roomParsed.value }
+    : {};
+  const areaError = parseError ?? scopeAreaError(inputs.service, areaPayload);
+  const scope = projectScope(inputs.service, inputs.size, areaPayload);
   const deliveryValue = parseAllowance(scope ? delivery : "");
   const specialistValue = parseAllowance(scope ? specialist : "");
-  const valid = !deliveryValue.error && !specialistValue.error;
+  const valid = !deliveryValue.error && !specialistValue.error && !areaError;
   const current: ProjectInputs | null = valid ? {
-    ...inputs, delivery: deliveryValue.value!, specialist: specialistValue.value!,
+    ...inputs, ...areaPayload, delivery: deliveryValue.value!, specialist: specialistValue.value!,
   } : null;
   // Invalid input never reaches the calculation or handoff.
   const estimate = current ? projectPlanningEstimate(current) : null;
@@ -50,40 +69,82 @@ export function PublicProjectEstimator() {
       <select id="estimate-service" value={inputs.service} onChange={e => {
         const service = e.target.value as ProjectInputs["service"];
         // Material change drops the previous surface. Stone price is calculated; nothing is typed for it.
-        setInputs(prev => ({ ...prev, service, floor: service === "bathroom" ? "tile" : "lvp" }));
+        setAreas(presetAreas(service, inputs.size));
+        setInputs(prev => ({
+          ...prev, service, floor: service === "bathroom" ? "tile" : "lvp",
+          vanity: service === "bathroom" ? vanityForSize(prev.size) : prev.vanity,
+        }));
       }} className={fieldClass}>
         {PROJECT_SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
       {scope ? <>
         <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-fg">Project size</legend>
+          <legend className="text-sm font-semibold text-fg">Starting point</legend>
+          <p className="mt-1 text-xs text-muted">Fills the square footage. Then choose flooring, shower wall, toilet, vanity, and countertop. Those choices change the range.</p>
           <div className="mt-2 grid grid-cols-3 gap-2">
             {PROJECT_SIZES.map(size => <button key={size} type="button" aria-pressed={inputs.size === size}
-              onClick={() => patch("size", size)}
+              onClick={() => {
+                setInputs(prev => ({ ...prev, size, vanity: prev.service === "bathroom" ? vanityForSize(size) : prev.vanity }));
+                setAreas(presetAreas(inputs.service, size));
+              }}
               className={`min-h-11 rounded-lg border p-3 text-sm font-semibold ${inputs.size === size ? "border-primary bg-primary text-primary-fg" : "border-border bg-bg text-fg"}`}>{size}</button>)}
           </div>
         </fieldset>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {inputs.service === "bathroom" || inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor-sqft">{inputs.service === "bathroom" ? "Bathroom floor (sq ft)" : "Kitchen floor (sq ft)"}
+            <input id="estimate-floor-sqft" type="text" inputMode="decimal" value={areas.floor}
+              aria-invalid={Boolean(floorParsed.error) || Boolean(areaError && /floor/i.test(areaError))}
+              onChange={e => setAreas(prev => ({ ...prev, floor: e.target.value }))} className={fieldClass} />
+          </label> : null}
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-shower-sqft">Shower or tub surround (sq ft, optional)
+            <input id="estimate-shower-sqft" type="text" inputMode="decimal" value={areas.shower} placeholder="Blank uses the example"
+              aria-invalid={Boolean(showerParsed.error) || Boolean(areaError && /surround/i.test(areaError))}
+              onChange={e => setAreas(prev => ({ ...prev, shower: e.target.value }))} className={fieldClass} />
+          </label> : null}
+          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter-sqft">Countertops (sq ft, optional)
+            <input id="estimate-counter-sqft" type="text" inputMode="decimal" value={areas.counter} placeholder="Blank uses the example"
+              aria-invalid={Boolean(counterParsed.error) || Boolean(areaError && /counter/i.test(areaError))}
+              onChange={e => setAreas(prev => ({ ...prev, counter: e.target.value }))} className={fieldClass} />
+          </label> : null}
+          {inputs.service === "flooring" || inputs.service === "interior-paint" || inputs.service === "exterior-paint" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-room-sqft">{inputs.service === "flooring" ? "Floor area (sq ft)" : "Area to paint (sq ft)"}
+            <input id="estimate-room-sqft" type="text" inputMode="decimal" value={areas.room}
+              aria-invalid={Boolean(roomParsed.error) || Boolean(areaError && /area/i.test(areaError))}
+              onChange={e => setAreas(prev => ({ ...prev, room: e.target.value }))} className={fieldClass} />
+          </label> : null}
+        </div>
+        {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
         <div className="mt-5 rounded-xl border border-border p-4">
           <h3 className="text-sm font-semibold text-fg">Included in this example</h3>
           <p className="mt-2 text-sm text-muted" data-testid="estimate-scope">{scope.summary}</p>
           <p className="mt-2 text-xs text-muted">{scope.exclusions}</p>
-          {inputs.service === "bathroom" ? <p className="mt-2 text-xs text-muted">Includes thinset, grout, backer board and waterproofing membrane on tiled surfaces, basic finish demolition, a basic toilet, vanity faucet and shower valve/trim supply, and licensed plumber work for the shower valve.</p> : null}
-          {inputs.service === "kitchen" ? <p className="mt-2 text-xs text-muted">Includes basic finish demolition. Stone counters are priced as installed material, including at least one full slab.</p> : null}
+          {inputs.service === "bathroom" ? <p className="mt-2 text-xs text-muted">Includes thinset, grout, backer board and waterproofing membrane on tiled surfaces, basic finish demolition, a vanity faucet and shower valve/trim supply, licensed plumber work for the shower valve, and one 3-inch filler strip. {inputs.newToilet ? "A basic new toilet is included." : "The existing toilet stays."}</p> : null}
+          {inputs.service === "kitchen" ? <p className="mt-2 text-xs text-muted">Includes basic finish demolition. Stone counters are priced as installed material. A full slab is used unless the counter area is 10 sq ft or less.</p> : null}
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring material
+          {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring type
             <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
               {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
-          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop material
+          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop type
             <select id="estimate-counter" value={inputs.counter} onChange={e => patch("counter", e.target.value as ProjectInputs["counter"])} className={fieldClass}>
               {COUNTER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
-          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-shower">Shower surround material
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-vanity">Vanity size
+            <select id="estimate-vanity" value={inputs.vanity ?? vanityForSize(inputs.size)} onChange={e => patch("vanity", e.target.value)} className={fieldClass}>
+              {VANITY_SIZES.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}
+            </select>
+          </label> : null}
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-shower">Shower wall
             <select id="estimate-shower" value={inputs.shower} onChange={e => patch("shower", e.target.value as ProjectInputs["shower"])} className={fieldClass}>
               {SHOWER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label> : null}
+          {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-toilet">New toilet
+            <select id="estimate-toilet" value={inputs.newToilet ? "yes" : "no"} onChange={e => patch("newToilet", e.target.value === "yes")} className={fieldClass}>
+              <option value="yes">Yes, include a basic toilet</option>
+              <option value="no">No, keep the existing toilet</option>
             </select>
           </label> : null}
           {scope.wall ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-paint">Paint preparation
@@ -128,9 +189,16 @@ export function PublicProjectEstimator() {
         {deliveryValue.error || specialistValue.error ? <p role="alert" className="mt-3 text-sm text-fg">Review the delivery and specialist allowance fields: {deliveryValue.error || specialistValue.error}</p> : null}
         <div className="mt-8 rounded-xl border border-primary/40 bg-bg p-5">
           <h3 className="text-sm font-semibold text-fg">The Flip Fixer planning range</h3>
-          <p className="mt-3 break-words font-display text-2xl text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{estimate ? formatEstimateRange(estimate) : "Enter valid allowances"}</p>
+          <p className="mt-3 break-words font-display text-2xl text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{estimate ? formatEstimateRange(estimate) : (areaError ?? "Enter valid allowances")}</p>
+          {estimate ? <p className="mt-2 text-sm text-muted" data-testid="estimate-assumptions">{estimate.scope.assumptions}</p> : null}
           <p className="mt-2 text-sm font-semibold text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
-          <p className="mt-2 text-sm text-muted">Estimated materials, installation and project support for the example scope. Materials have no markup. The upper end allows for estimating uncertainty.</p>
+          <p className="mt-2 text-sm text-muted">Estimated materials, installation and project support for the example scope. The vanity is 10% off the cabinet list, not full retail. Other materials in this planner are not marked up. The upper end allows for estimating uncertainty.</p>
+          {inputs.service === "bathroom" ? <div className="mt-3 text-sm text-muted" data-testid="estimate-filler-analysis">
+            <p className="font-semibold text-fg">Filler strip prices, 10% off list</p>
+            <ul className="mt-1 space-y-1">
+              {fillerCostAnalysis().filter(row => row.source === "Northville MSRP").map(row => <li key={row.sku}>{row.name}: {moneyExact(row.customer)} (list {moneyExact(row.list)}){row.sku === "BF336" ? ", included" : ""}</li>)}
+            </ul>
+          </div> : null}
           {estimate ? <p className="mt-2 text-sm text-muted" data-testid="estimate-support">Project support included: {money(estimate.support)} for protection, routine haul-off/disposal, cleanup and consumables.</p> : null}
           <p className="mt-2 text-xs text-muted">A project minimum applies to labor and materials. Project support is added after that. Delivery, shipping and other specialist work are included only through the allowances entered above. Large or hazardous disposal requires a separate allowance.</p>
         </div>

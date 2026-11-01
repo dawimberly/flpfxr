@@ -20,7 +20,7 @@ for (let attempt = 0; attempt < 45; attempt++) {
     if (page.status === 200 &&
         page.text.includes("Plan your next project.") &&
         page.text.includes("Preliminary estimate only — not a quote. Final price is set after Jon sees the space.") &&
-        /\$[\d,]+-\$[\d,]+/.test(page.text) &&
+        /between \$[\d,]+ and \$[\d,]+/.test(page.text) &&
         page.text.includes("Request an on-site estimate")) {
       ready = true;
       break;
