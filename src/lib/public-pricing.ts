@@ -1,6 +1,6 @@
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
-  SHOWER_MATERIALS, projectScope, type ProjectInputs,
+  SHOWER_MATERIALS, projectScope, scopeAreaError, type ProjectInputs, type ScopeAreas,
 } from "./public-estimate-options.ts";
 
 export const CREW_DAY_RATE = 650;
@@ -123,7 +123,7 @@ export function planningEstimate(input: {
   return adjustedCrewDays(baseCrewDays) * CREW_DAY_RATE + materialsAtCost + otherProjectCosts;
 }
 
-/** Full slabs for kitchens and any piece above the small-piece threshold. */
+/** Full slabs above the small-piece threshold. Counters and surrounds at or under that threshold can use remnant pricing. */
 export function stoneCoverage(areaSqft: number, alwaysFullSlab: boolean): { billableSqft: number; remnant: boolean } {
   if (!Number.isFinite(areaSqft) || areaSqft < 0) throw new Error("Invalid stone area");
   if (areaSqft === 0) return { billableSqft: 0, remnant: false };
@@ -198,7 +198,7 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
     add("base-cabinets", scope.base, REFERENCE_COST.baseCabinet, TRADE_HOURS.cabinetBox);
     add("wall-cabinets", scope.wallUnits, REFERENCE_COST.wallCabinet, TRADE_HOURS.cabinetBox);
     if (input.counter === "quartz" || input.counter === "granite") {
-      const coverage = stoneCoverage(scope.counters, true);
+      const coverage = stoneCoverage(scope.counters, scope.counters > SMALL_PIECE_SQFT);
       remnantStone = coverage.remnant;
       add("counter", coverage.billableSqft, stoneRate(input.counter, coverage.remnant), 0);
     } else {
@@ -242,9 +242,20 @@ function finalize(input: ProjectInputs, scope: NonNullable<ReturnType<typeof pro
     lines, remnantStone, minimumAdjustment: jobSubtotal - materials - labor };
 }
 
+function areasFrom(input: ProjectInputs): ScopeAreas {
+  const areas: ScopeAreas = {};
+  if (input.floorSqft !== undefined) areas.floorSqft = input.floorSqft;
+  if (input.showerSqft !== undefined) areas.showerSqft = input.showerSqft;
+  if (input.counterSqft !== undefined) areas.counterSqft = input.counterSqft;
+  if (input.roomSqft !== undefined) areas.roomSqft = input.roomSqft;
+  return areas;
+}
+
 export function projectPlanningEstimate(input: ProjectInputs) {
   validate(input);
-  const scope = projectScope(input.service, input.size);
+  const areas = areasFrom(input);
+  if (scopeAreaError(input.service, areas)) return null;
+  const scope = projectScope(input.service, input.size, areas);
   if (!scope) return null;
   const built = buildLines(input, scope);
   let result = finalize(input, scope, built.lines, built.remnantStone);
@@ -252,7 +263,7 @@ export function projectPlanningEstimate(input: ProjectInputs) {
   const stoneBath = input.service === "bathroom" && input.shower === "stone";
   if (stoneKitchen || stoneBath) {
     const alternate = stoneKitchen ? { ...input, counter: "laminate" as const } : { ...input, shower: "ceramic" as const };
-    const altScope = projectScope(alternate.service, alternate.size)!;
+    const altScope = projectScope(alternate.service, alternate.size, areasFrom(alternate))!;
     const alt = finalize(alternate, altScope, buildLines(alternate, altScope).lines, false);
     const stoneLine = built.lines.find(row => row.id === (stoneKitchen ? "counter" : "surround"));
     // Installed stone includes fabrication labor, so a day-boundary drop must not undercut laminate or ceramic.

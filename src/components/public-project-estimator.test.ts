@@ -5,8 +5,9 @@ import {
   adjustedCrewDays, planningEstimate, projectPlanningEstimate, projectEstimateLeadMessage,
   parseAllowance, formatEstimateRange, TRADE_HOURS, BATH_SETTING_COST, BATH_FIXTURES,
   stoneCoverage, SLAB_SQFT, LICENSED_PLUMBER_VALVE_ALLOWANCE, PRELIMINARY_ESTIMATE_WORDING,
+  REMNANT_MAY_BE_AVAILABLE_PER_SQFT,
 } from "../lib/public-pricing.ts";
-import { DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, type ProjectInputs } from "../lib/public-estimate-options.ts";
+import { DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, presetAreas, projectScope, scopeAreaError, type ProjectInputs } from "../lib/public-estimate-options.ts";
 const input = (changes: Partial<ProjectInputs> = {}): ProjectInputs => ({ ...DEFAULT_PROJECT_INPUTS, ...changes });
 const line = (changes: Partial<ProjectInputs>, id: string) =>
   projectPlanningEstimate(input(changes))!.lines.find(row => row.id === id)!;
@@ -159,6 +160,8 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/event.preventDefault/);
     assert.match(ui,/1 coat \(standard\)/);
     assert.match(ui,/Discounted stone remnants may be available — visit our stone yard with Jon to choose\./);
+    assert.match(ui,/data-testid="estimate-assumptions"/);
+    assert.match(ui,/Quick pick/);
     assert.match(ui,/PRELIMINARY_ESTIMATE_WORDING/);
     assert.match(pricing,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
     assert.ok(ui.indexOf("estimate-delivery-line")>ui.indexOf("</details>"));
@@ -166,6 +169,70 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days/);
     assert.doesNotMatch(ui,/gtag|dataLayer|fbq|fetch\(/);
     assert.doesNotMatch(ui.toLowerCase(),new RegExp("waterfall"+" counter"));
+  });
+});
+describe("measured square footage", () => {
+  it("keeps today's preset totals when the example areas are omitted or typed in", () => {
+    for (const service of PROJECT_SERVICES) for (const size of PROJECT_SIZES) {
+      const floor = service.id === "bathroom" ? "tile" as const : "lvp" as const;
+      const preset = projectPlanningEstimate(input({ service: service.id, size, floor }));
+      const filled = presetAreas(service.id, size);
+      const explicit = projectPlanningEstimate(input({
+        service: service.id, size, floor,
+        floorSqft: filled.floor ? Number(filled.floor) : undefined,
+        showerSqft: filled.shower ? Number(filled.shower) : undefined,
+        counterSqft: filled.counter ? Number(filled.counter) : undefined,
+        roomSqft: filled.room ? Number(filled.room) : undefined,
+      }));
+      if (service.id === "custom") { assert.equal(preset, null); assert.equal(explicit, null); continue; }
+      assert.equal(explicit!.total, preset!.total, service.id + " " + size);
+      assert.equal(formatEstimateRange(explicit!), formatEstimateRange(preset!));
+      for (const key of ["floor", "wall", "trim", "shower", "counters", "backsplash", "base", "wallUnits"] as const) {
+        assert.equal(explicit!.scope[key], preset!.scope[key], service.id + " " + size + " " + key);
+      }
+    }
+  });
+  it("scales wall, trim and backsplash from the selected example when the floor changes", () => {
+    const example = projectScope("kitchen", "Medium")!;
+    const custom = projectScope("kitchen", "Medium", { floorSqft: 200 })!;
+    assert.equal(custom.floor, 200);
+    assert.equal(custom.wall, example.wall * 200 / example.floor);
+    assert.equal(custom.trim, example.trim * 200 / example.floor);
+    assert.equal(custom.backsplash, example.backsplash * 200 / example.floor);
+    assert.equal(custom.counters, example.counters * 200 / example.floor);
+    assert.equal(custom.base, example.base);
+    assert.match(custom.assumptions, /Medium/);
+    assert.match(custom.assumptions, /scaled from the Medium example/);
+    const priced = projectPlanningEstimate(input({ service: "kitchen", floorSqft: 200, counterSqft: null }))!;
+    assert.notEqual(priced.total, projectPlanningEstimate(input({ service: "kitchen" }))!.total);
+    const shower = projectScope("bathroom", "Medium", { floorSqft: 80, showerSqft: 40 })!;
+    assert.equal(shower.shower, 40);
+    assert.equal(shower.wall, 270);
+    const paint = projectPlanningEstimate(input({ service: "interior-paint", roomSqft: 1000 }))!;
+    assert.equal(paint.scope.wall, 1000);
+    assert.notEqual(paint.total, projectPlanningEstimate(input({ service: "interior-paint" }))!.total);
+  });
+  it("bills a full slab above 10 sq ft of counter and remnant pricing at or under 10", () => {
+    const remnant = projectPlanningEstimate(input({ service: "kitchen", floorSqft: 168, counterSqft: 8 }))!;
+    assert.equal(remnant.remnantStone, true);
+    assert.ok(remnant.lines.find(row => row.id === "counter")!.materials >= 8 * REMNANT_MAY_BE_AVAILABLE_PER_SQFT);
+    const slab = projectPlanningEstimate(input({ service: "kitchen", floorSqft: 168, counterSqft: 11 }))!;
+    assert.equal(slab.remnantStone, false);
+    assert.ok(slab.lines.find(row => row.id === "counter")!.materials >= SLAB_SQFT * 70);
+    assert.equal(slab.lines.find(row => row.id === "counter")!.personHours, 0);
+  });
+  it("shows a friendly message outside the bathroom and kitchen ranges and does not price them", () => {
+    const bath = scopeAreaError("bathroom", { floorSqft: 10 });
+    assert.match(bath!, /20/);
+    assert.match(bath!, /300/);
+    assert.match(bath!, /bathroom floor/);
+    assert.equal(projectPlanningEstimate(input({ service: "bathroom", floor: "tile", floorSqft: 10 })), null);
+    const kitchen = scopeAreaError("kitchen", { floorSqft: 50 });
+    assert.match(kitchen!, /60/);
+    assert.match(kitchen!, /600/);
+    assert.equal(projectPlanningEstimate(input({ service: "kitchen", floorSqft: 700 })), null);
+    assert.equal(scopeAreaError("kitchen", {}), null);
+    assert.match(scopeAreaError("flooring", { roomSqft: 10 })!, /20/);
   });
 });
 type CalibrationJob = { id:string; input:ProjectInputs; actualTotal:number; actualDays:number };
