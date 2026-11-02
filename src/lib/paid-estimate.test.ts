@@ -72,9 +72,16 @@ describe("labor document", () => {
     assert.match(doc.timeline, /working day/);
     assert.doesNotMatch(doc.timeline, /\$650|crew day/i);
     const floor = doc.lines.find((line) => line.label === "Floor installation")!;
+    const paint = doc.lines.find((line) => line.label === "Paint labor")!;
+    const base = doc.lines.find((line) => line.label === "Base cabinet installation")!;
+    const wall = doc.lines.find((line) => line.label === "Wall cabinet installation")!;
     const source = built.lines.find((line) => line.id === "floor")!;
     assert.notEqual(floor.amountCents, Math.round(source.materials * 100));
     assert.equal(floor.rateCents, Math.round(floor.amountCents / floor.quantity));
+    assert.equal(base.rateCents, 7500);
+    assert.equal(wall.rateCents, 7500);
+    assert.notEqual(paint.rateCents, floor.rateCents);
+    assert.equal(paint.rateCents, Math.round(paint.amountCents / paint.quantity));
     const text = laborDocumentPlainText(doc, {
       name: "Ada",
       phone: "2104369117",
@@ -91,6 +98,13 @@ describe("labor document", () => {
     assert.doesNotMatch(text, /\binsured\b/i);
     assert.doesNotMatch(text, /divided by|rounded to the cent/i);
     assert.doesNotMatch(text, /\$3\.85|\$185/);
+  });
+
+  it("prices oversized cabinet panels at the published install rate", () => {
+    const doc = buildLaborDocument(planner({ xlFridgeBoxes: 1 }));
+    const panel = doc.lines.find((line) => line.label === "Refrigerator panel installation");
+    assert.equal(panel?.rateCents, 12500);
+    assert.notEqual(panel?.rateCents, doc.lines.find((line) => line.label === "Base cabinet installation")?.rateCents);
   });
 
   it("leaves supplier-installed stone out of the labor lines", () => {
@@ -223,9 +237,26 @@ describe("labor pdf", () => {
     assert.match(text, /Before we start/);
     assert.match(text, /Book your designer call/);
     assert.match(text, /Insurance claim specialists/);
+    assert.match(text, /decade handling claims/);
+    assert.match(text, /Browse the cabinet catalog/);
+    assert.match(text, /Signature/);
+    assert.match(text, /Cabinets, backsplash, floor/);
     assert.match(text, /Final prices set after onsite inspection/);
     assert.match(text, /theflipfixer.com/);
     assert.match(text, /\/ sq ft/);
+    const { PDFName } = await import("pdf-lib");
+    const links = pdfDoc.getPages().flatMap((item) => {
+      const found = item.node.lookup(PDFName.of("Annots")) as { size?: () => number; get?: (index: number) => unknown } | undefined;
+      if (!found?.size || !found.get) return [];
+      const rows: string[] = [];
+      for (let index = 0; index < found.size(); index += 1) {
+        const ref = found.get(index);
+        const obj = ref ? pdfDoc.context.lookup(ref as never) : undefined;
+        if (obj) rows.push(obj.toString());
+      }
+      return rows;
+    });
+    assert.match(links.join("\n"), /stylesbydesigntx\.com\/shop\?ref=flipfixer/);
     assert.doesNotMatch(text, /divided by|rounded to the cent/i);
     assert.doesNotMatch(text, /\binsured\b/i);
   });

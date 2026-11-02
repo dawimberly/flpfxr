@@ -10,8 +10,11 @@ import {
   type ProjectService,
   type ProjectSize,
 } from "./public-estimate-options.ts";
+import northvilleLabor from "../data/northville.json" with { type: "json" };
 import {
+  CREW_DAY_RATE,
   PRELIMINARY_ESTIMATE_WORDING,
+  TRADE_HOURS,
   formatEstimateRange,
   projectPlanningEstimate,
 } from "./public-pricing.ts";
@@ -203,7 +206,7 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
       label: "Finish demolition",
       detail: `Basic finish removal for a ${input.size.toLowerCase()} ${input.service === "bathroom" ? "bathroom" : "kitchen"}. Hidden damage is not included.`,
       quantity: 1,
-      unit: "scope",
+      unit: "project",
     },
     vanity: {
       area: "Cabinets",
@@ -247,28 +250,77 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
   return specs;
 }
 
-function allocate(specs: Spec[], built: Built): LaborLine[] {
-  const hourLines = built.lines.filter((line) => line.personHours > 0);
-  const hours = hourLines.reduce((sum, line) => sum + line.personHours, 0);
-  const pool = Math.round(built.labor * 100);
-  const share = new Map<string, number>();
-  let used = 0;
-  hourLines.forEach((line, index) => {
-    const cents = hours > 0
-      ? (index === hourLines.length - 1 ? pool - used : Math.round((pool * line.personHours) / hours))
-      : 0;
-    used += cents;
-    share.set(line.id, cents);
-  });
-  const plumber = built.lines.find((line) => line.id === "licensed-plumber-valve");
-  if (plumber) share.set(plumber.id, Math.round(plumber.materials * 100));
+/**
+ * Each trade keeps its own labor rate. Cabinets use Northville's $75 / $125
+ * install schedule. Paint is priced per coat. Other trades start from that
+ * line's person-hours times the crew hour ($650 / 16). The crew-day adjustment
+ * in the planner is spread across those hour-based lines, so a floor and a
+ * paint coat stay on different rates and the total still matches the planner.
+ */
+function allocate(specs: Spec[], built: Built, input: ProjectInputs): LaborLine[] {
+  const hourly = CREW_DAY_RATE / 16;
   const priced: LaborLine[] = [];
+  const adjustable: LaborLine[] = [];
+  let publishedLabor = 0;
+  const published = new Set(["base-cabinets", "wall-cabinets", "vanity", "xl-fridge"]);
   for (const spec of specs) {
-    const amountCents = share.get(spec.id) ?? 0;
+    const source = built.lines.find((line) => line.id === spec.id);
+    if (spec.id === "licensed-plumber-valve") {
+      const amountCents = Math.round((source?.materials ?? 0) * 100);
+      if (amountCents > 0) priced.push(toLine(spec, amountCents, amountCents));
+      continue;
+    }
+    let rateCents = 0;
+    let amountCents = 0;
+    let unit = spec.unit;
+    if (spec.id === "base-cabinets" || spec.id === "wall-cabinets" || spec.id === "vanity") {
+      rateCents = Math.round(northvilleLabor.laborPerUnit * 100);
+      amountCents = rateCents * spec.quantity;
+    } else if (spec.id === "xl-fridge") {
+      rateCents = Math.round(northvilleLabor.laborPerOversized * 100);
+      amountCents = rateCents * spec.quantity;
+    } else if (spec.id === "paint") {
+      const perCoatHours = input.service === "exterior-paint" ? TRADE_HOURS.exteriorPaint : TRADE_HOURS.interiorPaintPerCoat;
+      const coats = input.service === "exterior-paint" ? input.exteriorCoats : 2;
+      const perCoat = perCoatHours * hourly;
+      rateCents = Math.round(perCoat * 100);
+      const coatQuantity = spec.quantity * coats;
+      amountCents = rateCents * coatQuantity;
+      unit = "sq ft coat";
+      spec.quantity = coatQuantity;
+    } else if (source && spec.quantity > 0) {
+      const perUnit = (source.personHours / spec.quantity) * hourly;
+      amountCents = Math.round(perUnit * spec.quantity * 100);
+      rateCents = Math.round(amountCents / spec.quantity);
+    }
     if (amountCents <= 0) continue;
-    priced.push(toLine(spec, amountCents));
+    const line = toLine({ ...spec, unit }, amountCents, rateCents);
+    if (published.has(spec.id)) publishedLabor += amountCents;
+    else adjustable.push(line);
+    priced.push(line);
+  }
+  const laborPool = Math.round(built.labor * 100);
+  const current = adjustable.reduce((sum, line) => sum + line.amountCents, 0);
+  const target = laborPool - publishedLabor;
+  if (adjustable.length && current > 0 && target > 0 && target !== current) {
+    let assigned = 0;
+    const last = adjustable.length - 1;
+    adjustable.forEach((line, index) => {
+      if (index === last) {
+        line.amountCents = target - assigned;
+        line.rateCents = line.quantity > 0 ? Math.round(line.amountCents / line.quantity) : line.amountCents;
+        return;
+      }
+      const scaled = Math.round((line.amountCents * target) / current);
+      const rate = line.quantity > 0 ? Math.round(scaled / line.quantity) : scaled;
+      const amount = line.quantity > 0 ? rate * line.quantity : scaled;
+      line.rateCents = rate;
+      line.amountCents = amount;
+      assigned += amount;
+    });
   }
   if (built.support > 0) {
+    const supportCents = Math.round(built.support * 100);
     priced.push(toLine({
       id: "support",
       area: "Job setup",
@@ -276,13 +328,12 @@ function allocate(specs: Spec[], built: Built): LaborLine[] {
       detail: "Floor protection while we work, daily cleanup, and routine haul-off.",
       quantity: 1,
       unit: "project",
-    }, Math.round(built.support * 100)));
+    }, supportCents, supportCents));
   }
   return priced;
 }
 
-function toLine(spec: Spec, amountCents: number): LaborLine {
-  const rateCents = spec.quantity > 0 ? Math.round(amountCents / spec.quantity) : amountCents;
+function toLine(spec: Spec, amountCents: number, rateCents = spec.quantity > 0 ? Math.round(amountCents / spec.quantity) : amountCents): LaborLine {
   return {
     area: spec.area,
     label: spec.label,
@@ -314,7 +365,7 @@ function tierFor(input: ProjectInputs, size: ProjectSize, selected: boolean): La
       };
   const built = projectPlanningEstimate(project);
   if (!built) return null;
-  const lines = allocate(specsFor(project, built), built);
+  const lines = allocate(specsFor(project, built), built, project);
   return {
     size,
     selected,
@@ -419,7 +470,7 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
   if (!built) {
     return buildLaborDocument({ ...planner, project: { ...input, service: "custom" } }, hasPhoto);
   }
-  const lines = allocate(specsFor(input, built), built);
+  const lines = allocate(specsFor(input, built), built, input);
   const areas: string[] = [];
   for (const line of lines) if (!areas.includes(line.area)) areas.push(line.area);
   const supplier = built.lines.some((line) =>
