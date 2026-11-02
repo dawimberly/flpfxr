@@ -491,65 +491,88 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
   };
 }
 
+export const CUSTOMER_DEPOSIT_LINE = "50% deposit schedules the work. Balance due on completion. Price good 30 days.";
+export const CUSTOMER_READY_LINE = "Ready when you are.";
+export const CUSTOMER_CONTACT_LINE = "theflipfixer.com · jon@theflipfixer.com · San Antonio, TX";
+
+export type CustomerCopy = {
+  project: string;
+  included: string[];
+  excluded: string[];
+  investment: { label: string; cents: number }[];
+  notes: string[];
+};
+
+/** Customer sheet: materials named, investment bundled, no quantities or unit rates. */
+export function customerFacingCopy(
+  doc: LaborDocument,
+  header: { name: string; phone: string; email: string; feeLabel: string; catalogUrl: string },
+): CustomerCopy {
+  const property = doc.answers.find((row) => row.label === "Property")?.value;
+  const project = [
+    `We prepared this for ${header.name} (${header.phone}, ${header.email}).`,
+    `${doc.projectLabel}${doc.size ? `, ${doc.size.toLowerCase()} size` : ""}.`,
+    doc.selections.length ? `Finishes: ${doc.selections.join(", ")}.` : "",
+    doc.timeline,
+    property ? `Property: ${property}.` : "",
+    doc.usesExampleQuantities
+      ? "The sizes are a typical project. We confirm them on site."
+      : "We used the sizes you entered. We confirm them on site.",
+  ].filter(Boolean).join(" ");
+  const included = doc.kind === "itemized"
+    ? [
+        doc.selections.length
+          ? `Materials named for this job: ${doc.selections.join(", ")}. We do not put prices on materials.`
+          : "",
+        ...doc.lines.map((line) => line.detail),
+      ].filter(Boolean)
+    : doc.included;
+  const investment = doc.areas.map((area) => ({
+    label: area,
+    cents: doc.lines.filter((line) => line.area === area).reduce((sum, line) => sum + line.amountCents, 0),
+  })).filter((row) => row.cents > 0);
+  const notes = [
+    doc.supplierNote ?? "",
+    doc.rangeLabel
+      ? `The planning range on the site (${doc.rangeLabel}) includes materials and cabinets. The investment above is labor and services.`
+      : doc.kind === "itemized" ? LABOR_ONLY_NOTE : "",
+    ...doc.prep.filter((row) => !/^Quantities (follow|are based)/.test(row)),
+    ...doc.answers.filter((row) => row.label !== "Property").map((row) => `${row.label}: ${row.value}`),
+    header.feeLabel ? `${header.feeLabel} is credited toward the job if you book.` : "",
+    `Browse finishes at ${header.catalogUrl}. We order materials with you after the designer call.`,
+  ].filter(Boolean);
+  return { project, included, excluded: doc.excluded, investment, notes };
+}
+
 export function laborDocumentPlainText(
   doc: LaborDocument,
   header: { name: string; phone: string; email: string; feeLabel: string; catalogUrl: string },
 ): string {
   const money = (cents: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  const copy = customerFacingCopy(doc, header);
   const lines = [
-    "The Flip Fixer",
-    "Itemized labor and service estimate",
+    "FLIP FIXER",
+    CUSTOMER_CONTACT_LINE,
     "",
-    `Prepared for ${header.name}`,
-    `Phone: ${header.phone}`,
-    `Email: ${header.email}`,
-    `Project: ${doc.projectLabel}`,
-    doc.size ? `Size: ${doc.size}` : "",
-    [doc.size, ...doc.selections].filter(Boolean).join(" · "),
+    "PROJECT",
+    copy.project,
     "",
-    "Insurance claim specialists.",
-    doc.kind === "itemized" ? `Labor and services: ${money(doc.totalCents)}` : "Labor total: set after the walkthrough.",
-    doc.timeline,
-    doc.rangeLabel
-      ? `The free planning range on the site (${doc.rangeLabel}) includes materials and cabinets. This total is labor and services only.`
-      : LABOR_ONLY_NOTE,
+    "WHAT'S INCLUDED",
+    ...copy.included.map((row) => `- ${row}`),
     "",
-    "Scope",
+    "WHAT'S NOT INCLUDED",
+    ...copy.excluded.map((row) => `- ${row}`),
+    "",
+    "INVESTMENT",
   ];
-  if (doc.kind === "itemized") {
-    let area = "";
-    for (const line of doc.lines) {
-      if (line.area !== area) {
-        lines.push("", line.area);
-        area = line.area;
-      }
-      lines.push(`${line.label}: ${line.quantityLabel} ${line.unit}, ${money(line.amountCents)}.`);
-    }
-    lines.push("", "Options");
-    for (const tier of doc.tiers) {
-      lines.push(`${tier.selected ? "Your scope" : tier.size}: ${money(tier.totalCents)}. ${tier.timeline} ${tier.note}`);
-    }
+  if (copy.investment.length) {
+    for (const row of copy.investment) lines.push(`${row.label}: ${money(row.cents)}`);
+    lines.push(`Labor and services: ${money(doc.totalCents)}`);
   } else {
-    lines.push("This project needs a measured scope. The sections below are what happens next.");
+    lines.push("Set after we walk the space.");
   }
-  const section = (title: string, rows: string[]) => {
-    lines.push("", title);
-    for (const row of rows) lines.push(`- ${row}`);
-  };
-  if (doc.supplierNote) lines.push("", doc.supplierNote);
-  section("Included", doc.included);
-  section("Not included", doc.excluded);
-  section("Before we start", doc.prep);
-  if (doc.answers.length) {
-    lines.push("", "What you told us");
-    for (const row of doc.answers) lines.push(`${row.label}: ${row.value}`);
-  }
-  section("Next steps", doc.nextSteps);
-  lines.push("", "Book your designer call: (210) 436-9117");
-  lines.push("https://theflipfixer.com/contact");
-  lines.push(`Browse finishes: ${header.catalogUrl}`);
-  lines.push("50% deposit, balance on completion.");
-  if (header.feeLabel) lines.push(`${header.feeLabel} is credited toward the job if you book.`);
-  return lines.filter((line) => line !== "").join("\n");
+  lines.push("", "NOTES", ...copy.notes.map((row) => `- ${row}`));
+  lines.push("", CUSTOMER_DEPOSIT_LINE, PRELIMINARY_ESTIMATE_WORDING, "", CUSTOMER_READY_LINE);
+  return lines.join("\n");
 }

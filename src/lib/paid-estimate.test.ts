@@ -83,14 +83,18 @@ describe("labor document", () => {
       feeLabel: "$35.00",
       catalogUrl: "https://stylesbydesigntx.com/shop?ref=flipfixer",
     });
+    assert.match(text, /FLIP FIXER/);
+    assert.match(text, /WHAT'S INCLUDED/);
+    assert.match(text, /WHAT'S NOT INCLUDED/);
+    assert.match(text, /INVESTMENT/);
+    assert.match(text, /NOTES/);
+    assert.match(text, /Materials named for this job/);
     assert.match(text, /includes materials and cabinets/);
-    assert.match(text, /Book your designer call/);
-    assert.match(text, /fillers, toe kick, and baseboard/);
-    assert.match(text, /Insurance claim specialists/);
+    assert.match(text, /50% deposit schedules the work/);
+    assert.match(text, /Ready when you are/);
     assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
-    assert.match(text, /168 sq ft/);
+    assert.doesNotMatch(text, /168 sq ft|8 boxes|Per unit/);
     assert.doesNotMatch(text, /\$\d[\d,]*\.\d{2}\s*\//);
-    assert.doesNotMatch(text, /Per unit|\/ sq ft|\/ box|\/ ft/i);
     assert.doesNotMatch(text, /\binsured\b/i);
     assert.doesNotMatch(text, /divided by|rounded to the cent/i);
     assert.doesNotMatch(text, /\$3\.85|\$185/);
@@ -227,20 +231,21 @@ describe("labor pdf", () => {
     assert.ok(pdfDoc.getPageCount() <= 3, `expected 2-3 pages, got ${pdfDoc.getPageCount()}`);
     const { extractPdfText } = await import("./pdf-text.ts");
     const text = await extractPdfText(bytes);
-    assert.match(text, /THE FLIP FIXER/);
-    assert.match(text, /Floor installation/);
-    assert.match(text, /Labor and services total/);
-    assert.match(text, /Before we start/);
-    assert.match(text, /Book your designer call/);
-    assert.match(text, /Insurance claim specialists/);
-    assert.match(text, /decade handling claims/);
-    assert.match(text, /Browse the cabinet catalog/);
-    assert.match(text, /Signature/);
-    assert.match(text, /Cabinets, backsplash, floor/);
+    assert.match(text, /FLIP FIXER/);
+    assert.match(text, /theflipfixer\.com . jon@theflipfixer\.com . San Antonio, TX/);
+    assert.match(text, /Estimate #20261102-550E/);
+    assert.match(text, /Valid 30 days/);
+    assert.match(text, /PROJECT/);
+    assert.match(text, /WHAT'S INCLUDED/);
+    assert.match(text, /WHAT'S NOT INCLUDED/);
+    assert.match(text, /INVESTMENT/);
+    assert.match(text, /Labor and services/);
+    assert.match(text, /NOTES/);
+    assert.match(text, /50% deposit schedules the work\. Balance due on completion\. Price good 30 days\./);
     assert.match(text, /Final prices set after onsite inspection/);
-    assert.match(text, /theflipfixer.com/);
-    assert.match(text, /168 sq ft/);
-    assert.doesNotMatch(text, /Per unit/);
+    assert.match(text, /Ready when you are/);
+    assert.match(text, /Materials named for this job/);
+    assert.doesNotMatch(text, /Per unit|168 sq ft|8 boxes|Qty/);
     assert.doesNotMatch(text, /\$\d[\d,]*\.\d{2}\s*\//);
     const { PDFName } = await import("pdf-lib");
     const links = pdfDoc.getPages().flatMap((item) => {
