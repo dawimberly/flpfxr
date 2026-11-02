@@ -169,7 +169,7 @@ describe("raw allowance validation and limited customer handoff", () => {
     const message=projectEstimateLeadMessage(input({service:"bathroom",floor:"tile",delivery:300,specialist:750}));
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Ceramic tile shower wall, 30-inch vanity, New toilet, Primer and paint/);
     assert.match(message,/between \$10,000 and \$12,600/);
-    assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
+    assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after we see the space\./);
     assert.equal(message.includes(PRELIMINARY_ESTIMATE_WORDING),true);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|demolition|sq ft|allowance/i);
   });
@@ -200,7 +200,7 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/What's included/);
     assert.match(ui,/Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage\./);
     assert.match(ui,/PRELIMINARY_ESTIMATE_WORDING/);
-    assert.match(pricing,/Preliminary estimate only — not a quote\. Final price is set after Jon sees the space\./);
+    assert.match(pricing,/Preliminary estimate only — not a quote\. Final price is set after we see the space\./);
     assert.doesNotMatch(ui,/fabrication|10% off|cabinet list|remnant|slab|allowance|market pricing|licensed|insured|filler strip|person-hours|personHours/i);
     assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days/);
     assert.doesNotMatch(ui,/gtag|dataLayer|fbq|fetch\(/);

@@ -305,7 +305,7 @@ export const formatEstimateRange = (result: { low: number; high: number }) =>
   `between ${dollars(result.low)} and ${dollars(result.high)}`;
 
 export const PRELIMINARY_ESTIMATE_WORDING =
-  "Preliminary estimate only — not a quote. Final price is set after Jon sees the space.";
+  "Preliminary estimate only — not a quote. Final price is set after we see the space.";
 
 export function projectEstimateLeadMessage(input: ProjectInputs): string {
   const result = projectPlanningEstimate(input);
