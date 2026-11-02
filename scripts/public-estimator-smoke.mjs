@@ -47,7 +47,7 @@ try {
     const response = await page.goto(base + "/estimate", { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200, "/estimate HTTP status");
     await page.getByRole("heading", { name: "Plan your next project." }).waitFor();
-    await page.getByText("Benchmark pending verification").waitFor();
+    await page.getByText("The Flip Fixer planning range", { exact: true }).waitFor();
     // SSR HTML can arrive before React attaches event handlers. Confirm interactivity first.
     let hydrated = false;
     for (let attempt = 0; attempt < 30; attempt++) {
@@ -59,16 +59,15 @@ try {
       await page.waitForTimeout(350);
     }
     assert.ok(hydrated, "Estimator did not hydrate: " + browserErrors.join(" | "));
-    await page.getByRole("button", { name: "Medium", exact: true }).click();
-    await page.getByLabel("Base crew days").fill("4");
-    await page.getByLabel("Materials at cost ($)").fill("2000");
-    await page.getByLabel("Other costs ($)").fill("0");
-    await page.waitForTimeout(1800);
+    for (const [service, range] of [["Kitchen remodeling", "$12,000–$25,000"], ["Bathroom remodeling", "$8,000–$16,000"]]) {
+      await page.getByRole("button", { name: service, exact: true }).click();
+      await page.getByRole("button", { name: "Medium", exact: true }).click();
+      await page.getByText(range, { exact: true }).waitFor();
+    }
+    assert.equal(await page.locator("input[type=number]").count(), 0);
     const estimatorText = await page.locator("body").innerText();
-    const inputValues = await page.locator("input[type=number]").evaluateAll((inputs) => inputs.map((input) => input.value));
-    console.log("ESTIMATOR DEBUG", JSON.stringify({ viewport, inputValues, browserErrors, excerpt: estimatorText.slice(0, 1800) }));
+    assert.doesNotMatch(estimatorText, /650|crew days|Benchmark pending/);
     await page.screenshot({ path: "public-estimator-smoke-" + viewport.width + ".png", fullPage: true });
-    assert.match(estimatorText, /\$5,250/, "Expected 4+1 crew days at $650 and $2,000 materials");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 3, "Horizontal overflow at " + viewport.width + "px: " + overflow);
     await page.getByRole("link", { name: "Request an on-site estimate" }).click();
@@ -77,7 +76,7 @@ try {
     await page.waitForFunction(() => document.querySelector('textarea[name="message"]')?.value.includes("bathroom remodeling"), null, { timeout: 15000 });
     const message = await page.locator("textarea[name=message]").inputValue();
     assert.match(message, /bathroom remodeling \(medium scope\)/);
-    assert.match(message, /\$5,250/);
+    assert.match(message, /\$8,000–\$16,000/);
     assert.match(message, /not a quote/);
     for (const path of ["/kitchen", "/bathroom"]) {
       const res = await page.request.get(base + path);
