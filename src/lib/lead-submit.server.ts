@@ -11,6 +11,7 @@ import {
   type LeadDeliveryResult,
   type LeadPayload,
 } from "./lead-delivery.ts";
+import { sanitizeLeadAttribution } from "./lead-attribution.ts";
 import { leadMailConfigFromEnv, sendLeadEmail } from "./lead-mail.ts";
 
 const recentByIp = new Map<string, number[]>();
@@ -46,23 +47,34 @@ function str(form: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+const ATTRIBUTION_INPUT_KEYS = [
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "referrer",
+  "landing_path",
+  "page_url",
+  "submitting_path",
+  "device",
+  "heard_from",
+] as const;
+
 function readAdIds(form: FormData): LeadAdIds {
-  const keys = [
-    "gclid",
-    "gbraid",
-    "wbraid",
-    "utm_source",
-    "utm_campaign",
-    "utm_medium",
-    "landing_path",
-    "page_url",
-  ] as const;
-  const adIds: LeadAdIds = {};
-  for (const key of keys) {
-    const value = str(form, key).trim();
-    if (value) adIds[key] = value.slice(0, 500);
+  try {
+    const raw: Record<string, string> = {};
+    for (const key of ATTRIBUTION_INPUT_KEYS) {
+      const value = str(form, key);
+      if (value) raw[key] = value.slice(0, 2000);
+    }
+    return sanitizeLeadAttribution(raw);
+  } catch {
+    return { source_label: "Direct/unknown" };
   }
-  return adIds;
 }
 
 async function fileToBase64(file: File): Promise<string> {
@@ -235,14 +247,27 @@ export async function handleLeadFormData(
     };
   }
 
+  let subject = buildLeadSubject(payload.service, payload.source, "Direct/unknown");
+  let text = buildLeadEmailText({
+    ...payload,
+    adIds: { source_label: "Direct/unknown" },
+    phoneDigits: fields.phoneDigits,
+  });
+  try {
+    subject = buildLeadSubject(payload.service, payload.source, payload.adIds.source_label);
+    text = buildLeadEmailText({ ...payload, phoneDigits: fields.phoneDigits });
+  } catch {
+    // Attribution formatting must not block the inquiry email.
+  }
+
   const mail = await sendMail(
     {
       to: mailCfg.to,
       submissionId,
       from: mailCfg.from,
       replyTo: payload.email.trim() || undefined,
-      subject: buildLeadSubject(payload.service, payload.source),
-      text: buildLeadEmailText({ ...payload, phoneDigits: fields.phoneDigits }),
+      subject,
+      text,
       attachments: attachment ? [attachment] : undefined,
     },
     mailCfg.apiKey,

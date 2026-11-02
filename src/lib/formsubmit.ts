@@ -1,3 +1,4 @@
+import { captureFirstTouchFromWindow } from "./lead-attribution.ts";
 import { SITE } from "./site.ts";
 
 export const FORMSUBMIT_AJAX_URL = `https://formsubmit.co/ajax/${encodeURIComponent(SITE.email)}`;
@@ -74,31 +75,11 @@ export function formSubmitAjaxInit(body: BodyInit): RequestInit {
   };
 }
 
+/** First-touch click ids and UTMs for this tab. Does not write cookies or call analytics. */
 export function captureAdClickIds(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const params = new URLSearchParams(window.location.search);
-  const read = (key: string) => {
-    const fromUrl = params.get(key)?.trim() ?? "";
-    if (fromUrl) {
-      try {
-        sessionStorage.setItem(`ff-${key}`, fromUrl);
-      } catch {
-        // private mode
-      }
-      return fromUrl;
-    }
-    try {
-      return sessionStorage.getItem(`ff-${key}`) ?? "";
-    } catch {
-      return "";
-    }
-  };
-  const ids: Record<string, string> = {};
-  for (const key of ["gclid", "gbraid", "wbraid", "utm_source", "utm_campaign", "utm_medium"]) {
-    const value = read(key);
-    if (value) ids[key] = value;
+  try {
+    return captureFirstTouchFromWindow();
+  } catch {
+    return {};
   }
-  ids.landing_path = `${window.location.pathname}${window.location.search}`;
-  ids.page_url = window.location.href;
-  return ids;
 }

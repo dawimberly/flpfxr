@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { captureAdClickIds } from "@/lib/formsubmit";
+import { HEARD_FROM_OPTIONS, attributionFieldsForSubmit } from "@/lib/lead-attribution";
 import {
   LEAD_API_PATH,
   claimAcceptedLeadConversion,
@@ -78,7 +79,6 @@ export function LeadForm({
   const [phoneError, setPhoneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [adIds, setAdIds] = useState<Record<string, string>>({});
   const sending = useRef(false);
   const trackedThisSubmit = useRef(false);
   const submissionIdRef = useRef<string | null>(null);
@@ -93,7 +93,11 @@ export function LeadForm({
     if (draft.submissionId && isValidSubmissionId(draft.submissionId)) {
       submissionIdRef.current = draft.submissionId;
     }
-    setAdIds(captureAdClickIds());
+    try {
+      captureAdClickIds();
+    } catch {
+      // Attribution is optional and must not block the form.
+    }
   }, [nextPath]);
 
   // ?sent=1 restores the thank-you UI after a reload. It is not a new lead.
@@ -145,8 +149,13 @@ export function LeadForm({
     data.set("Affiliation", affiliation || "n/a");
     data.set("Source", source);
     data.set("Phone_digits", digits);
-    for (const [key, value] of Object.entries(adIds)) {
-      if (value) data.set(key, value);
+    try {
+      const attribution = attributionFieldsForSubmit();
+      for (const [key, value] of Object.entries(attribution)) {
+        if (value) data.set(key, value);
+      }
+    } catch {
+      // A missing lead-source note must not block the inquiry.
     }
 
     try {
@@ -323,6 +332,22 @@ export function LeadForm({
           </select>
         </div>
       ) : null}
+      <div className="space-y-2">
+        <Label htmlFor={`${source}-heard-from`}>How did you hear about us?</Label>
+        <select
+          id={`${source}-heard-from`}
+          name="heard_from"
+          defaultValue=""
+          className="flex h-11 w-full rounded-lg border border-border bg-bg px-3 text-base text-fg shadow-[var(--shadow-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+        >
+          <option value="">Select (optional)</option>
+          {HEARD_FROM_OPTIONS.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+      </div>
       {showAffiliation ? (
         <div className="space-y-2">
           <p className="text-sm leading-relaxed text-muted">

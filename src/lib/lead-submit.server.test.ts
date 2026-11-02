@@ -64,7 +64,10 @@ describe("lead submit server", () => {
     assert.equal(body.discarded, undefined);
     assert.equal(mailCalls.length, 1);
     const sent = mailCalls[0] as { init?: { body?: string } };
-    assert.match(String(sent.init?.body), /unit-gclid/);
+    const parsedMail = JSON.parse(String(sent.init?.body)) as { subject?: string; text?: string };
+    assert.match(parsedMail.text ?? "", /unit-gclid/);
+    assert.match(parsedMail.text ?? "", /Lead source/);
+    assert.match(parsedMail.subject ?? "", /\[Google Ads\]/);
     const requestHeaders = new Headers((sent.init as RequestInit)?.headers);
     assert.equal(requestHeaders.get("Idempotency-Key"), `contact-lead/${submissionId}`);
   });
@@ -211,6 +214,48 @@ describe("lead submit server", () => {
     const body = await res.json();
     assert.equal(body.ok, true);
     assert.equal(mailCalls.length, 1);
+  });
+
+  it("accepts the lead when attribution fields are malformed", async () => {
+    const res = await handleLeadFormData(
+      form({
+        submissionId,
+        name: "Example Person",
+        phone: "5555550100",
+        email: "person@example.com",
+        message: "Malformed attribution unit test — discard.",
+        Source: "contact",
+        gclid: "abc\r\nBcc: attacker@example.com",
+        utm_source: "<script>alert(1)</script>",
+        heard_from: "Social media",
+        device: "unique-fingerprint",
+        referrer: "ads.example",
+        landing_path: "/contact/../secret",
+        source_label: "Google Ads",
+        submitting_path: "/contact",
+      }),
+      new Request("https://theflipfixer.com/api/leads", {
+        method: "POST",
+        headers: { "x-forwarded-for": "203.0.113.77" },
+      }),
+    );
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(mailCalls.length, 1);
+    const parsedMail = JSON.parse(
+      String((mailCalls[0] as { init?: { body?: string } }).init?.body),
+    ) as { subject?: string; text?: string };
+    assert.match(parsedMail.subject ?? "", /\[Referral: ads\.example\]/);
+    assert.equal((parsedMail.subject ?? "").includes("\n"), false);
+    assert.match(parsedMail.text ?? "", /--- Lead source ---/);
+    assert.match(parsedMail.text ?? "", /Source: Referral: ads\.example/);
+    assert.match(parsedMail.text ?? "", /How did you hear about us: Social media/);
+    assert.match(parsedMail.text ?? "", /submitting_path: \/contact/);
+    assert.equal((parsedMail.text ?? "").includes("Bcc:"), false);
+    assert.equal((parsedMail.text ?? "").includes("<script>"), false);
+    assert.equal((parsedMail.text ?? "").includes("unique-fingerprint"), false);
+    assert.equal((parsedMail.text ?? "").includes("Google Ads"), false);
   });
 
   it("rejects invalid photos before calling Resend", async () => {
