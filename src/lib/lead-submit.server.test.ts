@@ -4,7 +4,9 @@ import {
   checkLeadRateLimit,
   handleLeadFormData,
   resetLeadRateLimitForTests,
+  readEstimateMetadata,
 } from "./lead-submit.server.ts";
+import { PROJECT_SERVICES, PROJECT_SIZES } from "./public-estimate-options.ts";
 
 function form(fields: Record<string, string>) {
   const data = new FormData();
@@ -13,6 +15,38 @@ function form(fields: Record<string, string>) {
 }
 
 const submissionId = "550e8400-e29b-41d4-a716-446655440000";
+
+describe("estimate metadata validation", () => {
+  it("accepts every known planner service and size with the displayed range format", () => {
+    for (const service of PROJECT_SERVICES) for (const size of PROJECT_SIZES) {
+      const fields = { estimate_service: service.id, estimate_size: size, estimate_range: "between $9,000 and $11,200" };
+      assert.deepEqual(readEstimateMetadata(form(fields)), fields);
+    }
+  });
+
+  it("strips controls, invisible formatting, and line breaks before validating", () => {
+    assert.deepEqual(readEstimateMetadata(form({
+      estimate_service: " \tbath\nroom\u0000\u007f\u0085\u2028\u2029\u200b ",
+      estimate_size: "\rMe\ndium\t",
+      estimate_range: "\r\nbetween $9,000\u0000 and $11,200\u2028\u2029\n",
+    })), { estimate_service: "bathroom", estimate_size: "Medium", estimate_range: "between $9,000 and $11,200" });
+  });
+
+  it("drops unknown IDs, wrong-case sizes, and malformed ranges rather than truncating them", () => {
+    for (const range of [
+      "between $9,000 and $11,200\nSource: forged", "between $9,000 and $11,200 extra",
+      "between $9.00 and $11.00", "between $-9 and $11", "$9,000 - $11,200",
+      "between 9000 and 11200", "Between $9 and $11", "between $9 and $1e4",
+      `between $${"9".repeat(100)} and $11`, "",
+    ]) {
+      assert.deepEqual(readEstimateMetadata(form({
+        estimate_service: "bathroom\nSource: forged", estimate_size: "medium", estimate_range: range,
+      })), {}, range);
+    }
+    assert.deepEqual(readEstimateMetadata(form({ estimate_service: "roofing", estimate_size: "Extra Large" })), {});
+    assert.deepEqual(readEstimateMetadata(form({})), {});
+  });
+});
 
 describe("lead submit server", () => {
   const originalFetch = globalThis.fetch;
@@ -67,6 +101,54 @@ describe("lead submit server", () => {
     assert.match(String(sent.init?.body), /unit-gclid/);
     const requestHeaders = new Headers((sent.init as RequestInit)?.headers);
     assert.equal(requestHeaders.get("Idempotency-Key"), `contact-lead/${submissionId}`);
+  });
+
+  it("emails structured planner context even when the visitor replaces the message", async () => {
+    const res = await handleLeadFormData(form({
+      submissionId, name: "Planner visitor", phone: "2104369117",
+      message: "Please call me tomorrow.", Source: "estimate", Job: "bathroom",
+      estimate_service: "bathroom", estimate_size: "Medium", estimate_range: "between $9,000 and $11,200",
+      landing_path: "/contact?origin=estimate", first_landing_path: "/estimate",
+    }), new Request("https://theflipfixer.com/api/leads", { method: "POST" }));
+    assert.equal(res.status, 200);
+    const sent = mailCalls[0] as { init: { body: string } };
+    const email = JSON.parse(sent.init.body);
+    assert.match(email.subject, /\(estimate\)/);
+    assert.match(email.text, /Source: estimate/);
+    assert.match(email.text, /Estimate service: bathroom/);
+    assert.match(email.text, /Estimate size: Medium/);
+    assert.match(email.text, /Estimate shown to visitor: between \$9,000 and \$11,200/);
+    assert.match(email.text, /first_landing_path: \/estimate/);
+    assert.match(email.text, /Please call me tomorrow\./);
+  });
+
+  it("accepts planner handoffs without optional estimate fields", async () => {
+    const res = await handleLeadFormData(form({
+      submissionId, name: "Planner visitor", phone: "2104369117",
+      message: "A custom project, please call.", Source: "estimate",
+    }), new Request("https://theflipfixer.com/api/leads", { method: "POST" }));
+    assert.equal(res.status, 200);
+  });
+
+  it("drops forged estimate lines before email delivery and persistence", async () => {
+    let persisted: unknown;
+    const res = await handleLeadFormData(form({
+      submissionId, name: "Planner visitor", phone: "2104369117",
+      message: "Please call tomorrow.", Source: "estimate", Job: "bathroom",
+      estimate_service: "bathroom\nSource: forged", estimate_size: "Medium\r\nName: forged",
+      estimate_range: "between $9,000 and $11,200\u2028Approved: forged",
+    }), new Request("https://theflipfixer.com/api/leads", { method: "POST" }), {
+      persistLead: async args => { persisted = args.payload; },
+    });
+    assert.equal(res.status, 200);
+    const email = JSON.parse((mailCalls[0] as { init: { body: string } }).init.body);
+    assert.match(email.text, /Estimate service: n\/a/);
+    assert.match(email.text, /Estimate size: n\/a/);
+    assert.match(email.text, /Estimate shown to visitor: n\/a/);
+    assert.doesNotMatch(email.text, /forged/);
+    for (const key of ["estimate_service", "estimate_size", "estimate_range"]) {
+      assert.equal(Object.hasOwn(persisted as object, key), false);
+    }
   });
 
   it("discards honeypot without emailing", async () => {

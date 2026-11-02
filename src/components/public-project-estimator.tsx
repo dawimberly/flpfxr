@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   DEFAULT_PROJECT_INPUTS, PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
@@ -11,6 +11,10 @@ import {
   PRELIMINARY_ESTIMATE_WORDING,
 } from "@/lib/public-pricing";
 import { saveLeadDraft, type ServiceId } from "@/lib/site";
+import {
+  trackEstimateStart, trackEstimateRangeShown, trackEstimateOutOfRange,
+  trackEstimateHandoffClick,
+} from "@/lib/google-ads";
 
 const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p-3 text-fg";
 const EXCLUSIONS = "Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage.";
@@ -66,18 +70,50 @@ export function PublicProjectEstimator() {
   const current: ProjectInputs | null = valid ? { ...inputs, ...areaPayload } : null;
   // Invalid input never reaches the calculation or handoff.
   const estimate = current ? projectPlanningEstimate(current) : null;
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const hasScope = Boolean(scope);
+  const presets = presetAreas(inputs.service, inputs.size);
+  const relevantAreas = inputs.service === "bathroom" ? ["floor", "shower"] as const
+    : inputs.service === "kitchen" ? ["floor", "counter"] as const
+    : ["room"] as const;
+  const customSqft = relevantAreas.some(key => parseSqft(areas[key]).value !== parseSqft(presets[key]).value);
+  // Observe the rendered range, including the default, only once it enters the viewport.
+  useEffect(() => {
+    const node = summaryRef.current;
+    if (!node || !valid || !hasScope) return;
+    const record = () => trackEstimateRangeShown(inputs, customSqft);
+    if (typeof IntersectionObserver === "undefined") { record(); return; }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { record(); observer.disconnect(); }
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [inputs, customSqft, valid, hasScope]);
+  useEffect(() => {
+    if (areaError) trackEstimateOutOfRange(inputs.service);
+  }, [areaError, inputs.service]);
   const patch = <K extends keyof ProjectInputs>(key: K, value: ProjectInputs[K]) =>
     setInputs(prev => ({ ...prev, [key]: value }));
   const handOff = (event: MouseEvent<HTMLAnchorElement>) => {
     if (!current) { event.preventDefault(); return; }
+    trackEstimateHandoffClick(inputs);
     saveLeadDraft({
       service: serviceId(inputs.service), scope: inputs.size.toLowerCase(), submissionId: undefined,
       message: projectEstimateLeadMessage(current),
+      estimate: {
+        estimate_service: inputs.service,
+        estimate_size: inputs.size,
+        estimate_range: estimate ? formatEstimateRange(estimate) : undefined,
+      },
     });
   };
   const serviceLabel = PROJECT_SERVICES.find(service => service.id === inputs.service)!.label;
   return (
-    <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8">
+    <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8"
+      onChangeCapture={trackEstimateStart}
+      onClickCapture={event => {
+        if ((event.target as HTMLElement).closest("button")) trackEstimateStart();
+      }}>
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Project planning estimate</p>
       <h2 className="mt-2 font-display text-2xl text-fg">What are you planning?</h2>
       <label className="mt-6 block text-sm font-semibold text-fg" htmlFor="estimate-service">Project type</label>
@@ -167,7 +203,7 @@ export function PublicProjectEstimator() {
             </select>
           </label> : null}
         </div>
-        {estimate && scope ? <div className="mt-8 rounded-xl border border-primary/40 bg-bg p-5" data-testid="estimate-summary">
+        {estimate && scope ? <div ref={summaryRef} className="mt-8 rounded-xl border border-primary/40 bg-bg p-5" data-testid="estimate-summary">
           <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
           <p className="mt-2 text-sm text-fg" data-testid="estimate-size">{sizeText(inputs.service, scope)}</p>
           <p className="mt-2 text-sm text-fg" data-testid="estimate-materials">{materialText(inputs, scope)}</p>
@@ -181,7 +217,7 @@ export function PublicProjectEstimator() {
         </div> : null}
       </> : <p className="mt-6 text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
       <p className="mt-5 text-sm font-semibold text-fg">{PRELIMINARY_ESTIMATE_WORDING}</p>
-      <Link to="/contact" search={{ service: serviceId(inputs.service), side: inputs.service === "exterior-paint" ? "exterior" : "interior" }}
+      <Link to="/contact" search={{ service: serviceId(inputs.service), side: inputs.service === "exterior-paint" ? "exterior" : "interior", origin: "estimate" }}
         onClick={handOff} aria-disabled={!valid}
         className={`mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg ${valid ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
     </div>

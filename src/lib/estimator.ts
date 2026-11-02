@@ -22,7 +22,7 @@ export const COMPANY = {
   email: "jon@theflipfixer.com",
   web: "theflipfixer.com",
   region: "San Antonio & the Hill Country",
-  license: "Fully licensed & insured",
+  license: "Licensed",
 } as const;
 
 export type CatalogOption = {

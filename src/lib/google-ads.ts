@@ -5,6 +5,10 @@ import {
   parseLeadPending,
   serializeLeadPending,
 } from "./lead-conversion.ts";
+import {
+  PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
+  SHOWER_MATERIALS, VANITY_SIZES, selectedVanity, type ProjectInputs,
+} from "./public-estimate-options.ts";
 
 /** GA4 measurement ID — primary gtag.js loader. */
 export const GA4_MEASUREMENT_ID = "G-548WLW4MEK";
@@ -103,6 +107,71 @@ const PAGE_VIEW_DESTINATIONS = [GA4_MEASUREMENT_ID, GOOGLE_ADS_ID] as const;
 
 function ga4Event(name: string, params: Record<string, unknown> = {}) {
   gtag("event", name, { ...params, send_to: GA4_MEASUREMENT_ID });
+}
+
+// Explicit projection: never spread inputs, measured areas, prices, or lead data into GA4.
+export function estimateEventParams(inputs: ProjectInputs, customSqft: boolean) {
+  const service = PROJECT_SERVICES.find(row => row.id === inputs.service)?.id;
+  const size = PROJECT_SIZES.find(value => value === inputs.size);
+  if (!service || !size) return null;
+  const params: Record<string, string | boolean> = { service, size, custom_sqft: customSqft === true };
+  const floor = FLOOR_MATERIALS.find(row => row.id === inputs.floor)?.id;
+  const counter = COUNTER_MATERIALS.find(row => row.id === inputs.counter)?.id;
+  const shower = SHOWER_MATERIALS.find(row => row.id === inputs.shower)?.id;
+  if (["kitchen", "bathroom", "flooring"].includes(service) && floor) params.floor_material = floor;
+  if (service === "kitchen" && counter) params.counter_material = counter;
+  if (service === "bathroom") {
+    if (shower) params.shower_material = shower;
+    const vanity = selectedVanity(size, inputs.vanity);
+    if (VANITY_SIZES.some(row => row.id === vanity.id)) params.vanity = vanity.id;
+    params.new_toilet = inputs.newToilet === true;
+  }
+  if (service === "interior-paint" || service === "exterior-paint") {
+    params.paint_preparation = inputs.prime ? "prime" : "paint";
+    if (service === "exterior-paint") params.finish_coats = inputs.exteriorCoats === 2 ? "two" : "one";
+  }
+  return params;
+}
+
+const estimateSessionFallback = new WeakMap<object, Set<string>>();
+function claimEstimateEvent(key: string) {
+  let seen = estimateSessionFallback.get(window);
+  if (!seen) { seen = new Set(); estimateSessionFallback.set(window, seen); }
+  if (seen.has(key)) return false;
+  try {
+    if (sessionStorage.getItem(key)) return false;
+    sessionStorage.setItem(key, "1");
+  } catch { /* Same-document fallback when sessionStorage is blocked. */ }
+  seen.add(key);
+  return true;
+}
+
+/** Secondary planner events go only to the existing GA4 destination. */
+export function trackEstimateStart() {
+  if (!canTrackGoogle() || !claimEstimateEvent("ff-estimate-start")) return;
+  ga4Event("estimate_start");
+}
+
+export function trackEstimateRangeShown(inputs: ProjectInputs, customSqft: boolean) {
+  if (!canTrackGoogle()) return;
+  const params = estimateEventParams(inputs, customSqft);
+  if (!params || !claimEstimateEvent(`ff-estimate-range:${JSON.stringify(params)}`)) return;
+  ga4Event("estimate_range_shown", params);
+}
+
+export function trackEstimateOutOfRange(service: ProjectInputs["service"]) {
+  if (!canTrackGoogle() || !PROJECT_SERVICES.some(row => row.id === service)) return;
+  // One warning per service per session avoids recording every invalid keystroke.
+  if (!claimEstimateEvent(`ff-estimate-out-of-range:${service}`)) return;
+  ga4Event("estimate_out_of_range", { service });
+}
+
+export function trackEstimateHandoffClick(inputs: ProjectInputs) {
+  if (!canTrackGoogle()) return;
+  const params = estimateEventParams(inputs, false);
+  if (!params) return;
+  trackEstimateStart();
+  ga4Event("estimate_handoff_click", { service: params.service, size: params.size });
 }
 
 /** SPA navigations do not reload the document, so config's automatic page_view is not enough. */

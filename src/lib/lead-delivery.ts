@@ -19,10 +19,17 @@ export type LeadAdIds = {
   utm_campaign?: string;
   utm_medium?: string;
   landing_path?: string;
+  first_landing_path?: string;
   page_url?: string;
 };
 
-export type LeadPayload = {
+export type LeadEstimateMetadata = {
+  estimate_service?: string;
+  estimate_size?: string;
+  estimate_range?: string;
+};
+
+export type LeadPayload = LeadEstimateMetadata & {
   submissionId: string;
   name: string;
   email: string;
@@ -131,6 +138,11 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     `Email: ${payload.email.trim() || "(none)"}`,
     `Service: ${payload.service || "n/a"}`,
     `Source: ${payload.source || "n/a"}`,
+    ...(payload.source === "estimate" ? [
+      `Estimate service: ${payload.estimate_service || "n/a"}`,
+      `Estimate size: ${payload.estimate_size || "n/a"}`,
+      `Estimate shown to visitor: ${payload.estimate_range || "n/a"}`,
+    ] : []),
     `Affiliation: ${payload.affiliation || "n/a"}`,
     `Submission: ${payload.submissionId}`,
     "",
@@ -145,6 +157,7 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     `utm_campaign: ${payload.adIds.utm_campaign || ""}`,
     `utm_medium: ${payload.adIds.utm_medium || ""}`,
     `landing_path: ${payload.adIds.landing_path || ""}`,
+    `first_landing_path: ${payload.adIds.first_landing_path || ""}`,
     `page_url: ${payload.adIds.page_url || ""}`,
   ];
   return lines.join("\n");

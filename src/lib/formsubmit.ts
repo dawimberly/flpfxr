@@ -99,6 +99,22 @@ export function captureAdClickIds(): Record<string, string> {
     if (value) ids[key] = value;
   }
   ids.landing_path = `${window.location.pathname}${window.location.search}`;
+  ids.first_landing_path = captureFirstLandingPath();
   ids.page_url = window.location.href;
   return ids;
+}
+
+/** Session first touch is a path only; never replace it on SPA navigation. */
+export function captureFirstLandingPath(): string {
+  if (typeof window === "undefined") return "";
+  const path = window.location.pathname || "/";
+  try {
+    const first = sessionStorage.getItem("ff-first-landing-path");
+    if (first) return first;
+    sessionStorage.setItem("ff-first-landing-path", path);
+  } catch {
+    // Storage denial must not block a lead. Do not pretend a later path is first touch.
+    return "";
+  }
+  return path;
 }

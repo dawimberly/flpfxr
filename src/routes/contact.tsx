@@ -7,6 +7,7 @@ import { PageIntro } from "@/components/site-shell";
 import { AREA_LINE, DISCOUNT_ACCEPTED, JOB_DISCOUNT, PROJECT_FIT, SITE, type ServiceId } from "@/lib/site";
 
 type Search = {
+  origin?: "estimate";
   service?: ServiceId;
   sent?: boolean;
   side?: "exterior" | "interior";
@@ -148,7 +149,7 @@ export const Route = createFileRoute("/contact")({
         : service === "roofing"
           ? "exterior"
           : undefined;
-    return { service, ...(sent ? { sent: true } : {}), ...(side ? { side } : {}) };
+    return { service, ...(search.origin === "estimate" ? { origin: "estimate" as const } : {}), ...(sent ? { sent: true } : {}), ...(side ? { side } : {}) };
   },
   head: ({ match }) => {
     const search = match?.search as Search | undefined;
@@ -164,7 +165,7 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
-  const { service: serviceFromUrl, sent: sentFromUrl, side: sideFromUrl } =
+  const { service: serviceFromUrl, sent: sentFromUrl, side: sideFromUrl, origin } =
     Route.useSearch();
   const specific = contactCopy(serviceFromUrl, sideFromUrl);
   const copy = specific ?? GENERAL_CONTACT;
@@ -211,6 +212,7 @@ function ContactPage() {
             nextPath="/contact"
             service={serviceFromUrl || ""}
             source="contact"
+            estimateHandoff={origin === "estimate"}
             messagePlaceholder={copy.placeholder}
           />
         </div>

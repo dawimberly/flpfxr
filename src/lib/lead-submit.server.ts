@@ -10,8 +10,10 @@ import {
   type LeadAdIds,
   type LeadDeliveryResult,
   type LeadPayload,
+  type LeadEstimateMetadata,
 } from "./lead-delivery.ts";
 import { leadMailConfigFromEnv, sendLeadEmail } from "./lead-mail.ts";
+import { PROJECT_SERVICES, PROJECT_SIZES } from "./public-estimate-options.ts";
 
 const recentByIp = new Map<string, number[]>();
 
@@ -46,6 +48,19 @@ function str(form: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+/** Visitor-supplied planner context is single-line, allowlisted display data. */
+export function readEstimateMetadata(form: FormData): LeadEstimateMetadata {
+  const clean = (key: string) => str(form, key).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "").trim();
+  const service = clean("estimate_service");
+  const size = clean("estimate_size");
+  const range = clean("estimate_range");
+  return {
+    ...(PROJECT_SERVICES.some(row => row.id === service) ? { estimate_service: service } : {}),
+    ...(PROJECT_SIZES.some(value => value === size) ? { estimate_size: size } : {}),
+    ...(range.length <= 100 && /^between \$[\d,]+ and \$[\d,]+$/.test(range) ? { estimate_range: range } : {}),
+  };
+}
+
 function readAdIds(form: FormData): LeadAdIds {
   const keys = [
     "gclid",
@@ -55,6 +70,7 @@ function readAdIds(form: FormData): LeadAdIds {
     "utm_campaign",
     "utm_medium",
     "landing_path",
+    "first_landing_path",
     "page_url",
   ] as const;
   const adIds: LeadAdIds = {};
@@ -163,6 +179,7 @@ export async function handleLeadFormData(
     message: str(form, "message"),
     service: str(form, "Job") || str(form, "service"),
     source: str(form, "Source") || str(form, "source"),
+    ...readEstimateMetadata(form),
     affiliation: str(form, "Affiliation") || str(form, "affiliation"),
     honey,
     adIds: readAdIds(form),

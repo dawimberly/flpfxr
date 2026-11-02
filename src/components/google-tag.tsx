@@ -10,7 +10,7 @@ import {
   pagePathFromLocation,
   trackPageView,
 } from "@/lib/google-ads";
-import { captureAdClickIds } from "@/lib/formsubmit";
+import { captureAdClickIds, captureFirstLandingPath } from "@/lib/formsubmit";
 import { SITE } from "@/lib/site";
 
 const SCRIPT_ID = "google-gtag";
@@ -26,6 +26,7 @@ export function GoogleTag() {
   });
 
   useEffect(() => {
+    captureFirstLandingPath();
     if (!canTrackGoogle()) return;
 
     gtag("js", new Date());
