@@ -1,5 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
+import { extname, join } from "node:path";
 import {
   MAX_LEAD_PHOTO_BYTES,
   buildLeadEmailText,
@@ -12,6 +14,30 @@ import {
 } from "./lead-delivery.ts";
 
 const submissionId = "550e8400-e29b-41d4-a716-446655440000";
+
+it("uses Licensed in estimator branding and keeps insurance claims out of facing copy", () => {
+  const estimator = readFileSync("src/lib/estimator.ts", "utf8");
+  assert.match(estimator, /license:\s*"Licensed"/);
+  const textTypes = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".json", ".html", ".md", ".txt", ".svg"]);
+  const matches: string[] = [];
+  function scan(directory: string) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) { scan(path); continue; }
+      if (!textTypes.has(extname(path)) || /\.(test|spec)\.[^.]+$/.test(path)) continue;
+      const lines = readFileSync(path, "utf8").split(/\r?\n/);
+      lines.forEach((line, index) => {
+        if (!/insured/i.test(line)) return;
+        // These two parser-only occurrences identify the policyholder on an imported claim.
+        if (path.replaceAll("\\", "/") === "src/lib/xactimate-roof.ts" &&
+          (/^\s*insured: string;$/.test(line) || /^\s*insured: grab\(\/Insured:/.test(line))) return;
+        matches.push(`${path}:${index + 1}: ${line.trim()}`);
+      });
+    }
+  }
+  scan("src"); scan("public");
+  assert.deepEqual(matches, [], "Customer and employee copy must not claim insurance coverage");
+});
 
 describe("lead delivery validation", () => {
   it("accepts a normal lead and rejects short phone or empty message", () => {

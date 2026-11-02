@@ -10,8 +10,10 @@ import {
   type LeadAdIds,
   type LeadDeliveryResult,
   type LeadPayload,
+  type LeadEstimateMetadata,
 } from "./lead-delivery.ts";
 import { leadMailConfigFromEnv, sendLeadEmail } from "./lead-mail.ts";
+import { PROJECT_SERVICES, PROJECT_SIZES } from "./public-estimate-options.ts";
 
 const recentByIp = new Map<string, number[]>();
 
@@ -44,6 +46,19 @@ export function resetLeadRateLimitForTests() {
 function str(form: FormData, key: string): string {
   const value = form.get(key);
   return typeof value === "string" ? value : "";
+}
+
+/** Visitor-supplied planner context is single-line, allowlisted display data. */
+export function readEstimateMetadata(form: FormData): LeadEstimateMetadata {
+  const clean = (key: string) => str(form, key).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "").trim();
+  const service = clean("estimate_service");
+  const size = clean("estimate_size");
+  const range = clean("estimate_range");
+  return {
+    ...(PROJECT_SERVICES.some(row => row.id === service) ? { estimate_service: service } : {}),
+    ...(PROJECT_SIZES.some(value => value === size) ? { estimate_size: size } : {}),
+    ...(range.length <= 100 && /^between \$[\d,]+ and \$[\d,]+$/.test(range) ? { estimate_range: range } : {}),
+  };
 }
 
 function readAdIds(form: FormData): LeadAdIds {
@@ -164,9 +179,7 @@ export async function handleLeadFormData(
     message: str(form, "message"),
     service: str(form, "Job") || str(form, "service"),
     source: str(form, "Source") || str(form, "source"),
-    estimate_service: str(form, "estimate_service").trim().slice(0, 80),
-    estimate_size: str(form, "estimate_size").trim().slice(0, 40),
-    estimate_range: str(form, "estimate_range").trim().slice(0, 100),
+    ...readEstimateMetadata(form),
     affiliation: str(form, "Affiliation") || str(form, "affiliation"),
     honey,
     adIds: readAdIds(form),

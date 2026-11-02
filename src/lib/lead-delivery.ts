@@ -141,7 +141,7 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     ...(payload.source === "estimate" ? [
       `Estimate service: ${payload.estimate_service || "n/a"}`,
       `Estimate size: ${payload.estimate_size || "n/a"}`,
-      `Preliminary estimate range: ${payload.estimate_range || "n/a"}`,
+      `Estimate shown to visitor: ${payload.estimate_range || "n/a"}`,
     ] : []),
     `Affiliation: ${payload.affiliation || "n/a"}`,
     `Submission: ${payload.submissionId}`,
