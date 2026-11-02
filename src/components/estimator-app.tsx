@@ -528,6 +528,9 @@ export function EstimatorApp() {
             </div>
             <div className="hidden items-center gap-2 sm:flex">
               <Button asChild type="button" variant="ghost" size="sm">
+                <Link to="/estimator/invoices">Draft invoice</Link>
+              </Button>
+              <Button asChild type="button" variant="ghost" size="sm">
                 <Link to="/estimator/roof">Roof trace</Link>
               </Button>
               <EstimateLogButton />

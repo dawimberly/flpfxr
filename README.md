@@ -105,6 +105,19 @@ The catalog link is `https://stylesbydesigntx.com/shop?ref=flipfixer` unless tho
 
 The free planning range stays on `/estimate`. After name, phone, and email, the visitor can buy the labor PDF or send a free inquiry. Both write a `contact_leads` row. The PDF prices labor and services only. Material prices are not in it. A designer calls to finalize cabinets, fillers, toe kick, and baseboard. The fee is credited toward the job if they book.
 
+### Draft Stripe invoices from estimate PDFs
+
+Signed-in staff open **Draft invoice** from the estimator (`/estimator/invoices`). Upload a `Flip-Fixer-<Job>-<Contractor|Customer|Materials>-YYYYMMDD.pdf`. If several files are chosen, the contractor copy is used. The page parses lines into an editable table, tags labor versus materials, and can add the paid estimate-fee credit, a discount printed on the PDF, and a 50% deposit split.
+
+Confirming creates a **draft** Stripe invoice (`auto_advance=false`, `collection_method=send_invoice`). It is not finalized or sent. The customer comes from a `contact_leads` row or a `cus_...` id, not from a PDF that says TBD. A missing Stripe customer is created from the lead email. Use `sk_test_...` to exercise this in test mode.
+
+| Variable | Purpose |
+|----------|---------|
+| `STRIPE_TAX_CODE_LABOR` | Optional Stripe product tax code for labor lines |
+| `STRIPE_TAX_CODE_MATERIALS` | Optional Stripe product tax code for materials lines |
+| `STRIPE_AUTOMATIC_TAX` | `true` turns on `automatic_tax` for the draft. Default off |
+| `STRIPE_INVOICE_DAYS_UNTIL_DUE` | Required by `send_invoice`. Default 30 |
+
 ---
 
 ## Employee account scripts
