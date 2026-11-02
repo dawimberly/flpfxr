@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import {
   FEE_CREDIT_NOTE,
   LABOR_ONLY_NOTE,
 } from "@/lib/offer-copy";
+import { mountEmbeddedCheckout, publishableKey } from "@/lib/stripe-embedded-form";
 
 const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p-3 text-fg";
 
@@ -62,6 +63,8 @@ export function EstimateNextStep({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState<"buy" | "inquiry" | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const checkoutHost = useRef<HTMLDivElement>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -77,6 +80,10 @@ export function EstimateNextStep({
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const choice = submitter?.value === "buy" ? "buy" : "inquiry";
     if (choice === "buy" && (!canBuy || !feeLabel)) return;
+    if (choice === "buy" && !publishableKey()) {
+      setError("The paid estimate is not available right now. Send a free inquiry or call.");
+      return;
+    }
     setError("");
     if (!submissionId.current || !isValidSubmissionId(submissionId.current)) submissionId.current = newSubmissionId();
     const data = new FormData(event.currentTarget);
@@ -91,6 +98,10 @@ export function EstimateNextStep({
         const record = body && typeof body === "object" ? (body as Record<string, unknown>) : null;
         if (record?.ok === true && record.discarded === true) {
           setError("Could not start checkout. Call or text instead.");
+          return;
+        }
+        if (record?.ok === true && typeof record.client_secret === "string" && record.client_secret) {
+          setClientSecret(record.client_secret);
           return;
         }
         const next = safeNext(String(record?.url ?? ""), String(record?.kind ?? ""));
@@ -114,6 +125,24 @@ export function EstimateNextStep({
       setSubmitting(null);
     }
   };
+
+  useEffect(() => {
+    const host = checkoutHost.current;
+    const key = publishableKey();
+    if (!clientSecret || !host || !key) return;
+    let cancel = () => {};
+    let stopped = false;
+    mountEmbeddedCheckout({ publishableKey: key, clientSecret, container: host }).then((unmount) => {
+      if (stopped) unmount();
+      else cancel = unmount;
+    }).catch(() => {
+      if (!stopped) setError("The paid estimate is not available right now. Send a free inquiry or call.");
+    });
+    return () => {
+      stopped = true;
+      cancel();
+    };
+  }, [clientSecret]);
 
   if (sent) {
     return (
@@ -213,12 +242,18 @@ export function EstimateNextStep({
                 <p className="text-sm text-fg">For a project outside the planner, the PDF explains the walkthrough. The designer measures it and writes the job estimate. No guessed total.</p>
               )}
               {blockedReason ? <p className="text-sm text-fg">{blockedReason} You can still send a free inquiry.</p> : null}
+              {clientSecret ? (
+                <div>
+                  <p className="text-sm text-muted">Pay {feeLabel} here. When it clears, we email the estimate and bring you back to this site.</p>
+                  <div ref={checkoutHost} id="estimate-checkout-form" className="mt-3 min-h-48 rounded-xl bg-bg p-2" />
+                </div>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="submit"
                   name="choice"
                   value="buy"
-                  disabled={!canBuy || !feeLabel || submitting !== null}
+                  disabled={!canBuy || !feeLabel || submitting !== null || Boolean(clientSecret)}
                   className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-3 text-center font-semibold text-primary-fg disabled:opacity-60"
                 >
                   {submitting === "buy" ? "Starting checkout…" : `Buy the itemized estimate${feeLabel ? ` — ${feeLabel}` : ""}`}

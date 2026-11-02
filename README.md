@@ -97,13 +97,14 @@ Migration `migrations/0005_estimate_fee.sql` adds payment and planner columns on
 | `SBD_CATALOG_BASE_URL` | Catalog origin. Default `https://stylesbydesigntx.com` |
 | `SBD_CATALOG_PATH` | Catalog path. Default `/shop` |
 | `STRIPE_SECRET_KEY` | Styles by Design Stripe secret. Required to start checkout |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Publishable key for the embedded Checkout form on `/estimate` |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `DETAILED_ESTIMATE_FEE_CENTS` | Fee in cents. Default `3500` ($35) |
 | `RESEND_API_KEY` | Emails the PDF to the customer and notifies staff. The webhook retries while this is missing |
 
 The catalog link is `https://stylesbydesigntx.com/shop?ref=flipfixer` unless those env vars change it. The shop is browse-only. Stripe webhook endpoint: `https://theflipfixer.com/api/stripe/webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`.
 
-The free planning range stays on `/estimate`. After name, phone, and email, the visitor can buy the labor PDF or send a free inquiry. Both write a `contact_leads` row. The PDF prices labor and services only. Material prices are not in it. A designer calls to finalize cabinets, fillers, toe kick, and baseboard. The fee is credited toward the job if they book.
+The free planning range stays on `/estimate`. After name, phone, and email, the visitor can pay for the itemized job estimate in an embedded Stripe form on the page, or send a free inquiry. Both write a `contact_leads` row. The PDF is the whole job on the same range. A designer calls to finalize cabinets, fillers, toe kick, and baseboard. The fee is credited toward the job if they book. If either Stripe key is missing, checkout stays closed and the free inquiry still works.
 
 ---
 

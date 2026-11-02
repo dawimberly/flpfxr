@@ -340,7 +340,7 @@ export async function handleEstimateCheckout(
     });
   }
 
-  const service = parsed.planner.project.service === "custom" ? "other" : parsed.planner.project.service;
+  const returnUrl = `${origin}/estimate/paid?session_id={CHECKOUT_SESSION_ID}`;
   const session = await (deps.createSession ?? createCheckoutSession)({
     secretKey: secret,
     amountCents: feeCents,
@@ -348,9 +348,8 @@ export async function handleEstimateCheckout(
     customerEmail: contact.email,
     productName: "Itemized job estimate",
     productDescription: "Whole-job estimate on the same planning range. Credited toward the job if you book.",
-    successUrl: `${origin}/estimate/paid?session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${origin}/estimate?checkout=cancelled&service=${encodeURIComponent(service)}&size=${encodeURIComponent(parsed.planner.project.size.toLowerCase())}`,
-    idempotencyKey: `detailed-estimate/${contact.submissionId}`,
+    returnUrl,
+    idempotencyKey: `detailed-estimate/form/${contact.submissionId}`,
   });
   if (!session.ok) {
     console.error("[checkout] stripe session failed", session.message);
@@ -386,14 +385,21 @@ export async function handleEstimateCheckout(
     );
   }
 
-  if (session.paymentStatus === "paid" || !session.url) {
+  if (session.paymentStatus === "paid") {
     return Response.json({
       ok: true,
       kind: "success",
       url: `${origin}/estimate/paid?session_id=${encodeURIComponent(session.id)}`,
     });
   }
-  return Response.json({ ok: true, kind: "stripe", url: session.url });
+  if (!session.clientSecret) {
+    console.error("[checkout] stripe session missing client_secret", session.id);
+    return Response.json(
+      { ok: false, code: "delivery_failed", message: "Could not start checkout. Call or text instead." },
+      { status: 502 },
+    );
+  }
+  return Response.json({ ok: true, client_secret: session.clientSecret, return_url: returnUrl });
 }
 
 async function notifyPaid(lead: PaidLead, deps: { sendMail?: typeof sendLeadEmail; sql?: Sql }) {
