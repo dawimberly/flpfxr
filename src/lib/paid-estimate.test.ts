@@ -1,10 +1,11 @@
+import { readFileSync } from "node:fs";
 import { createHmac } from "node:crypto";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { catalogRedirectUrl } from "./catalog-gate.ts";
 import { readDetailedEstimateFeeCents } from "./estimate-fee.ts";
 import { buildLaborDocument, laborDocumentPlainText } from "./labor-estimate.ts";
-import { renderLaborEstimatePdf } from "./labor-estimate-pdf.ts";
+import { renderLaborEstimatePdf, SITE_HEADER_LOGO } from "./labor-estimate-pdf.ts";
 import { decidePayment, readStripeEvent } from "./estimate-next.server.ts";
 import { handleCatalogSignup } from "./catalog-signup.server.ts";
 import { parseStoredPlanner } from "./planner-form.ts";
@@ -213,6 +214,15 @@ describe("planner form", () => {
 });
 
 describe("labor pdf", () => {
+  it("draws the same logo file the live header uses", () => {
+    const svg = readFileSync(new URL("../../public/logo.svg", import.meta.url), "utf8");
+    assert.equal(SITE_HEADER_LOGO.source, "public/logo.svg");
+    assert.ok(svg.includes(SITE_HEADER_LOGO.white));
+    assert.ok(svg.includes(SITE_HEADER_LOGO.orange));
+    assert.match(svg, /#f08330/);
+    assert.match(svg, /#fff/);
+  });
+
   it("renders a branded multi-section pdf without material prices", async () => {
     const doc = buildLaborDocument(planner());
     const bytes = await renderLaborEstimatePdf({
