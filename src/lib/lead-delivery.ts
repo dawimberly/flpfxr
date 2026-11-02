@@ -1,3 +1,5 @@
+import { sourceLabel, type LeadAttribution } from "./lead-attribution.ts";
+
 /** Shared lead-form validation and delivery result shapes (client + server). */
 
 export const LEAD_API_PATH = "/api/leads";
@@ -11,7 +13,7 @@ export const LEAD_PHOTO_TYPES = new Set([
   "image/gif",
 ]);
 
-export type LeadAdIds = {
+export type LeadAdIds = LeadAttribution & {
   gclid?: string;
   gbraid?: string;
   wbraid?: string;
@@ -137,15 +139,10 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     "Message:",
     payload.message.trim(),
     "",
-    "Ad / landing:",
-    `gclid: ${payload.adIds.gclid || ""}`,
-    `gbraid: ${payload.adIds.gbraid || ""}`,
-    `wbraid: ${payload.adIds.wbraid || ""}`,
-    `utm_source: ${payload.adIds.utm_source || ""}`,
-    `utm_campaign: ${payload.adIds.utm_campaign || ""}`,
-    `utm_medium: ${payload.adIds.utm_medium || ""}`,
-    `landing_path: ${payload.adIds.landing_path || ""}`,
-    `page_url: ${payload.adIds.page_url || ""}`,
+    "--- Lead source ---",
+    `Source: ${sourceLabel(payload.adIds)}`,
+    `How did you hear about us: ${payload.adIds.heard_from || "(not provided)"}`,
+    ...(["gclid", "gbraid", "wbraid", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "referrer", "landing_path", "submitting_path", "device"] as const).map((key) => `${key}: ${payload.adIds[key] || "(none)"}`),
   ];
   return lines.join("\n");
 }

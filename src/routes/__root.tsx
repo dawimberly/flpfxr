@@ -1,3 +1,4 @@
+import { FirstTouch } from "@/components/first-touch";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { GoogleTag } from "@/components/google-tag";
@@ -45,6 +46,7 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body className="bg-bg text-fg">
+        <FirstTouch />
         <GoogleTag />
         <MicrosoftClarity />
         <PreviewHostBridge />
