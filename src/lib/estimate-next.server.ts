@@ -347,7 +347,7 @@ export async function handleEstimateCheckout(
     submissionId: contact.submissionId,
     customerEmail: contact.email,
     productName: "Itemized job estimate",
-    productDescription: "Materials are named without prices and finalized with the designer. Credited toward the job if you book.",
+    productDescription: "Whole-job estimate on the same planning range. Credited toward the job if you book.",
     successUrl: `${origin}/estimate/paid?session_id={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${origin}/estimate?checkout=cancelled&service=${encodeURIComponent(service)}&size=${encodeURIComponent(parsed.planner.project.size.toLowerCase())}`,
     idempotencyKey: `detailed-estimate/${contact.submissionId}`,

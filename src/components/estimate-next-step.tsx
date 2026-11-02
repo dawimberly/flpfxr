@@ -134,7 +134,7 @@ export function EstimateNextStep({
       {cancelled ? <p className="mt-2 text-sm text-fg">Checkout closed before payment. The planning range is still free.</p> : null}
       <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
           <div className={step === 0 ? "space-y-3 text-sm leading-relaxed text-muted" : "hidden"}>
-            <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate. Materials are named without prices and finalized with the designer. Or send a free inquiry and we call you back.</p>
+            <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate for the whole job, on that same range. Or send a free inquiry and we call you back.</p>
             <ul className="list-disc space-y-1 pl-5 text-fg">
               <li>{LABOR_ONLY_NOTE}</li>
               <li>Other sizes and an on-site timeline are in the PDF.</li>
@@ -203,7 +203,7 @@ export function EstimateNextStep({
                   <p className="mt-1 text-muted">{preview.timeline}</p>
                   <ul className="mt-2 space-y-1">
                     {preview.lines.slice(0, 6).map((line) => (
-                      <li key={line.label}>{line.area}: {line.label}, {line.quantityLabel} {line.unit}</li>
+                      <li key={line.label}>{line.label}</li>
                     ))}
                   </ul>
                   <p className="mt-2 text-muted">The itemized job estimate is in the PDF, after payment. This preview is the scope, not the price.</p>

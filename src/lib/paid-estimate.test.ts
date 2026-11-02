@@ -11,7 +11,7 @@ import { handleCatalogSignup } from "./catalog-signup.server.ts";
 import { parseStoredPlanner } from "./planner-form.ts";
 import { verifyStripeSignature } from "./stripe-signature.ts";
 import { DEFAULT_PROJECT_INPUTS, type ProjectInputs } from "./public-estimate-options.ts";
-import { projectPlanningEstimate } from "./public-pricing.ts";
+import { formatEstimateRange, projectPlanningEstimate } from "./public-pricing.ts";
 import type { StoredPlanner } from "./planner-form.ts";
 
 const submissionId = "550e8400-e29b-41d4-a716-446655440000";
@@ -59,24 +59,22 @@ describe("estimate fee", () => {
 });
 
 describe("labor document", () => {
-  it("prices labor and services only, with quantities, line totals, tiers, and a timeline", () => {
+  it("prices the whole job on the same range as the planner", () => {
     const doc = buildLaborDocument(planner());
     const built = projectPlanningEstimate(planner().project)!;
-    const expected = Math.round(built.labor * 100) + Math.round(built.support * 100);
     assert.equal(doc.kind, "itemized");
-    assert.equal(doc.totalCents, expected);
-    assert.ok(doc.lines.length >= 8);
-    assert.ok(doc.areas.includes("Cabinets"));
-    assert.ok(doc.areas.includes("Floor"));
+    assert.equal(doc.totalCents, Math.round(built.low) * 100);
+    assert.equal(doc.lines.reduce((sum, line) => sum + line.amountCents, 0), doc.totalCents);
+    assert.equal(doc.rangeLabel, formatEstimateRange(built));
+    assert.equal(doc.rangeLabel, "between $12,800 and $16,000");
+    assert.ok(doc.lines.some((line) => line.label === "Cabinets - supplied and installed"));
+    assert.ok(doc.lines.some((line) => line.label === "Counters - supplied and installed"));
+    assert.equal(doc.supplierNote, null);
+    assert.doesNotMatch(doc.excluded.join(" "), /Material prices|do not put prices/i);
     assert.ok(doc.tiers.length === 3);
     assert.equal(doc.tiers.find((tier) => tier.selected)?.totalCents, doc.totalCents);
     assert.match(doc.timeline, /working day/);
     assert.doesNotMatch(doc.timeline, /\$650|crew day/i);
-    const floor = doc.lines.find((line) => line.label === "Floor installation")!;
-    const source = built.lines.find((line) => line.id === "floor")!;
-    assert.notEqual(floor.amountCents, Math.round(source.materials * 100));
-    assert.match(floor.quantityLabel, /168/);
-    assert.equal(floor.unit, "sq ft");
     const text = laborDocumentPlainText(doc, {
       name: "Ada",
       phone: "2104369117",
@@ -90,7 +88,9 @@ describe("labor document", () => {
     assert.match(text, /INVESTMENT/);
     assert.match(text, /NOTES/);
     assert.match(text, /Materials named for this job/);
-    assert.match(text, /includes materials and cabinets/);
+    assert.match(text, /between \$12,800 and \$16,000/);
+    assert.match(text, /Cabinets - supplied and installed/);
+    assert.doesNotMatch(text, /Material prices|do not put prices|labor only|labor and services/i);
     assert.match(text, /Itemized job estimate/);
     assert.match(text, /Estimated job total/);
     assert.doesNotMatch(text, /\blabor\b/i);
@@ -104,29 +104,29 @@ describe("labor document", () => {
     assert.doesNotMatch(text, /\$3\.85|\$185/);
   });
 
-  it("prices oversized cabinet panels at the published install rate", () => {
-    const doc = buildLaborDocument(planner({ xlFridgeBoxes: 1 }));
-    const panel = doc.lines.find((line) => line.label === "Refrigerator panel installation");
-    assert.equal(panel?.rateCents, 12500);
-    assert.notEqual(panel?.rateCents, doc.lines.find((line) => line.label === "Base cabinet installation")?.rateCents);
+  it("includes quartz counters and a larger cabinet package in the job total", () => {
+    const plain = buildLaborDocument(planner());
+    const withPanel = buildLaborDocument(planner({ xlFridgeBoxes: 1 }));
+    const cabinets = (doc: ReturnType<typeof buildLaborDocument>) =>
+      doc.lines.find((line) => line.label === "Cabinets - supplied and installed")?.amountCents ?? 0;
+    assert.ok(cabinets(withPanel) > cabinets(plain));
+    const quartz = buildLaborDocument(planner({ counter: "quartz" }));
+    const built = projectPlanningEstimate(planner({ counter: "quartz" }).project)!;
+    assert.equal(quartz.rangeLabel, formatEstimateRange(built));
+    assert.ok(quartz.lines.some((line) => line.label === "Counters - supplied and installed"));
+    assert.equal(quartz.supplierNote, null);
   });
 
-  it("leaves supplier-installed stone out of the labor lines", () => {
-    const doc = buildLaborDocument(planner({ counter: "quartz" }));
-    assert.equal(doc.lines.some((line) => line.label === "Countertop installation"), false);
-    assert.match(doc.supplierNote ?? "", /not priced on this estimate/);
-  });
-
-  it("keeps shower valve labor and drops fixture product cost", () => {
+  it("prices a bathroom on the planner range, including fixtures", () => {
     const input = planner({ service: "bathroom", floor: "tile", shower: "ceramic" });
     const doc = buildLaborDocument(input);
     const built = projectPlanningEstimate(input.project)!;
-    const valve = doc.lines.find((line) => line.label === "Shower valve");
-    assert.equal(valve?.amountCents, 22500);
-    const fixture = built.lines.find((line) => line.id === "fixture-allowance")!;
-    const fixtureLine = doc.lines.find((line) => line.label === "Fixture installation")!;
-    assert.notEqual(fixtureLine.amountCents, Math.round(fixture.materials * 100));
-    assert.doesNotMatch(JSON.stringify(doc.excluded), /\binsured\b/i);
+    assert.equal(doc.rangeLabel, formatEstimateRange(built));
+    assert.equal(doc.rangeLabel, "between $9,300 and $11,700");
+    const fixtures = doc.lines.find((line) => line.label === "Fixtures - supplied and installed");
+    const source = built.lines.find((line) => line.id === "fixture-allowance")!;
+    assert.ok((fixtures?.amountCents ?? 0) > Math.round(source.materials * 100));
+    assert.doesNotMatch(JSON.stringify(doc.excluded), /\binsured\b|Material prices/i);
   });
 });
 
@@ -253,7 +253,10 @@ describe("labor pdf", () => {
     assert.match(text, /WHAT'S NOT INCLUDED/);
     assert.match(text, /INVESTMENT/);
     assert.match(text, /Estimated job total/);
+    assert.match(text, /between \$12,800 and \$16,000/);
+    assert.match(text, /Cabinets - supplied and installed/);
     assert.match(text, /\u2022/);
+    assert.doesNotMatch(text, /Material prices|do not put prices|labor only|labor and services/i);
     assert.doesNotMatch(text, /\blabor\b/i);
     assert.match(text, /NOTES/);
     assert.match(text, /50% deposit schedules the work\. Balance due on completion\. Price good 30 days\./);

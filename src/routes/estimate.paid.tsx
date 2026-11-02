@@ -29,7 +29,7 @@ function PaidEstimatePage() {
       <h1 className="mt-3 font-display text-4xl text-fg">{paid ? "Payment received." : "We're confirming the payment."}</h1>
       <p className="mt-4 text-muted">
         {paid
-          ? "Your itemized job estimate is on its way by email. Materials are named without prices and finalized with the designer."
+          ? "Your itemized job estimate is on its way by email. It is the whole job, on the same range you saw on the site."
           : "If Stripe sent you here, the email goes out when the payment clears."}
       </p>
       <p className="mt-3 text-sm text-muted">{FEE_CREDIT_NOTE} {DESIGNER_MATERIALS_NOTE}</p>

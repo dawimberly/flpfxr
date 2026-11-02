@@ -10,11 +10,8 @@ import {
   type ProjectService,
   type ProjectSize,
 } from "./public-estimate-options.ts";
-import northvilleLabor from "../data/northville.json" with { type: "json" };
 import {
-  CREW_DAY_RATE,
   PRELIMINARY_ESTIMATE_WORDING,
-  TRADE_HOURS,
   formatEstimateRange,
   projectPlanningEstimate,
 } from "./public-pricing.ts";
@@ -24,7 +21,7 @@ import {
   choiceLabel,
   type StoredPlanner,
 } from "./planner-form.ts";
-import { FEE_CREDIT_NOTE, LABOR_ONLY_NOTE } from "./offer-copy.ts";
+import { DESIGNER_MATERIALS_NOTE, FEE_CREDIT_NOTE } from "./offer-copy.ts";
 
 export type LaborLine = {
   area: string;
@@ -122,203 +119,111 @@ type Spec = {
   unit: string;
 };
 
-function specsFor(input: ProjectInputs, built: Built): Spec[] {
-  const scope = built.scope;
-  const paintCoats = input.service === "exterior-paint" ? input.exteriorCoats : 2;
-  const paintWhere = input.service === "exterior-paint" ? "exterior" : "wall";
-  const byId: Record<string, Omit<Spec, "id">> = {
-    floor: {
-      area: "Floor",
-      label: "Floor installation",
-      detail: input.floor === "tile"
-        ? "Set the floor on a sound surface. Deep subfloor repair is a separate conversation."
-        : "Install the floor covering on a prepared surface.",
-      quantity: scope.floor,
-      unit: "sq ft",
-    },
-    trim: {
-      area: "Walls and trim",
-      label: "Trim installation",
-      detail: "Hang the trim. Finish paint of that trim is included only when wall paint is in this scope.",
-      quantity: scope.trim,
-      unit: "ft",
-    },
-    paint: {
-      area: input.service === "exterior-paint" ? "Exterior paint" : "Walls and trim",
-      label: "Paint",
-      detail: `${paintCoats} finish coat${paintCoats === 1 ? "" : "s"} on the ${paintWhere} area.`,
-      quantity: scope.wall,
-      unit: "sq ft",
-    },
-    primer: {
-      area: input.service === "exterior-paint" ? "Exterior paint" : "Walls and trim",
-      label: "Primer",
-      detail: "One primer pass before the finish coats.",
-      quantity: scope.wall,
-      unit: "sq ft",
-    },
-    "base-cabinets": {
-      area: "Cabinets",
-      label: "Base cabinet installation",
-      detail: "Set, level, and fasten the base boxes.",
-      quantity: scope.base,
-      unit: "boxes",
-    },
-    "wall-cabinets": {
-      area: "Cabinets",
-      label: "Wall cabinet installation",
-      detail: "Set and fasten the wall boxes.",
-      quantity: scope.wallUnits,
-      unit: "boxes",
-    },
-    "xl-fridge": {
-      area: "Cabinets",
-      label: "Refrigerator panel installation",
-      detail: "Set the tall panels around the refrigerator opening.",
-      quantity: scope.xlFridgeBoxes,
-      unit: "boxes",
-    },
-    counter: {
-      area: "Counters and backsplash",
-      label: "Countertop installation",
-      detail: "Install the counter on the measured run.",
-      quantity: scope.counters,
-      unit: "sq ft",
-    },
-    backsplash: {
-      area: "Counters and backsplash",
-      label: "Backsplash installation",
-      detail: "Set the backsplash on the measured wall.",
-      quantity: scope.backsplash,
-      unit: "sq ft",
-    },
-    demolition: {
-      area: "Demolition",
-      label: "Finish demolition",
-      detail: `Basic finish removal for a ${input.size.toLowerCase()} ${input.service === "bathroom" ? "bathroom" : "kitchen"}. Hidden damage is not included.`,
-      quantity: 1,
-      unit: "project",
-    },
-    vanity: {
-      area: "Cabinets",
-      label: "Vanity installation",
-      detail: `Set and fasten the ${selectedVanity(input.size, input.vanity).label}.`,
-      quantity: 1,
-      unit: "each",
-    },
-    surround: {
-      area: "Shower",
-      label: "Shower wall installation",
-      detail: "Set the shower wall on the measured surround.",
-      quantity: scope.shower,
-      unit: "sq ft",
-    },
-    "fixture-allowance": {
-      area: "Fixtures",
-      label: "Fixture installation",
-      detail: input.newToilet
-        ? "Set the vanity faucet and a basic toilet. The products themselves are not priced here."
-        : "Set the vanity faucet. The existing toilet stays. Product cost is not in this estimate.",
-      quantity: input.newToilet ? 2 : 1,
-      unit: "each",
-    },
-    "licensed-plumber-valve": {
-      area: "Shower",
-      label: "Shower valve",
-      detail: "We set the shower valve. The valve itself is not priced here.",
-      quantity: 1,
-      unit: "each",
-    },
+const BUNDLE_ORDER = [
+  "Demolition",
+  "Cabinets - supplied and installed",
+  "Vanity - supplied and installed",
+  "Counters - supplied and installed",
+  "Backsplash - supplied and installed",
+  "Shower - supplied and installed",
+  "Tile setting - supplied and installed",
+  "Floor - supplied and installed",
+  "Walls and trim - supplied and installed",
+  "Fixtures - supplied and installed",
+  "Protection, cleanup, and haul-off",
+  "Allowances",
+];
+
+function bundleLabel(id: string): string {
+  const named: Record<string, string> = {
+    floor: "Floor - supplied and installed",
+    trim: "Walls and trim - supplied and installed",
+    paint: "Walls and trim - supplied and installed",
+    primer: "Walls and trim - supplied and installed",
+    "base-cabinets": "Cabinets - supplied and installed",
+    "wall-cabinets": "Cabinets - supplied and installed",
+    "xl-fridge": "Cabinets - supplied and installed",
+    filler: "Cabinets - supplied and installed",
+    vanity: "Vanity - supplied and installed",
+    counter: "Counters - supplied and installed",
+    backsplash: "Backsplash - supplied and installed",
+    surround: "Shower - supplied and installed",
+    "licensed-plumber-valve": "Shower - supplied and installed",
+    thinset: "Tile setting - supplied and installed",
+    grout: "Tile setting - supplied and installed",
+    backerBoard: "Tile setting - supplied and installed",
+    membrane: "Tile setting - supplied and installed",
+    "fixture-allowance": "Fixtures - supplied and installed",
+    demolition: "Demolition",
   };
-  const specs: Spec[] = [];
-  for (const line of built.lines) {
-    const spec = byId[line.id];
-    if (!spec || spec.quantity <= 0) continue;
-    const laborLine = line.personHours > 0 || line.id === "licensed-plumber-valve";
-    if (!laborLine) continue;
-    specs.push({ id: line.id, ...spec });
-  }
-  return specs;
+  return named[id] ?? "Other work";
 }
 
-/**
- * Each trade keeps its own labor rate. Cabinets use Northville's $75 / $125
- * install schedule. Paint is priced per coat. Other trades start from that
- * line's person-hours times the crew hour ($650 / 16). The crew-day adjustment
- * in the planner is spread across those hour-based lines, so a floor and a
- * paint coat stay on different rates and the total still matches the planner.
- */
-function allocate(specs: Spec[], built: Built, input: ProjectInputs): LaborLine[] {
-  const hourly = CREW_DAY_RATE / 16;
-  const priced: LaborLine[] = [];
-  const adjustable: LaborLine[] = [];
-  let publishedLabor = 0;
-  const published = new Set(["base-cabinets", "wall-cabinets", "vanity", "xl-fridge"]);
-  for (const spec of specs) {
-    const source = built.lines.find((line) => line.id === spec.id);
-    if (spec.id === "licensed-plumber-valve") {
-      const amountCents = Math.round((source?.materials ?? 0) * 100);
-      if (amountCents > 0) priced.push(toLine(spec, amountCents, amountCents));
-      continue;
-    }
-    let rateCents = 0;
-    let amountCents = 0;
-    const unit = spec.unit;
-    if (spec.id === "base-cabinets" || spec.id === "wall-cabinets" || spec.id === "vanity") {
-      rateCents = Math.round(northvilleLabor.laborPerUnit * 100);
-      amountCents = rateCents * spec.quantity;
-    } else if (spec.id === "xl-fridge") {
-      rateCents = Math.round(northvilleLabor.laborPerOversized * 100);
-      amountCents = rateCents * spec.quantity;
-    } else if (spec.id === "paint") {
-      const perCoatHours = input.service === "exterior-paint" ? TRADE_HOURS.exteriorPaint : TRADE_HOURS.interiorPaintPerCoat;
-      const coats = input.service === "exterior-paint" ? input.exteriorCoats : 2;
-      const perCoat = perCoatHours * hourly;
-      amountCents = Math.round(perCoat * spec.quantity * coats * 100);
-      rateCents = spec.quantity > 0 ? Math.round(amountCents / spec.quantity) : amountCents;
-    } else if (source && spec.quantity > 0) {
-      const perUnit = (source.personHours / spec.quantity) * hourly;
-      amountCents = Math.round(perUnit * spec.quantity * 100);
-      rateCents = Math.round(amountCents / spec.quantity);
-    }
-    if (amountCents <= 0) continue;
-    const line = toLine({ ...spec, unit }, amountCents, rateCents);
-    if (published.has(spec.id)) publishedLabor += amountCents;
-    else adjustable.push(line);
-    priced.push(line);
+function bundleDetail(label: string, input: ProjectInputs): string {
+  const floor = FLOOR_MATERIALS.find((row) => row.id === input.floor)?.label ?? "flooring";
+  const counter = COUNTER_MATERIALS.find((row) => row.id === input.counter)?.label ?? "counter";
+  const shower = SHOWER_MATERIALS.find((row) => row.id === input.shower)?.label ?? "shower wall";
+  switch (label) {
+    case "Floor - supplied and installed":
+      return `We supply and install the ${floor.toLowerCase()}.`;
+    case "Walls and trim - supplied and installed":
+      return "We supply and install the trim and the paint.";
+    case "Cabinets - supplied and installed":
+      return "We supply and install the cabinets.";
+    case "Vanity - supplied and installed":
+      return `We supply and install the ${selectedVanity(input.size, input.vanity).label}.`;
+    case "Counters - supplied and installed":
+      return `We supply and install the ${counter.toLowerCase()} counters.`;
+    case "Backsplash - supplied and installed":
+      return "We supply and install the backsplash.";
+    case "Shower - supplied and installed":
+      return `We supply and install the ${shower.toLowerCase()} shower wall and set the valve.`;
+    case "Tile setting - supplied and installed":
+      return "We supply the thinset, grout, backer, and membrane for the tile.";
+    case "Fixtures - supplied and installed":
+      return "We supply and set the fixtures for this bath.";
+    case "Demolition":
+      return "Basic finish removal. Hidden damage is a separate conversation.";
+    case "Protection, cleanup, and haul-off":
+      return "Floor protection while we work, daily cleanup, and routine haul-off.";
+    case "Allowances":
+      return "Delivery or specialist allowances added to this job.";
+    default:
+      return "Other work on this job.";
   }
-  const laborPool = Math.round(built.labor * 100);
-  const current = adjustable.reduce((sum, line) => sum + line.amountCents, 0);
-  const target = laborPool - publishedLabor;
-  if (adjustable.length && current > 0 && target > 0 && target !== current) {
-    let assigned = 0;
-    const last = adjustable.length - 1;
-    adjustable.forEach((line, index) => {
-      if (index === last) {
-        line.amountCents = target - assigned;
-        line.rateCents = line.quantity > 0 ? Math.round(line.amountCents / line.quantity) : line.amountCents;
-        return;
-      }
-      const scaled = Math.round((line.amountCents * target) / current);
-      const rate = line.quantity > 0 ? Math.round(scaled / line.quantity) : scaled;
-      const amount = line.quantity > 0 ? rate * line.quantity : scaled;
-      line.rateCents = rate;
-      line.amountCents = amount;
-      assigned += amount;
-    });
+}
+
+/** Section prices from the same planner total that sets the website range. */
+function priceFullJob(built: Built, input: ProjectInputs): LaborLine[] {
+  const hours = built.lines.reduce((sum, line) => sum + line.personHours, 0);
+  const laborPool = built.labor + built.minimumAdjustment;
+  const dollars = new Map<string, number>();
+  const add = (label: string, amount: number) => {
+    if (!amount) return;
+    dollars.set(label, (dollars.get(label) ?? 0) + amount);
+  };
+  for (const line of built.lines) {
+    const share = hours > 0 ? laborPool * (line.personHours / hours) : 0;
+    add(bundleLabel(line.id), line.materials + share);
   }
-  if (built.support > 0) {
-    const supportCents = Math.round(built.support * 100);
-    priced.push(toLine({
-      id: "support",
-      area: "Job setup",
-      label: "Protection, cleanup, and haul-off",
-      detail: "Floor protection while we work, daily cleanup, and routine haul-off.",
-      quantity: 1,
-      unit: "project",
-    }, supportCents, supportCents));
+  add("Protection, cleanup, and haul-off", built.support);
+  add("Allowances", input.delivery + input.specialist);
+  const labels = [...BUNDLE_ORDER.filter((label) => dollars.has(label)), ...[...dollars.keys()].filter((label) => !BUNDLE_ORDER.includes(label))];
+  const raw = labels.map((label) => ({ label, cents: Math.round((dollars.get(label) ?? 0) * 100) }));
+  const target = Math.round(built.low) * 100;
+  const drift = target - raw.reduce((sum, row) => sum + row.cents, 0);
+  if (raw.length && drift !== 0) {
+    const host = raw.reduce((best, row) => row.cents > best.cents ? row : best, raw[0]);
+    host.cents += drift;
   }
-  return priced;
+  return raw.filter((row) => row.cents > 0).map((row) => toLine({
+    id: row.label,
+    area: row.label,
+    label: row.label,
+    detail: bundleDetail(row.label, input),
+    quantity: 1,
+    unit: "section",
+  }, row.cents, row.cents));
 }
 
 function toLine(spec: Spec, amountCents: number, rateCents = spec.quantity > 0 ? Math.round(amountCents / spec.quantity) : amountCents): LaborLine {
@@ -353,7 +258,7 @@ function tierFor(input: ProjectInputs, size: ProjectSize, selected: boolean): La
       };
   const built = projectPlanningEstimate(project);
   if (!built) return null;
-  const lines = allocate(specsFor(project, built), built, project);
+  const lines = priceFullJob(built, project);
   return {
     size,
     selected,
@@ -365,7 +270,6 @@ function tierFor(input: ProjectInputs, size: ProjectSize, selected: boolean): La
 
 function excludedFor(service: ProjectService): string[] {
   const common = [
-    "Material prices, including flooring, paint, counters, and cabinet boxes.",
     "Appliances, layout changes, plumbing moves, electrical, and permits.",
     "Hidden damage found after demolition.",
   ];
@@ -458,12 +362,9 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
   if (!built) {
     return buildLaborDocument({ ...planner, project: { ...input, service: "custom" } }, hasPhoto);
   }
-  const lines = allocate(specsFor(input, built), built, input);
+  const lines = priceFullJob(built, input);
   const areas: string[] = [];
   for (const line of lines) if (!areas.includes(line.area)) areas.push(line.area);
-  const supplier = built.lines.some((line) =>
-    (line.id === "counter" || line.id === "surround") && line.personHours === 0 && line.materials > 0,
-  );
   const tiers = PROJECT_SIZES.map((size) => tierFor(input, size, size === input.size)).filter((row): row is LaborTier => Boolean(row));
   return {
     kind: "itemized",
@@ -482,9 +383,7 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
     excluded: excludedFor(input.service),
     prep: prepFor(input, example, hasPhoto),
     nextSteps,
-    supplierNote: supplier
-      ? "Stone is supplied and installed separately. It is not priced on this estimate. We finalize it with the designer."
-      : null,
+    supplierNote: null,
     rangeLabel: formatEstimateRange(built),
     answers,
     usesExampleQuantities: example,
@@ -521,23 +420,16 @@ export function customerFacingCopy(
   ].filter(Boolean).join(" ");
   const included = doc.kind === "itemized"
     ? [
-        doc.selections.length
-          ? `Materials named for this job: ${doc.selections.join(", ")}. We do not put prices on materials.`
-          : "",
+        doc.selections.length ? `Materials named for this job: ${doc.selections.join(", ")}.` : "",
         ...doc.lines.map((line) => line.detail),
       ].filter(Boolean)
     : doc.included;
-  const investment = doc.areas.map((area) => ({
-    label: area,
-    cents: doc.lines.filter((line) => line.area === area).reduce((sum, line) => sum + line.amountCents, 0),
-  })).filter((row) => row.cents > 0);
+  const investment = doc.lines.map((line) => ({ label: line.label, cents: line.amountCents }));
   const notes = [
     doc.supplierNote ?? "",
-    doc.rangeLabel
-      ? `The planning range on the site (${doc.rangeLabel}) includes materials and cabinets. The estimated job total above names materials without prices. We finalize those with the designer.`
-      : doc.kind === "itemized" ? LABOR_ONLY_NOTE : "",
     ...doc.prep.filter((row) => !/^Quantities (follow|are based)/.test(row)),
     ...doc.answers.filter((row) => row.label !== "Property").map((row) => `${row.label}: ${row.value}`),
+    DESIGNER_MATERIALS_NOTE,
     header.feeLabel ? `${header.feeLabel} is credited toward the job if you book.` : "",
     `Browse finishes at ${header.catalogUrl}. We order materials with you after the designer call.`,
   ].filter(Boolean);
@@ -569,7 +461,7 @@ export function laborDocumentPlainText(
   ];
   if (copy.investment.length) {
     for (const row of copy.investment) lines.push(`${row.label}: ${money(row.cents)}`);
-    lines.push(`Estimated job total: ${money(doc.totalCents)}`);
+    lines.push(`Estimated job total: ${doc.rangeLabel ?? money(doc.totalCents)}`);
   } else {
     lines.push("Set after we walk the space.");
   }

@@ -188,8 +188,9 @@ export async function renderLaborEstimatePdf(args: {
     y -= 2;
     page.drawLine({ start: { x: MARGIN, y: y + 12 }, end: { x: PAGE_W - MARGIN, y: y + 12 }, thickness: 0.6, color: INK });
     textAt("Estimated job total", MARGIN, y, 11, bold);
-    const total = money(args.document.totalCents);
-    textAt(total, PAGE_W - MARGIN - bold.widthOfTextAtSize(total, 12), y, 12, bold);
+    const total = args.document.rangeLabel ?? money(args.document.totalCents);
+    const totalSize = args.document.rangeLabel ? 10 : 12;
+    textAt(total, PAGE_W - MARGIN - bold.widthOfTextAtSize(total, totalSize), y, totalSize, bold);
     y -= 18;
   } else {
     paragraph("Set after we walk the space.");
