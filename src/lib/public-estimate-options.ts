@@ -48,6 +48,10 @@ export type ProjectInputs = {
   vanity?: string;
   /** Bathroom only. True includes a basic new toilet. */
   newToilet: boolean;
+  /** Kitchen cabinet boxes. Unset uses the size example. */
+  cabinetBoxes?: number | null;
+  /** Kitchen XL boxes around a refrigerator. Unset means none. */
+  xlFridgeBoxes?: number | null;
 };
 export const DEFAULT_PROJECT_INPUTS: ProjectInputs = {
   service: "kitchen", size: "Medium", floor: "lvp", counter: "quartz",
@@ -59,7 +63,13 @@ export type ScopeAreas = {
   showerSqft?: number | null;
   counterSqft?: number | null;
   roomSqft?: number | null;
+  cabinetBoxes?: number | null;
+  xlFridgeBoxes?: number | null;
 };
+export const BOX_LIMITS = {
+  cabinetBoxes: { min: 0, max: 40, label: "cabinet boxes" },
+  xlFridgeBoxes: { min: 0, max: 6, label: "XL fridge boxes" },
+} as const;
 export const AREA_LIMITS = {
   bathroomFloor: { min: 20, max: 300, label: "a bathroom floor" },
   bathroomShower: { min: 0, max: 200, label: "a shower or tub surround" },
@@ -76,10 +86,23 @@ function outOfRange(value: number | null | undefined, limit: { min: number; max:
   if (!Number.isFinite(value) || value < limit.min || value > limit.max) return rangeMessage(limit);
   return null;
 }
-/** Friendly copy when a typed area is outside the planning range. Preset-only calls have no error. */
+function invalidBoxCount(value: number | null | undefined, limit: { min: number; max: number; label: string }) {
+  if (value == null) return null;
+  if (!Number.isInteger(value) || value < limit.min || value > limit.max) {
+    return `Enter ${limit.label} from ${limit.min} to ${limit.max}.`;
+  }
+  return null;
+}
+/** Friendly copy when a typed area or box count is outside the planning range. Preset-only calls have no error. */
 export function scopeAreaError(service: ProjectService, areas: ScopeAreas = {}): string | null {
+  if (service === "custom") return null;
+  if (service === "kitchen") {
+    const boxes = invalidBoxCount(areas.cabinetBoxes, BOX_LIMITS.cabinetBoxes) ??
+      invalidBoxCount(areas.xlFridgeBoxes, BOX_LIMITS.xlFridgeBoxes);
+    if (boxes) return boxes;
+  }
   const mentioned = (["floorSqft", "showerSqft", "counterSqft", "roomSqft"] as const).some(key => Object.hasOwn(areas, key));
-  if (!mentioned || service === "custom") return null;
+  if (!mentioned) return null;
   if (service === "bathroom") {
     return outOfRange(areas.floorSqft, AREA_LIMITS.bathroomFloor, false) ??
       outOfRange(areas.showerSqft, AREA_LIMITS.bathroomShower, true);
@@ -102,6 +125,13 @@ export function parseSqft(raw: string): { value: number | null; error: string | 
   const value = Number(s);
   if (!Number.isFinite(value)) return { value: null, error: "Use a number of square feet, like 168 or 40.5." };
   return { value, error: null };
+}
+/** Whole boxes only. Blank keeps the size example for cabinet boxes, or none for an XL fridge box. */
+export function parseBoxCount(raw: string): { value: number | null; error: string | null } {
+  const s = raw.trim();
+  if (!s) return { value: null, error: null };
+  if (!/^\d+$/.test(s)) return { value: null, error: "Use a whole number of boxes." };
+  return { value: Number(s), error: null };
 }
 /**
  * Styles by Design contractor catalog stores Northville list prices in `cost_per_unit`
@@ -178,7 +208,7 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       const shower = areas.showerSqft == null ? scaleFrom(bath.shower, bath.floor, floor) : areas.showerSqft;
       const surroundNote = areas.showerSqft == null ? ", scaled from that example because none was entered" : "";
       return {
-        floor, wall, trim, shower, counters: 0, backsplash: 0, base: 0, wallUnits: 0, doubleVanity: vanity.double,
+        floor, wall, trim, shower, counters: 0, backsplash: 0, base: 0, wallUnits: 0, xlFridgeBoxes: 0, doubleVanity: vanity.double,
         summary: `Example: ${sqftText(floor)} sq ft bathroom, ${sqftText(shower)} sq ft surround, ${vanity.label}, one 3-inch filler strip, floor, trim, wall paint, demolition, setting materials, waterproofing and a basic fixture allowance.`,
         assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft) and trim (${sqftText(trim)} ft) are scaled from the ${size} example. Surround is ${sqftText(shower)} sq ft${surroundNote}. Vanity is a ${vanity.label}, priced at 10% off the cabinet list. One 3-inch filler strip is included at that same discount. Fixtures and demolition stay with the ${size} example.`,
         exclusions: "Existing layout retained. Basic finish demolition and shower waterproofing materials included. Plumbing relocation, electrical, permits and concealed repairs require separate allowances.",
@@ -191,10 +221,21 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       const backsplash = scaleFrom(kitchen.backsplash, kitchen.floor, floor);
       const counters = areas.counterSqft == null ? scaleFrom(kitchen.counters, kitchen.floor, floor) : areas.counterSqft;
       const counterNote = areas.counterSqft == null ? ", scaled from that example because none were entered" : "";
+      const presetBoxes = kitchen.base + kitchen.wallUnits;
+      const boxes = areas.cabinetBoxes == null ? presetBoxes : areas.cabinetBoxes;
+      const xlFridgeBoxes = areas.xlFridgeBoxes == null ? 0 : areas.xlFridgeBoxes;
+      const base = boxes === presetBoxes ? kitchen.base : boxes / 2;
+      const wallUnits = boxes === presetBoxes ? kitchen.wallUnits : boxes / 2;
+      const cabinetPhrase = boxes === presetBoxes && xlFridgeBoxes === 0
+        ? `${presetBoxes} standard cabinet units`
+        : `${sqftText(boxes)} cabinet boxes${xlFridgeBoxes ? ` and ${sqftText(xlFridgeBoxes)} XL fridge ${xlFridgeBoxes === 1 ? "box" : "boxes"}` : ""}`;
+      const cabinetNote = boxes === presetBoxes && xlFridgeBoxes === 0
+        ? `Cabinet count stays with the ${size} example.`
+        : `Using ${sqftText(boxes)} cabinet boxes${xlFridgeBoxes ? ` and ${sqftText(xlFridgeBoxes)} XL fridge ${xlFridgeBoxes === 1 ? "box" : "boxes"}` : ""}.`;
       return {
-        floor, wall, trim, shower: 0, counters, backsplash, base: kitchen.base, wallUnits: kitchen.wallUnits, doubleVanity: false,
-        summary: `Example: ${sqftText(floor)} sq ft kitchen, ${kitchen.base + kitchen.wallUnits} standard cabinet units, ${sqftText(counters)} sq ft counter, ${sqftText(backsplash)} sq ft backsplash, floor, trim, wall paint and basic finish demolition.`,
-        assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft), trim (${sqftText(trim)} ft) and backsplash (${sqftText(backsplash)} sq ft) are scaled from the ${size} example. Counters are ${sqftText(counters)} sq ft${counterNote}. Cabinet count stays with the ${size} example.`,
+        floor, wall, trim, shower: 0, counters, backsplash, base, wallUnits, xlFridgeBoxes, doubleVanity: false,
+        summary: `Example: ${sqftText(floor)} sq ft kitchen, ${cabinetPhrase}, ${sqftText(counters)} sq ft counter, ${sqftText(backsplash)} sq ft backsplash, floor, trim, wall paint and basic finish demolition.`,
+        assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft), trim (${sqftText(trim)} ft) and backsplash (${sqftText(backsplash)} sq ft) are scaled from the ${size} example. Counters are ${sqftText(counters)} sq ft${counterNote}. ${cabinetNote}`,
         exclusions: "Existing layout retained. Appliances, plumbing, electrical, permits and concealed repairs require separate allowances.",
       };
     }
@@ -203,7 +244,7 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       const floor = areas.roomSqft == null ? preset : areas.roomSqft;
       return {
         floor, wall: 0, trim: 0, shower: 0, counters: 0,
-        backsplash: 0, base: 0, wallUnits: 0, doubleVanity: false,
+        backsplash: 0, base: 0, wallUnits: 0, xlFridgeBoxes: 0, doubleVanity: false,
         summary: `Example: ${sqftText(floor)} sq ft of new floor covering on a prepared surface.`,
         assumptions: `Using ${sqftText(floor)} sq ft of floor. ${areas.roomSqft == null ? `That is the ${size} example.` : `Started from the ${size} example and edited.`}`,
         exclusions: "Floor demolition, subfloor repairs, leveling, stairs and new trim are not included. Routine protection, cleanup and haul-off allowance included.",
@@ -216,7 +257,7 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       const surface = service === "interior-paint" ? "interior wall" : "exterior siding";
       return {
         floor: 0, wall: area, trim: 0, shower: 0, counters: 0, backsplash: 0,
-        base: 0, wallUnits: 0, doubleVanity: false,
+        base: 0, wallUnits: 0, xlFridgeBoxes: 0, doubleVanity: false,
         summary: `Example: ${sqftText(area)} sq ft of paintable ${surface} surface, not floor area.`,
         assumptions: `Using ${sqftText(area)} sq ft of paintable ${surface}. This is the area to paint, not the floor. ${areas.roomSqft == null ? `That is the ${size} example.` : `Started from the ${size} example and edited.`}`,
         exclusions: "Sound, accessible surfaces assumed. Repairs, lead remediation, scaffolding, ceilings and trim are not included.",
@@ -227,10 +268,16 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
 }
 export function presetAreas(service: ProjectService, size: ProjectSize) {
   const scope = projectScope(service, size);
-  const blank = { floor: "", shower: "", counter: "", room: "" };
+  const blank = { floor: "", shower: "", counter: "", room: "", boxes: "", xl: "" };
   if (!scope) return blank;
   if (service === "bathroom") return { ...blank, floor: String(scope.floor), shower: String(scope.shower) };
-  if (service === "kitchen") return { ...blank, floor: String(scope.floor), counter: String(scope.counters) };
+  if (service === "kitchen") return {
+    ...blank,
+    floor: String(scope.floor),
+    counter: String(scope.counters),
+    boxes: String(scope.base + scope.wallUnits),
+    xl: "0",
+  };
   if (service === "flooring") return { ...blank, room: String(scope.floor) };
   if (service === "interior-paint" || service === "exterior-paint") return { ...blank, room: String(scope.wall) };
   return blank;

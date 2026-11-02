@@ -68,6 +68,25 @@ describe("trade productivity and bathroom completeness", () => {
     assert.equal(line({service:"bathroom",shower:"stone"},"surround").personHours,0);
     assert.ok(line({service:"kitchen",counter:"laminate"},"counter").personHours>0);
     assert.equal(TRADE_HOURS.cabinetBox,1.5);
+    assert.equal(TRADE_HOURS.xlFridgeBox,2.5);
+  });
+  it("keeps the preset range and prices an extra XL fridge box", () => {
+    const preset = projectPlanningEstimate(input())!;
+    assert.equal(formatEstimateRange(preset), "between $12,300 and $15,400");
+    const same = projectPlanningEstimate(input({ cabinetBoxes: 16, xlFridgeBoxes: 0 }))!;
+    assert.equal(same.total, preset.total);
+    assert.equal(line({ cabinetBoxes: 10 }, "base-cabinets").personHours, 5 * 1.5);
+    assert.equal(line({ cabinetBoxes: 10 }, "wall-cabinets").personHours, 5 * 1.5);
+    const xl = line({ xlFridgeBoxes: 1 }, "xl-fridge");
+    assert.equal(xl.personHours, 2.5);
+    assert.equal(xl.materials, 308);
+    assert.ok(projectPlanningEstimate(input({ xlFridgeBoxes: 1 }))!.total > preset.total);
+    assert.equal(projectPlanningEstimate(input({ cabinetBoxes: 41 })), null);
+    assert.equal(projectPlanningEstimate(input({ xlFridgeBoxes: 7 })), null);
+    assert.match(projectScope("kitchen", "Medium", { xlFridgeBoxes: 1 })!.summary, /1 XL fridge box/);
+    assert.match(projectScope("kitchen", "Medium")!.assumptions, /Cabinet count stays with the Medium example/);
+    const message = projectEstimateLeadMessage(input({ cabinetBoxes: 10, xlFridgeBoxes: 1 }));
+    assert.doesNotMatch(message, /box|sq ft/i);
   });
   it("shows a kitchen range by default and keeps stone at or above laminate and ceramic", () => {
     const kitchen=projectPlanningEstimate(input())!;
@@ -172,6 +191,10 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/Flooring type/);
     assert.match(ui,/Shower wall/);
     assert.match(ui,/Countertop type/);
+    assert.match(ui,/Cabinet boxes/);
+    assert.match(ui,/XL fridge boxes/);
+    assert.match(ui,/estimate-cabinet-boxes/);
+    assert.match(ui,/estimate-xl-fridge/);
     assert.match(ui,/estimate-toilet/);
     assert.match(ui,/estimate-vanity/);
     assert.match(ui,/What's included/);
