@@ -12,7 +12,7 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          `The Flip Fixer remodels kitchens and baths, designs the work in-house, and gets rentals and listings ready to show. 30+ years on the tools. ${AREA_LINE}`,
+          `The Flip Fixer remodels kitchens and baths and specializes in insurance claim rebuilds. Design in-house. 30+ years on the tools. ${AREA_LINE}`,
       },
     ],
   }),
@@ -24,9 +24,10 @@ function AboutPage() {
       <PageIntro eyebrow="About" title={SITE.name}>
         <p>
           We remodel kitchens and baths, fix what's broken, and get rentals and
-          listings ready to show. Design is handled in-house. 30+ years on the
-          tools. You get a clear price, a real plan, and a crew that treats the
-          house like it's still yours.
+          listings ready to show. We are insurance claim specialists: after fire
+          or storm damage we rebuild from tear-out through finish. Design is
+          handled in-house. 30+ years on the tools. You get a clear price, a
+          real plan, and a crew that treats the house like it's still yours.
         </p>
         <p className="mt-1 sm:mt-4">
           We donate design and labor on group homes and CASA houses when a

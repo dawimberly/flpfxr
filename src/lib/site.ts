@@ -21,10 +21,10 @@ export const CREW = [
   },
   {
     name: "Dan Wimberly",
-    role: "Estimating & Project Coordination",
+    role: "Estimating, coordination, and insurance claims",
     src: "/images/crew-dan-v3.webp",
-    line: "15 years as a contractor. He writes the scope, prices the job, and works it.",
-    bio: "Dan has 15 years as a contractor. He writes the scope, sets the price, and works the job with us.",
+    line: "15 years as a contractor. A decade handling insurance claims.",
+    bio: "Dan has 15 years as a contractor and a decade handling insurance claims. He writes the scope, sets the price, and works the job with us. On insurance rebuilds he catches what the carrier left out, and he has regularly secured 20-50% increases in approved scope.",
   },
 ] as const;
 
@@ -142,7 +142,7 @@ export const SERVICES: Array<{
     id: "insurance-claims",
     title: "Insurance claims",
     short: "Insurance claim rebuild specialists.",
-    body: "We specialize in insurance claim rebuilds after fire or storm damage, from tear-out through finish. Contact us.",
+    body: "We are insurance claim specialists. After fire or storm damage we rebuild from tear-out through finish and catch scope the carrier left out.",
     image: "/images/gallery-22-f.webp",
     group: "Specialty",
   },
@@ -292,37 +292,37 @@ export const FEATURED_REVIEW = {
   name: "Elieen Doctor",
   source: "Nextdoor · Repeat customer",
   excerpt: "Honest, reliable, clean, professional, and informative.",
-  quote: "Hello neighbors,\n\nI just want to take a moment to share our appreciation for The Flip Fixer. We have been through several contractors over the years but they have been my “go-to guys” for the last 3, and we couldn’t be happier with their service. Honest, reliable, clean, professional, and informative. They have helped us with everything from a custom fireplace, built in bookshelves, a bathroom remodel, and fence replacements, working with us on a limited budget, and went to work immediately to repair them. They’re practically family now so when they asked for an honest review, I was happy to oblige. If you have any home repairs, remodeling projects, indoor/outdoor, or basic handyman services, I highly recommend The Flip Fixer home services. Give them a call, you won’t regret it. Thank you!",
+  quote: "Hello neighbors,\n\nI just want to take a moment to share our appreciation for Jon and Dan of The Flip Fixer. We have been through several contractors over the years but they have been my “go-to guys” for the last 3, and we couldn’t be happier with their service. Honest, reliable, clean, professional, and informative. They have helped us with everything from a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements and even recently helping us avoid a costly insurance claim by discovering the problems, working with us on a limited budget, and went to work immediately to repair them. They’re practically family now so when they asked for an honest review, I was happy to oblige. If you have any home repairs, remodeling projects, indoor/outdoor, or basic handyman services, I highly recommend The Flip Fixer home services. Give them a call, you won’t regret it. Thank you Jon & Dan!",
 } as const;
 
 export const TESTIMONIALS = [
   {
     quote:
-      "The team has been awesome to work with. The value they provide for the cost is unbeatable. They are talented and responsive. I highly recommend them for all your home repair needs!",
+      "Jon and his team have been awesome to work with. The value they provide for the cost is unbeatable. Jon is talented and responsive. I highly recommend him for all your home repair needs!",
     name: "Michael M.",
     place: "San Antonio, TX",
   },
   {
     quote:
-      "The Flip Fixer transformed my outdated rental property within my budget. Their attention to detail and craftsmanship is outstanding. I had multiple offers after just one open house!",
+      "The Flip Fixer transformed my outdated rental property within my budget. Jon's attention to detail and craftsmanship is outstanding. I had multiple offers after just one open house!",
     name: "Clark P.",
     place: "Alamo Heights, TX",
   },
   {
     quote:
-      "I approached them with several repairs needed throughout my home. They were professional, efficient, and the quality of work was exceptional. Will definitely be calling them again.",
+      "I approached Jon with several repairs needed throughout my home. He was professional, efficient, and the quality of work was exceptional. Will definitely be calling him again.",
     name: "Scott S.",
     place: "Hollywood Park, TX",
   },
   {
     quote:
-      "The kitchen renovation exceeded all our expectations. The team was fast, clean, and incredibly professional. My new kitchen is exactly what I envisioned!",
+      "The kitchen renovation exceeded all our expectations. Jon and his team were fast, clean, and incredibly professional. My new kitchen is exactly what I envisioned!",
     name: "Jennifer R.",
     place: "Stone Oak, TX",
   },
   {
     quote:
-      "Their make-ready service saved us time and money — enabling our tenant to move in sooner than expected. The team handled everything from repairs to painting flawlessly.",
+      "Their make-ready service saved us time and money — enabling our tenant to move in sooner than expected. Jon's team handled everything from repairs to painting flawlessly.",
     name: "David K.",
     place: "Austin, TX",
   },
