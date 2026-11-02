@@ -58,7 +58,7 @@ describe("estimate fee", () => {
 });
 
 describe("labor document", () => {
-  it("prices labor and services only, with quantities, rates, tiers, and a timeline", () => {
+  it("prices labor and services only, with quantities, line totals, tiers, and a timeline", () => {
     const doc = buildLaborDocument(planner());
     const built = projectPlanningEstimate(planner().project)!;
     const expected = Math.round(built.labor * 100) + Math.round(built.support * 100);
@@ -72,16 +72,10 @@ describe("labor document", () => {
     assert.match(doc.timeline, /working day/);
     assert.doesNotMatch(doc.timeline, /\$650|crew day/i);
     const floor = doc.lines.find((line) => line.label === "Floor installation")!;
-    const paint = doc.lines.find((line) => line.label === "Paint labor")!;
-    const base = doc.lines.find((line) => line.label === "Base cabinet installation")!;
-    const wall = doc.lines.find((line) => line.label === "Wall cabinet installation")!;
     const source = built.lines.find((line) => line.id === "floor")!;
     assert.notEqual(floor.amountCents, Math.round(source.materials * 100));
-    assert.equal(floor.rateCents, Math.round(floor.amountCents / floor.quantity));
-    assert.equal(base.rateCents, 7500);
-    assert.equal(wall.rateCents, 7500);
-    assert.notEqual(paint.rateCents, floor.rateCents);
-    assert.equal(paint.rateCents, Math.round(paint.amountCents / paint.quantity));
+    assert.match(floor.quantityLabel, /168/);
+    assert.equal(floor.unit, "sq ft");
     const text = laborDocumentPlainText(doc, {
       name: "Ada",
       phone: "2104369117",
@@ -94,7 +88,9 @@ describe("labor document", () => {
     assert.match(text, /fillers, toe kick, and baseboard/);
     assert.match(text, /Insurance claim specialists/);
     assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
-    assert.match(text, /\/ sq ft/);
+    assert.match(text, /168 sq ft/);
+    assert.doesNotMatch(text, /\$\d[\d,]*\.\d{2}\s*\//);
+    assert.doesNotMatch(text, /Per unit|\/ sq ft|\/ box|\/ ft/i);
     assert.doesNotMatch(text, /\binsured\b/i);
     assert.doesNotMatch(text, /divided by|rounded to the cent/i);
     assert.doesNotMatch(text, /\$3\.85|\$185/);
@@ -243,7 +239,9 @@ describe("labor pdf", () => {
     assert.match(text, /Cabinets, backsplash, floor/);
     assert.match(text, /Final prices set after onsite inspection/);
     assert.match(text, /theflipfixer.com/);
-    assert.match(text, /\/ sq ft/);
+    assert.match(text, /168 sq ft/);
+    assert.doesNotMatch(text, /Per unit/);
+    assert.doesNotMatch(text, /\$\d[\d,]*\.\d{2}\s*\//);
     const { PDFName } = await import("pdf-lib");
     const links = pdfDoc.getPages().flatMap((item) => {
       const found = item.node.lookup(PDFName.of("Annots")) as { size?: () => number; get?: (index: number) => unknown } | undefined;

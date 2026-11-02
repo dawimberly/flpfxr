@@ -2,7 +2,7 @@ import { PDFDocument, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type
 import { SITE } from "./site.ts";
 import { PRELIMINARY_ESTIMATE_WORDING } from "./public-pricing.ts";
 import { FLIPFIXER_LOGO_PNG_BASE64 } from "./flipfixer-logo.ts";
-import { perUnitNoun, type LaborDocument, type LaborLine } from "./labor-estimate.ts";
+import type { LaborDocument, LaborLine } from "./labor-estimate.ts";
 
 const PAGE_W = 612;
 const PAGE_H = 792;
@@ -258,15 +258,15 @@ export async function renderLaborEstimatePdf(args: {
 
   if (args.document.kind === "itemized") {
     heading("Scope by area");
-    const cols = [248, 46, 122, 100];
-    const headers = ["Work", "Qty", "Per unit", "Amount"];
+    const cols = [360, 70, 90];
+    const headers = ["Work", "Qty", "Amount"];
     const drawHeader = () => {
       ensure(18);
       page.drawRectangle({ x: MARGIN, y: y - 12, width: CONTENT_W, height: 16, color: INK });
       let x = MARGIN + 6;
       headers.forEach((label, index) => {
         const width = bold.widthOfTextAtSize(label, 8);
-        const rightAligned = index >= 2;
+        const rightAligned = index >= 1;
         const left = rightAligned ? x + cols[index] - width - 8 : x;
         textAt(label, left, y - 8, 8, bold, CREAM);
         x += cols[index];
@@ -312,10 +312,8 @@ export async function renderLaborEstimatePdf(args: {
         baseline -= 10;
       }
       const mid = y - 12;
-      textAt(line.quantityLabel, MARGIN + cols[0] + 4, mid, 9, font);
-      const perUnit = `${money(line.rateCents)} / ${perUnitNoun(line.unit)}`;
-      const perX = MARGIN + cols[0] + cols[1] + cols[2] - font.widthOfTextAtSize(perUnit, 8) - 8;
-      textAt(perUnit, perX, mid, 8, font);
+      const qty = `${line.quantityLabel} ${line.unit}`;
+      textAt(qty, MARGIN + cols[0] + cols[1] - font.widthOfTextAtSize(qty, 8) - 8, mid, 8, font);
       const amount = money(line.amountCents);
       textAt(amount, PAGE_W - MARGIN - 8 - font.widthOfTextAtSize(amount, 9), mid, 9, font);
       y = bottom;

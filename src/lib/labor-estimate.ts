@@ -72,15 +72,6 @@ const qtyText = (n: number) => {
   return Number.isInteger(tenths) ? String(tenths) : tenths.toFixed(1);
 };
 
-/** Short unit for "$12.40 / sq ft" style labels. */
-export function perUnitNoun(unit: string): string {
-  if (unit === "boxes") return "box";
-  if (unit === "sq ft") return "sq ft";
-  if (unit === "ft") return "ft";
-  if (unit === "each") return "each";
-  return unit;
-}
-
 export function timelinePhrase(days: number): string {
   if (!Number.isFinite(days) || days <= 0) return "The designer will set the on-site time after seeing the space.";
   const low = Math.max(1, Math.floor(days));
@@ -272,7 +263,7 @@ function allocate(specs: Spec[], built: Built, input: ProjectInputs): LaborLine[
     }
     let rateCents = 0;
     let amountCents = 0;
-    let unit = spec.unit;
+    const unit = spec.unit;
     if (spec.id === "base-cabinets" || spec.id === "wall-cabinets" || spec.id === "vanity") {
       rateCents = Math.round(northvilleLabor.laborPerUnit * 100);
       amountCents = rateCents * spec.quantity;
@@ -283,11 +274,8 @@ function allocate(specs: Spec[], built: Built, input: ProjectInputs): LaborLine[
       const perCoatHours = input.service === "exterior-paint" ? TRADE_HOURS.exteriorPaint : TRADE_HOURS.interiorPaintPerCoat;
       const coats = input.service === "exterior-paint" ? input.exteriorCoats : 2;
       const perCoat = perCoatHours * hourly;
-      rateCents = Math.round(perCoat * 100);
-      const coatQuantity = spec.quantity * coats;
-      amountCents = rateCents * coatQuantity;
-      unit = "sq ft coat";
-      spec.quantity = coatQuantity;
+      amountCents = Math.round(perCoat * spec.quantity * coats * 100);
+      rateCents = spec.quantity > 0 ? Math.round(amountCents / spec.quantity) : amountCents;
     } else if (source && spec.quantity > 0) {
       const perUnit = (source.personHours / spec.quantity) * hourly;
       amountCents = Math.round(perUnit * spec.quantity * 100);
@@ -536,7 +524,7 @@ export function laborDocumentPlainText(
         lines.push("", line.area);
         area = line.area;
       }
-      lines.push(`${line.label}: ${line.quantityLabel} ${line.unit} at ${money(line.rateCents)} / ${perUnitNoun(line.unit)}, ${money(line.amountCents)}.`);
+      lines.push(`${line.label}: ${line.quantityLabel} ${line.unit}, ${money(line.amountCents)}.`);
     }
     lines.push("", "Options");
     for (const tier of doc.tiers) {
