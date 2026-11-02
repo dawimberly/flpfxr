@@ -4,6 +4,7 @@ import { CallLink, CallNumber } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
+import { retainedAdSearch } from "@/lib/estimate-landing";
 import { AREA_LINE, DISCOUNT_ACCEPTED, JOB_DISCOUNT, PROJECT_FIT, SITE, type ServiceId } from "@/lib/site";
 
 type Search = {
@@ -11,6 +12,15 @@ type Search = {
   service?: ServiceId;
   sent?: boolean;
   side?: "exterior" | "interior";
+  gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  utm_id?: string;
 };
 
 type ContactCopy = {
@@ -149,7 +159,13 @@ export const Route = createFileRoute("/contact")({
         : service === "roofing"
           ? "exterior"
           : undefined;
-    return { service, ...(search.origin === "estimate" ? { origin: "estimate" as const } : {}), ...(sent ? { sent: true } : {}), ...(side ? { side } : {}) };
+    return {
+      ...retainedAdSearch(search),
+      service,
+      ...(search.origin === "estimate" ? { origin: "estimate" as const } : {}),
+      ...(sent ? { sent: true } : {}),
+      ...(side ? { side } : {}),
+    };
   },
   head: ({ match }) => {
     const search = match?.search as Search | undefined;

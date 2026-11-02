@@ -1,23 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PublicProjectEstimator } from "@/components/public-project-estimator";
+import {
+  DEFAULT_ESTIMATE_HEADLINE, estimateLandingFromSearch, estimateRouteSearch, headlineFor,
+} from "@/lib/estimate-landing";
 import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/estimate")({
   component: EstimatePage,
-  head: () => ({
-    meta: [
-      { title: `Project Cost Estimator | ${SITE.name}` },
-      { name: "description", content: "Explore preliminary planning ranges for kitchen, bathroom, flooring, painting and other remodeling projects in San Antonio." },
-    ],
-  }),
+  validateSearch: (search: Record<string, unknown>) => estimateRouteSearch(search),
+  head: ({ match }) => {
+    const landing = estimateLandingFromSearch(match?.search ?? {});
+    const headline = landing.explicitService ? headlineFor(landing.service) : DEFAULT_ESTIMATE_HEADLINE;
+    return {
+      meta: [
+        { title: `${headline} | ${SITE.name}` },
+        { name: "description", content: "Explore preliminary planning ranges for kitchen, bathroom, flooring, painting and other remodeling projects in San Antonio." },
+      ],
+    };
+  },
 });
 
 function EstimatePage() {
-  return (
-    <main className="mx-auto max-w-3xl px-4 py-12 md:py-20">
-      <h1 className="font-display text-3xl font-semibold text-fg md:text-5xl">Plan your next project.</h1>
-      <p className="mb-8 mt-4 text-muted">Choose a project size and materials to explore a preliminary estimate with labor included. Preliminary estimate only — not a quote. Final price is set after Jon sees the space.</p>
-      <PublicProjectEstimator />
-    </main>
-  );
+  const search = Route.useSearch();
+  const landing = estimateLandingFromSearch(search);
+  return <PublicProjectEstimator landing={landing} search={search} />;
 }
