@@ -16,13 +16,12 @@ import {
   projectPlanningEstimate,
 } from "./public-pricing.ts";
 import {
-  DECISION_OPTIONS,
   OCCUPANCY_OPTIONS,
   TIMING_OPTIONS,
   choiceLabel,
   type StoredPlanner,
 } from "./planner-form.ts";
-import { CATALOG_BROWSE_NOTE, DESIGNER_MATERIALS_NOTE, FEE_CREDIT_NOTE, LABOR_ONLY_NOTE } from "./offer-copy.ts";
+import { FEE_CREDIT_NOTE, LABOR_ONLY_NOTE } from "./offer-copy.ts";
 
 export type LaborLine = {
   area: string;
@@ -69,6 +68,15 @@ const qtyText = (n: number) => {
   const tenths = Math.round(n * 10) / 10;
   return Number.isInteger(tenths) ? String(tenths) : tenths.toFixed(1);
 };
+
+/** Short unit for "$12.40 / sq ft" style labels. */
+export function perUnitNoun(unit: string): string {
+  if (unit === "boxes") return "box";
+  if (unit === "sq ft") return "sq ft";
+  if (unit === "ft") return "ft";
+  if (unit === "each") return "each";
+  return unit;
+}
 
 export function timelinePhrase(days: number): string {
   if (!Number.isFinite(days) || days <= 0) return "The designer will set the on-site time after seeing the space.";
@@ -158,14 +166,14 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
     "base-cabinets": {
       area: "Cabinets",
       label: "Base cabinet installation",
-      detail: "Set, level, and fasten the base boxes. The designer confirms doors, fillers, and toe kick on the call.",
+      detail: "Set, level, and fasten the base boxes.",
       quantity: scope.base,
       unit: "boxes",
     },
     "wall-cabinets": {
       area: "Cabinets",
       label: "Wall cabinet installation",
-      detail: "Set and fasten the wall boxes. Filler and scribe pieces are confirmed with the designer.",
+      detail: "Set and fasten the wall boxes.",
       quantity: scope.wallUnits,
       unit: "boxes",
     },
@@ -179,7 +187,7 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
     counter: {
       area: "Counters and backsplash",
       label: "Countertop installation",
-      detail: "Install the counter on the measured run. Product selection happens with the designer.",
+      detail: "Install the counter on the measured run.",
       quantity: scope.counters,
       unit: "sq ft",
     },
@@ -200,7 +208,7 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
     vanity: {
       area: "Cabinets",
       label: "Vanity installation",
-      detail: `Set and fasten the ${selectedVanity(input.size, input.vanity).label}. The cabinet itself is confirmed when the designer calls.`,
+      detail: `Set and fasten the ${selectedVanity(input.size, input.vanity).label}.`,
       quantity: 1,
       unit: "each",
     },
@@ -318,11 +326,9 @@ function tierFor(input: ProjectInputs, size: ProjectSize, selected: boolean): La
 
 function excludedFor(service: ProjectService): string[] {
   const common = [
-    "Material prices of every kind, including flooring, paint, counters, and cabinet boxes.",
-    DESIGNER_MATERIALS_NOTE,
+    "Material prices, including flooring, paint, counters, and cabinet boxes.",
     "Appliances, layout changes, plumbing moves, electrical, and permits.",
-    "Hidden damage and anything we cannot see until demolition.",
-    "The free planning range on the website. That range is preliminary and is not this labor total.",
+    "Hidden damage found after demolition.",
   ];
   if (service === "flooring") {
     return [
@@ -342,8 +348,8 @@ function excludedFor(service: ProjectService): string[] {
 function prepFor(input: ProjectInputs, example: boolean, hasPhoto: boolean): string[] {
   const notes = [
     example
-      ? `Quantities follow the ${input.size} example. The designer confirms them in the house.`
-      : "Quantities use the numbers you entered. The designer confirms them in the house.",
+      ? `Quantities follow a typical ${input.size.toLowerCase()} project. We confirm them on site.`
+      : "Quantities are based on the numbers you entered. We confirm them on site.",
     "Clear the work area and tell us about access, pets, and whether water and power stay on.",
     "Existing layout stays unless we agree to move it before the work starts.",
   ];
@@ -357,8 +363,12 @@ function answersFrom(planner: StoredPlanner | null, hasPhoto: boolean): { label:
   const rows = [
     ["Property", planner.address],
     ["Who is there", choiceLabel(OCCUPANCY_OPTIONS, planner.occupancy)],
-    ["Timing", choiceLabel(TIMING_OPTIONS, planner.timing)],
-    ["Decision", choiceLabel(DECISION_OPTIONS, planner.decision)],
+    ["When you want to start", choiceLabel(TIMING_OPTIONS, planner.timing)],
+    ["Approving the work", planner.decision === "ready"
+      ? "You can say yes."
+      : planner.decision === "shared"
+        ? "You'll check with someone else first."
+        : ""],
     ["Notes", planner.note],
     ["Photo", hasPhoto ? "One photo was sent with this request." : ""],
   ];
@@ -371,9 +381,8 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
   const example = usesExampleQuantities(input);
   const answers = answersFrom(planner, hasPhoto);
   const nextSteps = [
-    "Read the labor scope in this estimate.",
-    DESIGNER_MATERIALS_NOTE,
-    CATALOG_BROWSE_NOTE,
+    "Book a designer call to walk the scope and choose cabinets, fillers, toe kick, and baseboard.",
+    "50% deposit to begin, balance on completion.",
     FEE_CREDIT_NOTE,
     PRELIMINARY_ESTIMATE_WORDING,
   ];
@@ -391,7 +400,7 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
       included: [
         "A call from a Flip Fixer designer to measure the work.",
         "A written labor and service scope after that visit.",
-        "Help choosing cabinets, fillers, toe kick, and baseboard. Those products are not sold from this page.",
+        "Help choosing cabinets, fillers, toe kick, and baseboard on the designer call.",
       ],
       excluded: excludedFor(input.service),
       prep: [
@@ -428,14 +437,14 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
     timeline: timelinePhrase(built.adjustedDays),
     tiers,
     included: [
-      ...lines.map((line) => `${line.label} (${line.quantityLabel} ${line.unit}).`),
-      "The labor rates in the table. Each rate is that line's labor divided by its quantity.",
+      "Labor for the areas in the table: demolition where listed, installation, and finish work.",
+      "Protection of the space, daily cleanup, and routine haul-off.",
     ],
     excluded: excludedFor(input.service),
     prep: prepFor(input, example, hasPhoto),
     nextSteps,
     supplierNote: supplier
-      ? "A supplier installs the stone. This estimate does not price that product or that install. The designer confirms it on the call."
+      ? "Stone is supplied and installed separately. It is not part of this labor total."
       : null,
     rangeLabel: formatEstimateRange(built),
     answers,
@@ -458,13 +467,14 @@ export function laborDocumentPlainText(
     `Email: ${header.email}`,
     `Project: ${doc.projectLabel}`,
     doc.size ? `Size: ${doc.size}` : "",
-    doc.selections.length ? `Finishes: ${doc.selections.join(", ")}` : "",
+    [doc.size, ...doc.selections].filter(Boolean).join(" · "),
     "",
-    LABOR_ONLY_NOTE,
+    "Insurance claim specialists.",
     doc.kind === "itemized" ? `Labor and services: ${money(doc.totalCents)}` : "Labor total: set after the walkthrough.",
     doc.timeline,
-    doc.rangeLabel ? `Free planning range already shown on the site: ${doc.rangeLabel}. That is not this labor total.` : "",
-    header.feeLabel ? `You paid ${header.feeLabel} for this estimate. ${FEE_CREDIT_NOTE}` : FEE_CREDIT_NOTE,
+    doc.rangeLabel
+      ? `The free planning range on the site (${doc.rangeLabel}) includes materials and cabinets. This total is labor and services only.`
+      : LABOR_ONLY_NOTE,
     "",
     "Scope",
   ];
@@ -475,7 +485,7 @@ export function laborDocumentPlainText(
         lines.push("", line.area);
         area = line.area;
       }
-      lines.push(`${line.label}: ${line.quantityLabel} ${line.unit} at ${money(line.rateCents)} per ${line.unit}, ${money(line.amountCents)}. ${line.detail}`);
+      lines.push(`${line.label}: ${line.quantityLabel} ${line.unit} at ${money(line.rateCents)} / ${perUnitNoun(line.unit)}, ${money(line.amountCents)}.`);
     }
     lines.push("", "Options");
     for (const tier of doc.tiers) {
@@ -497,7 +507,10 @@ export function laborDocumentPlainText(
     for (const row of doc.answers) lines.push(`${row.label}: ${row.value}`);
   }
   section("Next steps", doc.nextSteps);
-  lines.push("", `Browse the cabinet catalog: ${header.catalogUrl}`);
-  lines.push("Call (210) 436-9117");
+  lines.push("", "Book your designer call: (210) 436-9117");
+  lines.push("https://theflipfixer.com/contact");
+  lines.push(`Browse finishes: ${header.catalogUrl}`);
+  lines.push("50% deposit, balance on completion.");
+  if (header.feeLabel) lines.push(`${header.feeLabel} is credited toward the job if you book.`);
   return lines.filter((line) => line !== "").join("\n");
 }

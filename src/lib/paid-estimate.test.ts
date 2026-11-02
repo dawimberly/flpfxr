@@ -82,18 +82,21 @@ describe("labor document", () => {
       feeLabel: "$35.00",
       catalogUrl: "https://stylesbydesigntx.com/shop?ref=flipfixer",
     });
-    assert.match(text, /Material prices are not included/);
-    assert.match(text, /Request a designer call/);
+    assert.match(text, /includes materials and cabinets/);
+    assert.match(text, /Book your designer call/);
     assert.match(text, /fillers, toe kick, and baseboard/);
+    assert.match(text, /Insurance claim specialists/);
     assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
-    assert.doesNotMatch(text, /insured|insurance/i);
+    assert.match(text, /\/ sq ft/);
+    assert.doesNotMatch(text, /\binsured\b/i);
+    assert.doesNotMatch(text, /divided by|rounded to the cent/i);
     assert.doesNotMatch(text, /\$3\.85|\$185/);
   });
 
   it("leaves supplier-installed stone out of the labor lines", () => {
     const doc = buildLaborDocument(planner({ counter: "quartz" }));
     assert.equal(doc.lines.some((line) => line.label === "Countertop installation"), false);
-    assert.match(doc.supplierNote ?? "", /designer confirms it/);
+    assert.match(doc.supplierNote ?? "", /not part of this labor total/);
   });
 
   it("keeps shower valve labor and drops fixture product cost", () => {
@@ -105,7 +108,7 @@ describe("labor document", () => {
     const fixture = built.lines.find((line) => line.id === "fixture-allowance")!;
     const fixtureLine = doc.lines.find((line) => line.label === "Fixture installation")!;
     assert.notEqual(fixtureLine.amountCents, Math.round(fixture.materials * 100));
-    assert.doesNotMatch(JSON.stringify(doc.excluded), /insured|insurance/i);
+    assert.doesNotMatch(JSON.stringify(doc.excluded), /\binsured\b/i);
   });
 });
 
@@ -209,16 +212,22 @@ describe("labor pdf", () => {
       issued: new Date("2026-11-02T12:00:00Z"),
     });
     assert.equal(Buffer.from(bytes.subarray(0, 5)).toString(), "%PDF-");
+    const { PDFDocument } = await import("pdf-lib");
+    const pdfDoc = await PDFDocument.load(bytes);
+    assert.ok(pdfDoc.getPageCount() <= 3, `expected 2-3 pages, got ${pdfDoc.getPageCount()}`);
     const { extractPdfText } = await import("./pdf-text.ts");
     const text = await extractPdfText(bytes);
     assert.match(text, /THE FLIP FIXER/);
     assert.match(text, /Floor installation/);
     assert.match(text, /Labor and services total/);
     assert.match(text, /Before we start/);
-    assert.match(text, /Next steps/);
-    assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
-    assert.match(text, /Request a designer call/);
-    assert.doesNotMatch(text, /insured|insurance/i);
+    assert.match(text, /Book your designer call/);
+    assert.match(text, /Insurance claim specialists/);
+    assert.match(text, /Final prices set after onsite inspection/);
+    assert.match(text, /theflipfixer.com/);
+    assert.match(text, /\/ sq ft/);
+    assert.doesNotMatch(text, /divided by|rounded to the cent/i);
+    assert.doesNotMatch(text, /\binsured\b/i);
   });
 });
 
