@@ -145,14 +145,14 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
     },
     paint: {
       area: input.service === "exterior-paint" ? "Exterior paint" : "Walls and trim",
-      label: "Paint labor",
+      label: "Paint",
       detail: `${paintCoats} finish coat${paintCoats === 1 ? "" : "s"} on the ${paintWhere} area.`,
       quantity: scope.wall,
       unit: "sq ft",
     },
     primer: {
       area: input.service === "exterior-paint" ? "Exterior paint" : "Walls and trim",
-      label: "Primer labor",
+      label: "Primer",
       detail: "One primer pass before the finish coats.",
       quantity: scope.wall,
       unit: "sq ft",
@@ -224,8 +224,8 @@ function specsFor(input: ProjectInputs, built: Built): Spec[] {
     },
     "licensed-plumber-valve": {
       area: "Shower",
-      label: "Shower valve labor",
-      detail: "Labor to set the shower valve. The valve product is not in this estimate.",
+      label: "Shower valve",
+      detail: "We set the shower valve. The valve itself is not priced here.",
       quantity: 1,
       unit: "each",
     },
@@ -438,7 +438,7 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
       tiers: [],
       included: [
         "A call from a Flip Fixer designer to measure the work.",
-        "A written labor and service scope after that visit.",
+        "A written job estimate after that visit.",
         "Help choosing cabinets, fillers, toe kick, and baseboard on the designer call.",
       ],
       excluded: excludedFor(input.service),
@@ -476,14 +476,14 @@ export function buildLaborDocument(planner: StoredPlanner, hasPhoto = false): La
     timeline: timelinePhrase(built.adjustedDays),
     tiers,
     included: [
-      "Labor for the areas in the table: demolition where listed, installation, and finish work.",
+      "The work in this estimate: demolition where listed, installation, and finish work.",
       "Protection of the space, daily cleanup, and routine haul-off.",
     ],
     excluded: excludedFor(input.service),
     prep: prepFor(input, example, hasPhoto),
     nextSteps,
     supplierNote: supplier
-      ? "Stone is supplied and installed separately. It is not part of this labor total."
+      ? "Stone is supplied and installed separately. It is not priced on this estimate. We finalize it with the designer."
       : null,
     rangeLabel: formatEstimateRange(built),
     answers,
@@ -534,7 +534,7 @@ export function customerFacingCopy(
   const notes = [
     doc.supplierNote ?? "",
     doc.rangeLabel
-      ? `The planning range on the site (${doc.rangeLabel}) includes materials and cabinets. The investment above is labor and services.`
+      ? `The planning range on the site (${doc.rangeLabel}) includes materials and cabinets. The estimated job total above names materials without prices. We finalize those with the designer.`
       : doc.kind === "itemized" ? LABOR_ONLY_NOTE : "",
     ...doc.prep.filter((row) => !/^Quantities (follow|are based)/.test(row)),
     ...doc.answers.filter((row) => row.label !== "Property").map((row) => `${row.label}: ${row.value}`),
@@ -553,6 +553,7 @@ export function laborDocumentPlainText(
   const copy = customerFacingCopy(doc, header);
   const lines = [
     "FLIP FIXER",
+    "Itemized job estimate",
     CUSTOMER_CONTACT_LINE,
     "",
     "PROJECT",
@@ -568,7 +569,7 @@ export function laborDocumentPlainText(
   ];
   if (copy.investment.length) {
     for (const row of copy.investment) lines.push(`${row.label}: ${money(row.cents)}`);
-    lines.push(`Labor and services: ${money(doc.totalCents)}`);
+    lines.push(`Estimated job total: ${money(doc.totalCents)}`);
   } else {
     lines.push("Set after we walk the space.");
   }

@@ -91,6 +91,9 @@ describe("labor document", () => {
     assert.match(text, /NOTES/);
     assert.match(text, /Materials named for this job/);
     assert.match(text, /includes materials and cabinets/);
+    assert.match(text, /Itemized job estimate/);
+    assert.match(text, /Estimated job total/);
+    assert.doesNotMatch(text, /\blabor\b/i);
     assert.match(text, /50% deposit schedules the work/);
     assert.match(text, /Ready when you are/);
     assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
@@ -111,14 +114,14 @@ describe("labor document", () => {
   it("leaves supplier-installed stone out of the labor lines", () => {
     const doc = buildLaborDocument(planner({ counter: "quartz" }));
     assert.equal(doc.lines.some((line) => line.label === "Countertop installation"), false);
-    assert.match(doc.supplierNote ?? "", /not part of this labor total/);
+    assert.match(doc.supplierNote ?? "", /not priced on this estimate/);
   });
 
   it("keeps shower valve labor and drops fixture product cost", () => {
     const input = planner({ service: "bathroom", floor: "tile", shower: "ceramic" });
     const doc = buildLaborDocument(input);
     const built = projectPlanningEstimate(input.project)!;
-    const valve = doc.lines.find((line) => line.label === "Shower valve labor");
+    const valve = doc.lines.find((line) => line.label === "Shower valve");
     assert.equal(valve?.amountCents, 22500);
     const fixture = built.lines.find((line) => line.id === "fixture-allowance")!;
     const fixtureLine = doc.lines.find((line) => line.label === "Fixture installation")!;
@@ -249,7 +252,9 @@ describe("labor pdf", () => {
     assert.match(text, /WHAT'S INCLUDED/);
     assert.match(text, /WHAT'S NOT INCLUDED/);
     assert.match(text, /INVESTMENT/);
-    assert.match(text, /Labor and services/);
+    assert.match(text, /Estimated job total/);
+    assert.match(text, /\u2022/);
+    assert.doesNotMatch(text, /\blabor\b/i);
     assert.match(text, /NOTES/);
     assert.match(text, /50% deposit schedules the work\. Balance due on completion\. Price good 30 days\./);
     assert.match(text, /Final prices set after onsite inspection/);

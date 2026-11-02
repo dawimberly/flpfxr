@@ -234,9 +234,9 @@ export async function handleFreeInquiry(
 function checkoutMessage(planner: StoredPlanner): string {
   const doc = buildLaborDocument(planner, false);
   return [
-    "Paid itemized labor estimate requested.",
+    "Paid itemized job estimate requested.",
     `Project: ${doc.projectLabel}. Size: ${doc.size}.`,
-    doc.rangeLabel ? `Free planning range on the site: ${doc.rangeLabel}.` : "Custom project. Labor is priced after a walkthrough.",
+    doc.rangeLabel ? `Free planning range on the site: ${doc.rangeLabel}.` : "Custom project. We write the estimate after a walkthrough.",
     planner.address ? `Address: ${planner.address}` : "",
     planner.note ? `Note: ${planner.note}` : "",
     FEE_CREDIT_NOTE,
@@ -346,8 +346,8 @@ export async function handleEstimateCheckout(
     amountCents: feeCents,
     submissionId: contact.submissionId,
     customerEmail: contact.email,
-    productName: "Itemized labor estimate",
-    productDescription: "Labor and services only. Credited toward the job if you book.",
+    productName: "Itemized job estimate",
+    productDescription: "Materials are named without prices and finalized with the designer. Credited toward the job if you book.",
     successUrl: `${origin}/estimate/paid?session_id={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${origin}/estimate?checkout=cancelled&service=${encodeURIComponent(service)}&size=${encodeURIComponent(parsed.planner.project.size.toLowerCase())}`,
     idempotencyKey: `detailed-estimate/${contact.submissionId}`,
@@ -374,7 +374,7 @@ export async function handleEstimateCheckout(
         from: mailCfg.from,
         replyTo: contact.email,
         subject: `The Flip Fixer — estimate photo (${contact.name})`,
-        text: `${contact.name} started a paid labor estimate and attached a photo.\nPhone: ${contact.phone}\nEmail: ${contact.email}\nLead: ${contact.submissionId}`,
+        text: `${contact.name} started a paid job estimate and attached a photo.\nPhone: ${contact.phone}\nEmail: ${contact.email}\nLead: ${contact.submissionId}`,
         attachments: [{
           filename: photoCheck.file.name || "project-photo.jpg",
           contentBase64: await fileToBase64(photoCheck.file),
@@ -407,7 +407,7 @@ async function notifyPaid(lead: PaidLead, deps: { sendMail?: typeof sendLeadEmai
   const feeLabel = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(lead.feeCents / 100);
   const packet = doc
     ? laborDocumentPlainText(doc, { name: lead.name, phone: lead.phone, email: lead.email, feeLabel, catalogUrl })
-    : `${lead.name} paid for a labor estimate. Project details were not stored. Call them.\n${DESIGNER_MATERIALS_NOTE}`;
+    : `${lead.name} paid for a job estimate. Project details were not stored. Call them.\n${DESIGNER_MATERIALS_NOTE}`;
   let pdf: Uint8Array | null = null;
   if (doc && planner) {
     pdf = await renderLaborEstimatePdf({
@@ -421,7 +421,7 @@ async function notifyPaid(lead: PaidLead, deps: { sendMail?: typeof sendLeadEmai
     });
   }
   const attachment = pdf
-    ? [{ filename: "Flip-Fixer-labor-estimate.pdf", contentBase64: Buffer.from(pdf).toString("base64"), contentType: "application/pdf" }]
+    ? [{ filename: "Flip-Fixer-job-estimate.pdf", contentBase64: Buffer.from(pdf).toString("base64"), contentType: "application/pdf" }]
     : undefined;
 
   if (!lead.customerNotified && lead.email) {
@@ -431,9 +431,9 @@ async function notifyPaid(lead: PaidLead, deps: { sendMail?: typeof sendLeadEmai
         to: lead.email,
         from: mailCfg.from,
         replyTo: mailCfg.to,
-        subject: "Your Flip Fixer labor estimate",
+        subject: "Your Flip Fixer job estimate",
         text: [
-          `Thanks ${lead.name}. Your itemized labor estimate is attached.`,
+          `Thanks ${lead.name}. Your itemized job estimate is attached.`,
           CATALOG_BROWSE_NOTE,
           catalogUrl,
           "",
@@ -455,9 +455,9 @@ async function notifyPaid(lead: PaidLead, deps: { sendMail?: typeof sendLeadEmai
         to: mailCfg.to,
         from: mailCfg.from,
         replyTo: lead.email || undefined,
-        subject: `The Flip Fixer — paid labor estimate (${lead.name})`,
+        subject: `The Flip Fixer — paid job estimate (${lead.name})`,
         text: [
-          "Paid labor estimate. Please call this customer.",
+          "Paid job estimate. Please call this customer.",
           `Name: ${lead.name}`,
           `Phone: ${lead.phone}`,
           `Email: ${lead.email || "(none)"}`,

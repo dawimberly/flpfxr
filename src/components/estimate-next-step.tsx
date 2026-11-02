@@ -129,12 +129,12 @@ export function EstimateNextStep({
     <section className="mt-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-border)] md:p-8" data-testid="estimate-next">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Step {step + 1} of 4</p>
       <h2 className="mt-2 font-display text-2xl text-fg">
-        {step === 0 ? "A labor estimate, or a free call" : step === 1 ? "A few details" : step === 2 ? "How do we reach you?" : "Choose one"}
+        {step === 0 ? "Your job estimate, or a free call" : step === 1 ? "A few details" : step === 2 ? "How do we reach you?" : "Choose one"}
       </h2>
       {cancelled ? <p className="mt-2 text-sm text-fg">Checkout closed before payment. The planning range is still free.</p> : null}
       <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
           <div className={step === 0 ? "space-y-3 text-sm leading-relaxed text-muted" : "hidden"}>
-            <p>The range above stays free. For {feeLabel ?? "$35"} you can buy a written labor estimate: quantities, labor rates, other size options, an on-site timeline, and what is included. Or send a free inquiry and we call you back.</p>
+            <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate. Materials are named without prices and finalized with the designer. Or send a free inquiry and we call you back.</p>
             <ul className="list-disc space-y-1 pl-5 text-fg">
               <li>{LABOR_ONLY_NOTE}</li>
               <li>Other sizes and an on-site timeline are in the PDF.</li>
@@ -206,10 +206,10 @@ export function EstimateNextStep({
                       <li key={line.label}>{line.area}: {line.label}, {line.quantityLabel} {line.unit}</li>
                     ))}
                   </ul>
-                  <p className="mt-2 text-muted">Labor rates and the labor total are in the PDF, after payment. This preview is the scope, not the price.</p>
+                  <p className="mt-2 text-muted">The itemized job estimate is in the PDF, after payment. This preview is the scope, not the price.</p>
                 </div>
               ) : (
-                <p className="text-sm text-fg">For a project outside the planner, the PDF explains the walkthrough. The designer measures it and writes the labor scope. No guessed total.</p>
+                <p className="text-sm text-fg">For a project outside the planner, the PDF explains the walkthrough. The designer measures it and writes the job estimate. No guessed total.</p>
               )}
               {blockedReason ? <p className="text-sm text-fg">{blockedReason} You can still send a free inquiry.</p> : null}
               <div className="grid gap-3 sm:grid-cols-2">

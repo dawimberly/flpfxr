@@ -148,7 +148,7 @@ export async function renderLaborEstimatePdf(args: {
     const lines = wrap(value, font, 10, CONTENT_W - 16);
     ensure(lines.length * 14 + 2);
     lines.forEach((line, index) => {
-      textAt(index === 0 ? "•" : "", MARGIN, y, 10, font);
+      if (index === 0) page.drawText("\u2022", { x: MARGIN, y, size: 10, font, color: INK });
       textAt(line, MARGIN + 14, y, 10, font);
       y -= 12;
     });
@@ -187,7 +187,7 @@ export async function renderLaborEstimatePdf(args: {
     ensure(22);
     y -= 2;
     page.drawLine({ start: { x: MARGIN, y: y + 12 }, end: { x: PAGE_W - MARGIN, y: y + 12 }, thickness: 0.6, color: INK });
-    textAt("Labor and services", MARGIN, y, 11, bold);
+    textAt("Estimated job total", MARGIN, y, 11, bold);
     const total = money(args.document.totalCents);
     textAt(total, PAGE_W - MARGIN - bold.widthOfTextAtSize(total, 12), y, 12, bold);
     y -= 18;
