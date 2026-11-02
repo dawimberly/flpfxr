@@ -34,6 +34,7 @@ export const ESTIMATOR_APP_URL = "/estimator";
 export const NAV = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
+  { to: "/estimate", label: "Estimate" },
   { to: "/gallery", label: "Gallery" },
   { to: "/about", label: "About" },
   { to: "/blog", label: "Resources" },

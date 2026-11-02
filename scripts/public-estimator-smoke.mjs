@@ -83,7 +83,7 @@ try {
     await floor.fill("168");
     await page.getByText("between $12,300 and $15,400",{exact:true}).waitFor();
 
-    await page.getByLabel("Project type",{exact:true}).selectOption("kitchen");
+    await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
     await page.getByText("between $12,300 and $15,400",{exact:true}).waitFor();
@@ -91,7 +91,7 @@ try {
     await page.getByText("between $10,900 and $13,600",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("quartz");
 
-    await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
+    await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.getByText("Demolition",{exact:true}).waitFor();
     await page.getByText("between $9,000 and $11,200",{exact:true}).waitFor();
@@ -101,12 +101,12 @@ try {
     assert.match(await page.getByTestId("estimate-materials").innerText(),/Stone slab/);
     assert.doesNotMatch(await page.getByTestId("estimate-summary").innerText(),/remnant|10% off|allowance|full slab|licensed|insured|waterfall/i);
     await page.getByLabel("Shower wall").selectOption("ceramic");
-    await page.getByLabel("Project type",{exact:true}).selectOption("exterior-paint");
+    await page.getByRole("button",{name:"Exterior painting",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.getByText("between $5,300 and $6,700",{exact:true}).waitFor();
     await page.locator("#estimate-coats").selectOption("2");
     await page.getByText("between $8,600 and $10,800",{exact:true}).waitFor();
-    await page.getByLabel("Project type",{exact:true}).selectOption("bathroom");
+    await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.getByText("between $9,000 and $11,200",{exact:true}).waitFor();
     const undersized=await page.locator("main select, main input, main button, main summary, main a").evaluateAll(elements=>

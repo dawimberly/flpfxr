@@ -162,7 +162,13 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/aria-invalid/);
     assert.match(ui,/event.preventDefault/);
     assert.match(ui,/1 coat \(standard\)/);
+    assert.match(ui,/Project type/);
+    assert.match(ui,/aria-pressed=\{inputs\.service === service\.id\}/);
     assert.match(ui,/Starting point/);
+    const site = readFileSync("src/lib/site.ts", "utf8");
+    assert.match(site, /to: "\/estimate", label: "Estimate"/);
+    const css = readFileSync("src/styles.css", "utf8");
+    assert.match(css, /color-scheme:\s*dark/);
     assert.match(ui,/Flooring type/);
     assert.match(ui,/Shower wall/);
     assert.match(ui,/Countertop type/);

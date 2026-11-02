@@ -116,17 +116,20 @@ export function PublicProjectEstimator() {
       }}>
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Project planning estimate</p>
       <h2 className="mt-2 font-display text-2xl text-fg">What are you planning?</h2>
-      <label className="mt-6 block text-sm font-semibold text-fg" htmlFor="estimate-service">Project type</label>
-      <select id="estimate-service" value={inputs.service} onChange={e => {
-        const service = e.target.value as ProjectInputs["service"];
-        setAreas(presetAreas(service, inputs.size));
-        setInputs(prev => ({
-          ...prev, service, floor: service === "bathroom" ? "tile" : "lvp",
-          vanity: service === "bathroom" ? vanityForSize(prev.size) : prev.vanity,
-        }));
-      }} className={fieldClass}>
-        {PROJECT_SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-      </select>
+      <fieldset className="mt-6">
+        <legend className="text-sm font-semibold text-fg">Project type</legend>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {PROJECT_SERVICES.map(service => <button key={service.id} type="button" aria-pressed={inputs.service === service.id}
+            onClick={() => {
+              setAreas(presetAreas(service.id, inputs.size));
+              setInputs(prev => ({
+                ...prev, service: service.id, floor: service.id === "bathroom" ? "tile" : "lvp",
+                vanity: service.id === "bathroom" ? vanityForSize(prev.size) : prev.vanity,
+              }));
+            }}
+            className={`min-h-11 rounded-lg border p-3 text-left text-sm font-semibold ${inputs.service === service.id ? "border-primary bg-primary text-primary-fg" : "border-border bg-bg text-fg"}`}>{service.label}</button>)}
+        </div>
+      </fieldset>
       {scope ? <>
         <fieldset className="mt-6">
           <legend className="text-sm font-semibold text-fg">Starting point</legend>
