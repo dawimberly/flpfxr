@@ -62,11 +62,11 @@ describe("estimate landing links", () => {
     assert.equal("fbclid" in handoff, false);
   });
 
-  it("keeps the kitchen and bathroom ranges unchanged", () => {
+  it("keeps the bathroom and kitchen ranges for the current box prices", () => {
     const kitchen = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "kitchen", size: "medium" })));
     const bathroom = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "bathroom", size: "medium" })));
-    assert.equal(formatEstimateRange(kitchen!), "between $12,300 and $15,400");
-    assert.equal(formatEstimateRange(bathroom!), "between $9,000 and $11,200");
+    assert.equal(formatEstimateRange(kitchen!), "between $12,800 and $16,000");
+    assert.equal(formatEstimateRange(bathroom!), "between $9,300 and $11,700");
   });
 
   it("builds the trust line only from places the site already lists", () => {

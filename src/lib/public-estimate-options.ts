@@ -133,27 +133,28 @@ export function parseBoxCount(raw: string): { value: number | null; error: strin
   if (!/^\d+$/.test(s)) return { value: null, error: "Use a whole number of boxes." };
   return { value: Number(s), error: null };
 }
-/**
- * Styles by Design contractor catalog stores Northville list prices in `cost_per_unit`
- * (Elegant White Shaker matches the Northville MSRP file). The contractor portal sells at 20% off.
- * Customers are not charged that list price. Their price is 10% off, which is above the contractor price.
- */
+/** Vanities and filler strips. Kitchen box prices are the amounts on the box costs. */
 export const CUSTOMER_LIST_DISCOUNT = 0.1;
-export const CONTRACTOR_LIST_DISCOUNT = 0.2;
+export const CONTRACTOR_LIST_DISCOUNT = 0.4;
 export function priceOffList(list: number, discount: number) {
   return Math.round(list * (1 - discount) * 100) / 100;
 }
-export type VanitySize = { id: string; label: string; list: number; double: boolean };
+export type VanitySize = { id: string; label: string; list: number; widthIn: number; double: boolean };
+/** Standard vanity cabinet depth. The top area follows the selected width. */
+export const VANITY_TOP_DEPTH_IN = 22;
 export const VANITY_SIZES: VanitySize[] = [
-  { id: "VA24", label: "24-inch vanity", list: 186, double: false },
-  { id: "VA27", label: "27-inch vanity", list: 288, double: false },
-  { id: "VA30", label: "30-inch vanity", list: 220, double: false },
-  { id: "VA36", label: "36-inch vanity", list: 273, double: false },
-  { id: "VA42DL", label: "42-inch vanity", list: 345, double: false },
-  { id: "VA48D", label: "48-inch vanity", list: 429, double: false },
-  { id: "VA60D", label: "60-inch vanity", list: 499, double: false },
-  { id: "VA60DD", label: "60-inch double vanity", list: 463, double: true },
+  { id: "VA24", label: "24-inch vanity", list: 186, widthIn: 24, double: false },
+  { id: "VA27", label: "27-inch vanity", list: 288, widthIn: 27, double: false },
+  { id: "VA30", label: "30-inch vanity", list: 220, widthIn: 30, double: false },
+  { id: "VA36", label: "36-inch vanity", list: 273, widthIn: 36, double: false },
+  { id: "VA42DL", label: "42-inch vanity", list: 345, widthIn: 42, double: false },
+  { id: "VA48D", label: "48-inch vanity", list: 429, widthIn: 48, double: false },
+  { id: "VA60D", label: "60-inch vanity", list: 499, widthIn: 60, double: false },
+  { id: "VA60DD", label: "60-inch double vanity", list: 463, widthIn: 60, double: true },
 ];
+export function vanityTopSqft(vanity: VanitySize) {
+  return Math.round((vanity.widthIn * VANITY_TOP_DEPTH_IN) / 144 * 100) / 100;
+}
 export function vanityForSize(size: ProjectSize) {
   return size === "Large" ? "VA60DD" : "VA30";
 }
@@ -208,7 +209,7 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       const shower = areas.showerSqft == null ? scaleFrom(bath.shower, bath.floor, floor) : areas.showerSqft;
       const surroundNote = areas.showerSqft == null ? ", scaled from that example because none was entered" : "";
       return {
-        floor, wall, trim, shower, counters: 0, backsplash: 0, base: 0, wallUnits: 0, xlFridgeBoxes: 0, doubleVanity: vanity.double,
+        floor, wall, trim, shower, counters: vanityTopSqft(vanity), backsplash: 0, base: 0, wallUnits: 0, xlFridgeBoxes: 0, doubleVanity: vanity.double,
         summary: `Example: ${sqftText(floor)} sq ft bathroom, ${sqftText(shower)} sq ft surround, ${vanity.label}, one 3-inch filler strip, floor, trim, wall paint, demolition, setting materials, waterproofing and a basic fixture allowance.`,
         assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft) and trim (${sqftText(trim)} ft) are scaled from the ${size} example. Surround is ${sqftText(shower)} sq ft${surroundNote}. Vanity is a ${vanity.label}, priced at 10% off the cabinet list. One 3-inch filler strip is included at that same discount. Fixtures and demolition stay with the ${size} example.`,
         exclusions: "Existing layout retained. Basic finish demolition and shower waterproofing materials included. Plumbing relocation, electrical, permits and concealed repairs require separate allowances.",

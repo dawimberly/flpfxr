@@ -72,14 +72,14 @@ describe("trade productivity and bathroom completeness", () => {
   });
   it("keeps the preset range and prices an extra XL fridge box", () => {
     const preset = projectPlanningEstimate(input())!;
-    assert.equal(formatEstimateRange(preset), "between $12,300 and $15,400");
+    assert.equal(formatEstimateRange(preset), "between $12,800 and $16,000");
     const same = projectPlanningEstimate(input({ cabinetBoxes: 16, xlFridgeBoxes: 0 }))!;
     assert.equal(same.total, preset.total);
     assert.equal(line({ cabinetBoxes: 10 }, "base-cabinets").personHours, 5 * 1.5);
     assert.equal(line({ cabinetBoxes: 10 }, "wall-cabinets").personHours, 5 * 1.5);
     const xl = line({ xlFridgeBoxes: 1 }, "xl-fridge");
     assert.equal(xl.personHours, 2.5);
-    assert.equal(xl.materials, 308);
+    assert.equal(xl.materials, 585.16);
     assert.ok(projectPlanningEstimate(input({ xlFridgeBoxes: 1 }))!.total > preset.total);
     assert.equal(projectPlanningEstimate(input({ cabinetBoxes: 41 })), null);
     assert.equal(projectPlanningEstimate(input({ xlFridgeBoxes: 7 })), null);
@@ -91,7 +91,7 @@ describe("trade productivity and bathroom completeness", () => {
   it("shows a kitchen range by default and keeps stone at or above laminate and ceramic", () => {
     const kitchen=projectPlanningEstimate(input())!;
     assert.equal(kitchen.scope.summary.includes("kitchen"),true);
-    assert.equal(formatEstimateRange(kitchen),"between $12,300 and $15,400");
+    assert.equal(formatEstimateRange(kitchen),"between $12,800 and $16,000");
     assert.equal(stoneCoverage(8,false).remnant,true);
     assert.equal(stoneCoverage(32,true).billableSqft,SLAB_SQFT);
     assert.ok(stoneCoverage(60,true).billableSqft>=SLAB_SQFT*2);
@@ -122,11 +122,11 @@ describe("trade productivity and bathroom completeness", () => {
     assert.equal(line({service:"kitchen",size:"Small"},"demolition").personHours,8);
     assert.doesNotMatch(result.scope.exclusions,/Demolition|waterproofing[^.]*require/);
     assert.doesNotMatch(projectPlanningEstimate(input({service:"kitchen"}))!.scope.exclusions,/Demolition/);
-    close(result.materials,3349.6);
+    close(result.materials,3670.2);
     close(result.baseCrewDays,110.15/16);
     assert.equal(result.adjustedDays,8);
-    close(result.total,8999.6);
-    assert.equal(formatEstimateRange(result),"between $9,000 and $11,200");
+    close(result.total,9320.2);
+    assert.equal(formatEstimateRange(result),"between $9,300 and $11,700");
   });
   it("adds shipping and specialists only once without markup", () => {
     const a=projectPlanningEstimate(input({service:"bathroom"}))!;
@@ -167,8 +167,8 @@ describe("raw allowance validation and limited customer handoff", () => {
   });
   it("passes only range, type, size and materials with estimate status", () => {
     const message=projectEstimateLeadMessage(input({service:"bathroom",floor:"tile",delivery:300,specialist:750}));
-    assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Ceramic tile shower wall, 30-inch vanity, New toilet, Primer and paint/);
-    assert.match(message,/between \$10,000 and \$12,600/);
+    assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Quartz counters, Ceramic tile shower wall, 30-inch vanity, New toilet, Primer and paint/);
+    assert.match(message,/between \$10,400 and \$13,000/);
     assert.match(message,/Preliminary estimate only — not a quote\. Final prices set after onsite inspection\./);
     assert.equal(message.includes(PRELIMINARY_ESTIMATE_WORDING),true);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|demolition|sq ft|allowance/i);
@@ -213,12 +213,12 @@ describe("raw allowance validation and limited customer handoff", () => {
 describe("measured square footage", () => {
   it("keeps the displayed range identical for every preset and for typed square footage", () => {
     const presetRanges: Record<string, string | null> = {
-      "kitchen Small": "between $10,400 and $13,100",
-      "kitchen Medium": "between $12,300 and $15,400",
-      "kitchen Large": "between $19,000 and $23,700",
-      "bathroom Small": "between $6,600 and $8,200",
-      "bathroom Medium": "between $9,000 and $11,200",
-      "bathroom Large": "between $12,600 and $15,800",
+      "kitchen Small": "between $10,800 and $13,500",
+      "kitchen Medium": "between $12,800 and $16,000",
+      "kitchen Large": "between $19,600 and $24,400",
+      "bathroom Small": "between $6,900 and $8,600",
+      "bathroom Medium": "between $9,300 and $11,700",
+      "bathroom Large": "between $13,300 and $16,600",
       "flooring Small": "between $1,800 and $2,200",
       "flooring Medium": "between $3,600 and $4,500",
       "flooring Large": "between $6,100 and $7,600",
@@ -254,13 +254,13 @@ describe("measured square footage", () => {
       }
     }
     const customRanges: Array<[string, Partial<ProjectInputs>, string]> = [
-      ["kitchen floor 200", { service: "kitchen", floorSqft: 200, counterSqft: null }, "between $16,500 and $20,600"],
-      ["kitchen counter 8", { service: "kitchen", floorSqft: 168, counterSqft: 8 }, "between $9,500 and $11,900"],
-      ["kitchen counter 11", { service: "kitchen", floorSqft: 168, counterSqft: 11 }, "between $12,300 and $15,400"],
-      ["bath shower 40", { service: "bathroom", floor: "tile", floorSqft: 80, showerSqft: 40 }, "between $7,900 and $9,900"],
+      ["kitchen floor 200", { service: "kitchen", floorSqft: 200, counterSqft: null }, "between $16,900 and $21,100"],
+      ["kitchen counter 8", { service: "kitchen", floorSqft: 168, counterSqft: 8 }, "between $10,000 and $12,400"],
+      ["kitchen counter 11", { service: "kitchen", floorSqft: 168, counterSqft: 11 }, "between $12,800 and $16,000"],
+      ["bath shower 40", { service: "bathroom", floor: "tile", floorSqft: 80, showerSqft: 40 }, "between $8,300 and $10,300"],
       ["interior 1000", { service: "interior-paint", roomSqft: 1000 }, "between $5,500 and $6,800"],
       ["exterior 2 coat", { service: "exterior-paint", exteriorCoats: 2 }, "between $8,600 and $10,800"],
-      ["kitchen laminate", { service: "kitchen", counter: "laminate" }, "between $10,900 and $13,600"],
+      ["kitchen laminate", { service: "kitchen", counter: "laminate" }, "between $11,300 and $14,200"],
     ];
     for (const [name, changes, range] of customRanges) {
       assert.equal(formatEstimateRange(projectPlanningEstimate(input(changes))!), range, name);
@@ -366,7 +366,7 @@ describe("selectable vanity and filler strips", () => {
       ["BF336", "BF636", "TK8", "TF196", "TF396", "TF696"],
     );
     assert.equal(bySku.BF336.list, 24);
-    assert.equal(bySku.BF336.contractor, 19.2);
+    assert.equal(bySku.BF336.contractor, 14.4);
     assert.equal(bySku.BF336.customer, 21.6);
     assert.equal(bySku.BF636.customer, 45);
     assert.equal(bySku.TK8.customer, 17.1);

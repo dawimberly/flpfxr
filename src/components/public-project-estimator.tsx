@@ -46,7 +46,7 @@ function sizeText(service: ProjectInputs["service"], scope: NonNullable<ReturnTy
 function materialText(inputs: ProjectInputs, scope: NonNullable<ReturnType<typeof projectScope>>) {
   return [
     scope.floor ? FLOOR_MATERIALS.find(m => m.id === inputs.floor)!.label : "",
-    inputs.service === "kitchen" ? COUNTER_MATERIALS.find(m => m.id === inputs.counter)!.label : "",
+    inputs.service === "kitchen" || inputs.service === "bathroom" ? COUNTER_MATERIALS.find(m => m.id === inputs.counter)!.label : "",
     inputs.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === inputs.shower)!.label : "",
     inputs.service === "bathroom" ? selectedVanity(inputs.size, inputs.vanity).label : "",
     inputs.service === "bathroom" ? (inputs.newToilet ? "New toilet" : "Existing toilet") : "",
@@ -55,7 +55,7 @@ function materialText(inputs: ProjectInputs, scope: NonNullable<ReturnType<typeo
   ].filter(Boolean).join(", ");
 }
 function includedItems(service: ProjectInputs["service"], floor: ProjectInputs["floor"]): string[] {
-  if (service === "bathroom") return ["Demolition", floor === "tile" ? "Tile" : "Flooring", "Vanity", "Fixtures", "Install labor"];
+  if (service === "bathroom") return ["Demolition", floor === "tile" ? "Tile" : "Flooring", "Vanity", "Countertop", "Fixtures", "Install labor"];
   if (service === "kitchen") return ["Demolition", "Cabinets", "Countertops", "Flooring", "Install labor"];
   if (service === "flooring") return ["Flooring", "Install labor"];
   if (service === "interior-paint" || service === "exterior-paint") return ["Paint", "Install labor"];
@@ -238,7 +238,7 @@ export function PublicProjectEstimator({
               {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
-          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop type
+          {inputs.service === "kitchen" || inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop type
             <select id="estimate-counter" value={inputs.counter} onChange={e => patch("counter", e.target.value as ProjectInputs["counter"])} className={fieldClass}>
               {COUNTER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>

@@ -39,9 +39,10 @@ const SHOWER_MATERIAL_COST = { ceramic: 5.50, porcelain: 6.25 };
 const REFERENCE_COST = {
   trim: 2.85, interiorPaint: 0.45, exteriorPaint: 0.55,
   interiorPrimer: 0.22, exteriorPrimer: 0.28,
-  baseCabinet: 185, wallCabinet: 145, backsplash: 8.75,
-  /** Same $185 base-box reference, times the oversized labor ratio, nearest dollar. Not a refrigerator-cabinet quote. */
-  xlFridgeBox: Math.round(185 * (125 / 75)),
+  /** Northville face-frame average, December 2023, Grey Shaker and Elegant White. */
+  baseCabinet: 234.08, wallCabinet: 153.87, backsplash: 8.75,
+  /** Tall pantry average from that same list. */
+  xlFridgeBox: 585.16,
 };
 
 /**
@@ -225,6 +226,11 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
   if (input.service === "bathroom") {
     const vanity = selectedVanity(input.size, input.vanity);
     add("vanity", 1, priceOffList(vanity.list, CUSTOMER_LIST_DISCOUNT), TRADE_HOURS.cabinetBox);
+    if (input.counter === "quartz" || input.counter === "granite") {
+      add("counter", scope.counters, stoneRate(input.counter, false), 0);
+    } else {
+      add("counter", scope.counters, COUNTER_MATERIAL_COST[input.counter], TRADE_HOURS.countertop);
+    }
     const filler = FILLER_STRIPS.find(row => row.sku === INCLUDED_FILLER_SKU)!;
     add("filler", 1, priceOffList(filler.list, CUSTOMER_LIST_DISCOUNT), 0);
     if (input.shower === "stone") {
@@ -312,7 +318,8 @@ export function projectEstimateLeadMessage(input: ProjectInputs): string {
   const service = PROJECT_SERVICES.find(s => s.id === input.service)!.label;
   const selections = [
     result?.scope.floor ? FLOOR_MATERIALS.find(m => m.id === input.floor)!.label : "",
-    input.service === "kitchen" ? COUNTER_MATERIALS.find(m => m.id === input.counter)!.label + " counters" : "",
+    input.service === "kitchen" || input.service === "bathroom"
+      ? COUNTER_MATERIALS.find(m => m.id === input.counter)!.label + " counters" : "",
     input.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === input.shower)!.label + " shower wall" : "",
     input.service === "bathroom" ? selectedVanity(input.size, input.vanity).label : "",
     input.service === "bathroom" ? (input.newToilet ? "New toilet" : "Existing toilet") : "",
