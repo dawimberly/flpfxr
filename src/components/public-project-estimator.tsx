@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  DEFAULT_PROJECT_INPUTS, PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
+  PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
   COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, projectScope, presetAreas, parseSqft, scopeAreaError,
   vanityForSize, selectedVanity,
-  type ExteriorCoats, type ProjectInputs, type ScopeAreas,
+  type ExteriorCoats, type ProjectInputs, type ProjectService, type ProjectSize, type ScopeAreas,
 } from "@/lib/public-estimate-options";
 import {
   projectPlanningEstimate, projectEstimateLeadMessage, formatEstimateRange,
   PRELIMINARY_ESTIMATE_WORDING,
 } from "@/lib/public-pricing";
-import { saveLeadDraft, type ServiceId } from "@/lib/site";
+import { SERVICE_AREAS, saveLeadDraft, type ServiceId } from "@/lib/site";
+import {
+  DEFAULT_ESTIMATE_HEADLINE, ESTIMATE_INTRO, estimateHandoffSearch, estimateLandingUrl,
+  estimateTrustLine, headlineFor, inputsFromLanding,
+  type EstimateLanding,
+} from "@/lib/estimate-landing";
 import {
   trackEstimateStart, trackEstimateRangeShown, trackEstimateOutOfRange,
   trackEstimateHandoffClick,
@@ -48,10 +53,19 @@ function includedItems(service: ProjectInputs["service"], floor: ProjectInputs["
   if (service === "interior-paint" || service === "exterior-paint") return ["Paint", "Install labor"];
   return [];
 }
+const choiceClass = (selected: boolean) =>
+  `min-h-11 rounded-lg border px-2 py-2 text-left text-sm font-semibold leading-tight ${selected ? "border-primary bg-primary text-primary-fg" : "border-border bg-bg text-fg"}`;
 
-export function PublicProjectEstimator() {
-  const [inputs, setInputs] = useState<ProjectInputs>(DEFAULT_PROJECT_INPUTS);
-  const [areas, setAreas] = useState(() => presetAreas(DEFAULT_PROJECT_INPUTS.service, DEFAULT_PROJECT_INPUTS.size));
+export function PublicProjectEstimator({
+  landing,
+  search,
+}: {
+  landing: EstimateLanding;
+  search: Record<string, unknown>;
+}) {
+  const [explicitService, setExplicitService] = useState(landing.explicitService);
+  const [inputs, setInputs] = useState(() => inputsFromLanding(landing));
+  const [areas, setAreas] = useState(() => presetAreas(landing.service, landing.size));
   const floorParsed = parseSqft(areas.floor);
   const showerParsed = parseSqft(areas.shower);
   const counterParsed = parseSqft(areas.counter);
@@ -68,7 +82,6 @@ export function PublicProjectEstimator() {
   const scope = projectScope(inputs.service, inputs.size, areaPayload);
   const valid = !areaError;
   const current: ProjectInputs | null = valid ? { ...inputs, ...areaPayload } : null;
-  // Invalid input never reaches the calculation or handoff.
   const estimate = current ? projectPlanningEstimate(current) : null;
   const summaryRef = useRef<HTMLDivElement>(null);
   const hasScope = Boolean(scope);
@@ -77,7 +90,6 @@ export function PublicProjectEstimator() {
     : inputs.service === "kitchen" ? ["floor", "counter"] as const
     : ["room"] as const;
   const customSqft = relevantAreas.some(key => parseSqft(areas[key]).value !== parseSqft(presets[key]).value);
-  // Observe the rendered range, including the default, only once it enters the viewport.
   useEffect(() => {
     const node = summaryRef.current;
     if (!node || !valid || !hasScope) return;
@@ -92,6 +104,13 @@ export function PublicProjectEstimator() {
   useEffect(() => {
     if (areaError) trackEstimateOutOfRange(inputs.service);
   }, [areaError, inputs.service]);
+  const publish = (service: ProjectService, size: ProjectSize) => {
+    setExplicitService(true);
+    if (typeof window === "undefined") return;
+    const next = estimateLandingUrl(window.location.href, service, size);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (next !== currentUrl) window.history.replaceState(window.history.state, "", next);
+  };
   const patch = <K extends keyof ProjectInputs>(key: K, value: ProjectInputs[K]) =>
     setInputs(prev => ({ ...prev, [key]: value }));
   const handOff = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -108,42 +127,68 @@ export function PublicProjectEstimator() {
     });
   };
   const serviceLabel = PROJECT_SERVICES.find(service => service.id === inputs.service)!.label;
+  const headline = explicitService ? headlineFor(inputs.service) : DEFAULT_ESTIMATE_HEADLINE;
+  const handoff = estimateHandoffSearch(search, {
+    service: serviceId(inputs.service),
+    side: inputs.service === "exterior-paint" ? "exterior" : "interior",
+  });
+  const trust = estimateTrustLine(SERVICE_AREAS);
   return (
-    <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-border)] md:p-8"
+    <div className="mx-auto max-w-3xl px-4 pb-2 pt-3 md:py-20"
       onChangeCapture={trackEstimateStart}
       onClickCapture={event => {
         if ((event.target as HTMLElement).closest("button")) trackEstimateStart();
       }}>
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Project planning estimate</p>
-      <h2 className="mt-2 font-display text-2xl text-fg">What are you planning?</h2>
-      <fieldset className="mt-6">
-        <legend className="text-sm font-semibold text-fg">Project type</legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {PROJECT_SERVICES.map(service => <button key={service.id} type="button" aria-pressed={inputs.service === service.id}
-            onClick={() => {
-              setAreas(presetAreas(service.id, inputs.size));
-              setInputs(prev => ({
-                ...prev, service: service.id, floor: service.id === "bathroom" ? "tile" : "lvp",
-                vanity: service.id === "bathroom" ? vanityForSize(prev.size) : prev.vanity,
-              }));
-            }}
-            className={`min-h-11 rounded-lg border p-3 text-left text-sm font-semibold ${inputs.service === service.id ? "border-primary bg-primary text-primary-fg" : "border-border bg-bg text-fg"}`}>{service.label}</button>)}
+      <div id="estimate-fold">
+        <h1 className="font-display text-[1.45rem] font-semibold leading-tight text-fg md:text-5xl">{headline}</h1>
+        <p className="mb-2 mt-1.5 text-sm leading-snug text-muted md:mb-8 md:mt-4 md:text-base">{ESTIMATE_INTRO}</p>
+        <div className="rounded-2xl bg-surface p-2.5 shadow-[var(--shadow-border)] md:p-8">
+          <p className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-primary md:block">Project planning estimate</p>
+          <h2 className="mt-2 hidden font-display text-2xl text-fg md:block">What are you planning?</h2>
+          <fieldset className="md:mt-6">
+            <legend className="text-sm font-semibold text-fg">Project type</legend>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5 md:mt-2 md:gap-2">
+              {PROJECT_SERVICES.map(service => <button key={service.id} type="button" aria-pressed={inputs.service === service.id}
+                onClick={() => {
+                  setAreas(presetAreas(service.id, inputs.size));
+                  setInputs(prev => ({
+                    ...prev, service: service.id, floor: service.id === "bathroom" ? "tile" : "lvp",
+                    vanity: service.id === "bathroom" ? vanityForSize(inputs.size) : prev.vanity,
+                  }));
+                  publish(service.id, inputs.size);
+                }}
+                className={choiceClass(inputs.service === service.id)}>{service.label}</button>)}
+            </div>
+          </fieldset>
+          {scope ? <>
+            <fieldset className="mt-2 md:mt-6">
+              <legend className="text-sm font-semibold text-fg">Starting point</legend>
+              <p className="mt-1 hidden text-xs text-muted md:block">Fills the square footage. Then choose the materials.</p>
+              <div className="mt-1.5 grid grid-cols-3 gap-1.5 md:mt-2 md:gap-2">
+                {PROJECT_SIZES.map(size => <button key={size} type="button" aria-pressed={inputs.size === size}
+                  onClick={() => {
+                    setInputs(prev => ({ ...prev, size, vanity: prev.service === "bathroom" ? vanityForSize(size) : prev.vanity }));
+                    setAreas(presetAreas(inputs.service, size));
+                    publish(inputs.service, size);
+                  }}
+                  className={choiceClass(inputs.size === size)}>{size}</button>)}
+              </div>
+            </fieldset>
+            {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
+            {estimate && scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary">
+              <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
+              <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{formatEstimateRange(estimate)}</p>
+              <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
+            </div> : null}
+          </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
+          <Link to="/contact" search={handoff}
+            onClick={handOff} aria-disabled={!valid}
+            className={`mt-2 inline-flex min-h-11 w-full scroll-mb-28 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg md:mt-6 md:py-3 ${valid ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
+          {trust ? <p className="mt-1.5 text-sm leading-snug text-muted" data-testid="estimate-trust">{trust}</p> : null}
         </div>
-      </fieldset>
-      {scope ? <>
-        <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-fg">Starting point</legend>
-          <p className="mt-1 text-xs text-muted">Fills the square footage. Then choose the materials.</p>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {PROJECT_SIZES.map(size => <button key={size} type="button" aria-pressed={inputs.size === size}
-              onClick={() => {
-                setInputs(prev => ({ ...prev, size, vanity: prev.service === "bathroom" ? vanityForSize(size) : prev.vanity }));
-                setAreas(presetAreas(inputs.service, size));
-              }}
-              className={`min-h-11 rounded-lg border p-3 text-sm font-semibold ${inputs.size === size ? "border-primary bg-primary text-primary-fg" : "border-border bg-bg text-fg"}`}>{size}</button>)}
-          </div>
-        </fieldset>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      </div>
+      {scope ? <div className="mt-4 rounded-2xl bg-surface p-3 shadow-[var(--shadow-border)] md:p-8">
+        <div className="grid gap-4 sm:grid-cols-2">
           {inputs.service === "bathroom" || inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor-sqft">{inputs.service === "bathroom" ? "Bathroom floor (sq ft)" : "Kitchen floor (sq ft)"}
             <input id="estimate-floor-sqft" type="text" inputMode="decimal" value={areas.floor}
               aria-invalid={Boolean(floorParsed.error) || Boolean(areaError && /floor/i.test(areaError))}
@@ -165,7 +210,6 @@ export function PublicProjectEstimator() {
               onChange={e => setAreas(prev => ({ ...prev, room: e.target.value }))} className={fieldClass} />
           </label> : null}
         </div>
-        {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring type
             <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
@@ -206,23 +250,14 @@ export function PublicProjectEstimator() {
             </select>
           </label> : null}
         </div>
-        {estimate && scope ? <div ref={summaryRef} className="mt-8 rounded-xl border border-primary/40 bg-bg p-5" data-testid="estimate-summary">
-          <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
-          <p className="mt-2 text-sm text-fg" data-testid="estimate-size">{sizeText(inputs.service, scope)}</p>
-          <p className="mt-2 text-sm text-fg" data-testid="estimate-materials">{materialText(inputs, scope)}</p>
-          <h3 className="mt-4 text-sm font-semibold text-fg">What's included</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg" data-testid="estimate-included">
-            {includedItems(inputs.service, inputs.floor).map(item => <li key={item}>{item}</li>)}
-          </ul>
-          <p className="mt-4 break-words font-display text-2xl text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{formatEstimateRange(estimate)}</p>
-          <p className="mt-2 text-sm font-semibold text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
-          <p className="mt-2 text-sm text-muted" data-testid="estimate-exclusions">{EXCLUSIONS}</p>
-        </div> : null}
-      </> : <p className="mt-6 text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
-      <p className="mt-5 text-sm font-semibold text-fg">{PRELIMINARY_ESTIMATE_WORDING}</p>
-      <Link to="/contact" search={{ service: serviceId(inputs.service), side: inputs.service === "exterior-paint" ? "exterior" : "interior", origin: "estimate" }}
-        onClick={handOff} aria-disabled={!valid}
-        className={`mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-3 font-semibold text-primary-fg ${valid ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
+        <p className="mt-4 text-sm text-fg" data-testid="estimate-size">{sizeText(inputs.service, scope)}</p>
+        <p className="mt-2 text-sm text-fg" data-testid="estimate-materials">{materialText(inputs, scope)}</p>
+        <h3 className="mt-4 text-sm font-semibold text-fg">What's included</h3>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg" data-testid="estimate-included">
+          {includedItems(inputs.service, inputs.floor).map(item => <li key={item}>{item}</li>)}
+        </ul>
+        <p className="mt-2 text-sm text-muted" data-testid="estimate-exclusions">{EXCLUSIONS}</p>
+      </div> : null}
     </div>
   );
 }

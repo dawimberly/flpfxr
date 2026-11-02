@@ -40,6 +40,44 @@ try {
   const auth=compareAuthInvariant({devAuthEnabled:await probeDevAuthEnabled(base),buildAuthEnabled:buildAuthEnabled()});
   assert.equal(auth.status,"ok",auth.message);
   browser=await chromium.launch({headless:true});
+  {
+    const page=await browser.newPage({viewport:{width:390,height:844}});
+    const ad="gclid=G123&gbraid=B123&wbraid=W123&utm_source=google&utm_medium=cpc&utm_campaign=bath&utm_term=remodel&utm_content=ad";
+    await page.goto(base+"/estimate?service=bathroom&size=medium&"+ad,{waitUntil:"domcontentloaded"});
+    await page.getByRole("heading",{name:"Plan your bathroom remodel.",exact:true}).waitFor();
+    assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
+    assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
+    await page.getByTestId("estimate-total").getByText("between $9,000 and $11,200",{exact:true}).waitFor();
+    assert.equal(await page.getByText("Preliminary estimate only — not a quote. Final price is set after Jon sees the space.",{exact:true}).count(),1);
+    await page.evaluate(()=>document.fonts?.ready);
+    const fold=await page.locator("#estimate-fold").boundingBox();
+    assert.ok(fold,"Fold block is missing");
+    assert.ok(fold.y+fold.height<=844-88,`Phone fold extends under the call bar: ${Math.round(fold.y+fold.height)}`);
+    await page.getByRole("link",{name:"Request an on-site estimate"}).click();
+    await page.waitForURL(/\/contact/);
+    const contact=new URL(page.url());
+    for(const [key,value] of [["gclid","G123"],["gbraid","B123"],["wbraid","W123"],["utm_source","google"],["utm_medium","cpc"],["utm_campaign","bath"],["utm_term","remodel"],["utm_content","ad"]]) {
+      assert.equal(contact.searchParams.get(key),value,key+" missing on /contact");
+    }
+    assert.equal(contact.searchParams.get("origin"),"estimate");
+    await page.goto(base+"/estimate?service=roof&size=tiny&gclid=keep-me",{waitUntil:"domcontentloaded"});
+    await page.getByRole("heading",{name:"Plan your next project.",exact:true}).waitFor();
+    assert.equal(await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).getAttribute("aria-pressed"),"true");
+    assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
+    await page.getByTestId("estimate-total").getByText("between $12,300 and $15,400",{exact:true}).waitFor();
+    let interactive=false;
+    for(let i=0;i<30;i++) {
+      await page.getByRole("button",{name:"Large",exact:true}).click();
+      if(new URL(page.url()).searchParams.get("size")==="large") { interactive=true; break; }
+      await delay(100);
+    }
+    assert.ok(interactive,"Size change did not sync the URL");
+    const synced=new URL(page.url());
+    assert.equal(synced.searchParams.get("gclid"),"keep-me");
+    assert.equal(synced.searchParams.get("service"),"kitchen");
+    assert.equal(synced.searchParams.get("size"),"large");
+    await page.close();
+  }
   const widths=process.env.ESTIMATOR_SMOKE_WIDTH ? [Number(process.env.ESTIMATOR_SMOKE_WIDTH)] : [390,1280];
   for(const width of widths) {
     const page=await browser.newPage({viewport:{width,height:844}});
