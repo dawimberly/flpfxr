@@ -217,6 +217,35 @@ describe("planner form", () => {
 });
 
 describe("labor pdf", () => {
+  it("labels a sample estimate and does not use a real customer", async () => {
+    const doc = buildLaborDocument(planner({}, {
+      address: "100 Sample Street, San Antonio, TX 78205",
+      note: "Sample only. This is not a real job.",
+      occupancy: "",
+      timing: "",
+      decision: "",
+    }));
+    const bytes = await renderLaborEstimatePdf({
+      document: doc,
+      name: "Sample Customer",
+      phone: "(210) 555-0100",
+      email: "sample@example.com",
+      feeLabel: "$35.00",
+      catalogUrl: "https://stylesbydesigntx.com/shop?ref=flipfixer",
+      submissionId,
+      issued: new Date("2026-11-02T12:00:00Z"),
+      sample: true,
+    });
+    const { extractPdfText } = await import("./pdf-text.ts");
+    const text = await extractPdfText(bytes);
+    assert.match(text, /Estimate #SAMPLE/);
+    assert.match(text, /Sample Customer/);
+    assert.match(text, /100 Sample Street/);
+    assert.match(text, /not a real job/);
+    assert.doesNotMatch(text, /\binsured\b/i);
+    assert.doesNotMatch(text, /Ada Lovelace|120 Broadway/);
+  });
+
   it("draws the same logo file the live header uses", () => {
     const svg = readFileSync(new URL("../../public/logo.svg", import.meta.url), "utf8");
     assert.equal(SITE_HEADER_LOGO.source, "public/logo.svg");

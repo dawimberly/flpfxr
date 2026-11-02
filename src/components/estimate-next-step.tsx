@@ -142,6 +142,7 @@ export function EstimateNextStep({
               <li>{CATALOG_BROWSE_NOTE}</li>
               <li>{FEE_CREDIT_NOTE}</li>
             </ul>
+            <SampleEstimate feeLabel={feeLabel} />
             <button type="button" className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 font-semibold text-primary-fg" onClick={() => setStep(1)}>
               Continue
             </button>
@@ -263,5 +264,35 @@ export function EstimateNextStep({
           </div>
         </form>
     </section>
+  );
+}
+
+function SampleEstimate({ feeLabel }: { feeLabel: string | null }) {
+  const price = feeLabel ?? "$35";
+  return (
+    <div data-testid="sample-estimate" className="flex gap-4 rounded-xl border border-border bg-bg p-3">
+      <a
+        href="/sample-estimate.pdf"
+        target="_blank"
+        rel="noreferrer"
+        className="relative block shrink-0"
+        aria-label="Open the sample estimate PDF"
+      >
+        <img
+          src="/sample-estimate.png"
+          alt="First page of a sample Flip Fixer job estimate"
+          className="h-40 w-auto rounded-md border border-border bg-white"
+        />
+        <span className="absolute left-2 top-2 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-primary-fg">
+          SAMPLE
+        </span>
+      </a>
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-fg">See a sample estimate</h3>
+        <p className="mt-1 text-sm leading-relaxed text-muted">
+          For {price} you get an itemized job estimate like this: what is included, what is not, and the estimated total for the whole job.
+        </p>
+      </div>
+    </div>
   );
 }

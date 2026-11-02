@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, PDFName, PDFString, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { PRELIMINARY_ESTIMATE_WORDING } from "./public-pricing.ts";
 import {
   CUSTOMER_CONTACT_LINE,
@@ -85,9 +85,13 @@ export async function renderLaborEstimatePdf(args: {
   catalogUrl: string;
   submissionId: string;
   issued?: Date;
+  /** Example PDF. Watermarks every page and labels the estimate number SAMPLE. */
+  sample?: boolean;
 }): Promise<Uint8Array> {
   const issued = args.issued ?? new Date();
-  const number = `${issued.getFullYear()}${String(issued.getMonth() + 1).padStart(2, "0")}${String(issued.getDate()).padStart(2, "0")}-${args.submissionId.slice(0, 4).toUpperCase()}`;
+  const number = args.sample
+    ? "SAMPLE"
+    : `${issued.getFullYear()}${String(issued.getMonth() + 1).padStart(2, "0")}${String(issued.getDate()).padStart(2, "0")}-${args.submissionId.slice(0, 4).toUpperCase()}`;
   const dateLabel = issued.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const copy = customerFacingCopy(args.document, args);
   const doc = await PDFDocument.create();
@@ -157,7 +161,7 @@ export async function renderLaborEstimatePdf(args: {
   const mark = drawLogo(MARGIN, PAGE_H - 22, 40);
   textAt("FLIP FIXER", MARGIN + mark + 12, PAGE_H - 42, 18, bold);
   textAt(CUSTOMER_CONTACT_LINE, MARGIN + mark + 12, PAGE_H - 58, 9, font, MUTED);
-  const meta = [`Estimate #${number}`, `Issued ${dateLabel}`, "Valid 30 days"];
+  const meta = [`Estimate #${number}`, `Issued ${dateLabel}`, args.sample ? "SAMPLE" : "Valid 30 days"];
   meta.forEach((line, index) => {
     const size = index === 0 ? 10 : 9;
     const face = index === 0 ? bold : font;
@@ -165,6 +169,11 @@ export async function renderLaborEstimatePdf(args: {
   });
   y = PAGE_H - 22 - 40 - 18;
   page.drawLine({ start: { x: MARGIN, y: y + 8 }, end: { x: PAGE_W - MARGIN, y: y + 8 }, thickness: 0.6, color: RULE });
+
+  if (args.sample) {
+    heading("SAMPLE");
+    paragraph("This example uses a made-up customer and a typical medium kitchen. It is not a real job.");
+  }
 
   heading("PROJECT");
   paragraph(copy.project, 10, font);
@@ -234,6 +243,17 @@ export async function renderLaborEstimatePdf(args: {
   paragraph(CUSTOMER_READY_LINE, 12, bold);
 
   pages.forEach((item, index) => {
+    if (args.sample) {
+      item.drawText("SAMPLE", {
+        x: 118,
+        y: 250,
+        size: 92,
+        font: bold,
+        color: PRIMARY,
+        opacity: 0.16,
+        rotate: degrees(34),
+      });
+    }
     const label = `theflipfixer.com  ·  San Antonio, TX  ·  ${index + 1} of ${pages.length}`;
     item.drawLine({
       start: { x: MARGIN, y: 28 },
