@@ -1,5 +1,4 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
-import { RedirectToSignIn } from "@/lib/auth/gates";
+import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { authEnabled } from "@/lib/auth/client";
 
@@ -13,7 +12,8 @@ function EstimatorLayout() {
 
   if (authEnabled) {
     if (isPending) return null;
-    if (!user) return <RedirectToSignIn />;
+    // The public planner lives at /estimate. This URL stays the crew tool after sign-in.
+    if (!user) return <Navigate to="/estimate" replace />;
   }
 
   return <Outlet />;

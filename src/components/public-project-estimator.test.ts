@@ -175,6 +175,9 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.doesNotMatch(ui,/fabrication|10% off|cabinet list|remnant|slab|allowance|market pricing|licensed|insured|filler strip|person-hours|personHours/i);
     assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days/);
     assert.doesNotMatch(ui,/gtag|dataLayer|fbq|fetch\(/);
+    const employeeRoute = readFileSync("src/routes/estimator.tsx", "utf8");
+    assert.match(employeeRoute, /to="\/estimate"/);
+    assert.doesNotMatch(employeeRoute, /RedirectToSignIn/);
     assert.doesNotMatch(ui.toLowerCase(),new RegExp("waterfall"+" counter"));
   });
 });
