@@ -1,19 +1,49 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { SITE } from "./site.ts";
-import { CATALOG_BROWSE_NOTE, FEE_CREDIT_NOTE, LABOR_ONLY_NOTE } from "./offer-copy.ts";
-import { type LaborDocument, type LaborLine } from "./labor-estimate.ts";
+import { PDFDocument, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PRELIMINARY_ESTIMATE_WORDING } from "./public-pricing.ts";
+import {
+  CUSTOMER_CONTACT_LINE,
+  CUSTOMER_DEPOSIT_LINE,
+  CUSTOMER_READY_LINE,
+  customerFacingCopy,
+  type LaborDocument,
+} from "./labor-estimate.ts";
 
 const PAGE_W = 612;
 const PAGE_H = 792;
-const MARGIN = 48;
+const MARGIN = 54;
 const FOOTER = 40;
+const CONTENT_W = PAGE_W - MARGIN * 2;
 const INK = rgb(18 / 255, 52 / 255, 59 / 255);
-const CREAM = rgb(244 / 255, 241 / 255, 236 / 255);
 const PRIMARY = rgb(196 / 255, 92 / 255, 38 / 255);
 const MUTED = rgb(91 / 255, 110 / 255, 115 / 255);
 const RULE = rgb(213 / 255, 221 / 255, 223 / 255);
-const WASH = rgb(232 / 255, 239 / 255, 239 / 255);
-const ZEBRA = rgb(251 / 255, 248 / 255, 243 / 255);
+/** Live nav background (`--color-bg` in src/styles.css). The header logo is white ink on this. */
+const HEADER_BG = rgb(0x12 / 255, 0x14 / 255, 0x16 / 255);
+const LOGO_ORANGE = rgb(0xf0 / 255, 0x83 / 255, 0x30 / 255);
+
+/**
+ * Polygon points from public/logo.svg, the file the site header loads
+ * (`src/components/site-header.tsx` img src="/logo.svg", preloaded on theflipfixer.com).
+ * viewBox 0 0 283.5 281.25. cls-1 is white, cls-2 is #f08330.
+ */
+export const SITE_HEADER_LOGO = {
+  source: "public/logo.svg",
+  viewW: 283.5,
+  viewH: 281.25,
+  white:
+    "213.29 144.95 199.1 159.15 184.9 144.95 176.25 136.3 158.16 118.21 118.46 118.21 136.54 136.3 145.19 144.95 163.28 163.04 179.24 179 159.39 198.85 141.75 216.49 88.29 163.04 70.2 144.95 27.78 144.95 45.87 163.04 68.41 185.58 68.41 226.27 91.23 226.27 91.23 208.4 141.75 258.92 237.63 163.04 255.72 144.95 213.29 144.95",
+  orange:
+    "237.63 118.21 215.28 95.86 215.28 55.04 192.46 55.04 192.46 73.04 141.75 22.33 45.87 118.21 27.78 136.3 70.21 136.3 83.52 122.98 96.84 136.3 105.49 144.95 123.57 163.04 163.28 163.04 145.19 144.95 136.54 136.3 118.46 118.21 103.37 103.13 123.23 83.28 141.75 64.76 195.21 118.21 213.29 136.3 255.72 136.3 237.63 118.21",
+};
+
+function polygonPath(points: string) {
+  const nums = points.trim().split(/\s+/);
+  let path = "";
+  for (let i = 0; i < nums.length; i += 2) {
+    path += `${i === 0 ? "M" : "L"}${nums[i]} ${nums[i + 1]} `;
+  }
+  return `${path}Z`;
+}
 
 function money(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -24,13 +54,14 @@ function ascii(value: string) {
     .replace(/[\u2013\u2014\u2212]/g, "-")
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[^\x20-\x7E\n]/g, "")
+    .replace(/\u00B7/g, "\u00B7")
+    .replace(/[^\x20-\x7E\u00B7\n]/g, "")
     .replace(/[ \t]+/g, " ")
     .trim();
 }
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number) {
-  const words = ascii(text).split(" ");
+  const words = ascii(text).split(" ").filter(Boolean);
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
@@ -57,6 +88,8 @@ export async function renderLaborEstimatePdf(args: {
 }): Promise<Uint8Array> {
   const issued = args.issued ?? new Date();
   const number = `${issued.getFullYear()}${String(issued.getMonth() + 1).padStart(2, "0")}${String(issued.getDate()).padStart(2, "0")}-${args.submissionId.slice(0, 4).toUpperCase()}`;
+  const dateLabel = issued.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const copy = customerFacingCopy(args.document, args);
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -65,224 +98,150 @@ export async function renderLaborEstimatePdf(args: {
   pages.push(page);
   let y = PAGE_H;
 
+  const textAt = (value: string, x: number, baseline: number, size: number, face: PDFFont, color = INK) => {
+    page.drawText(ascii(value), { x, y: baseline, size, font: face, color });
+  };
+  const drawLogo = (x: number, top: number, height: number) => {
+    const width = height * (SITE_HEADER_LOGO.viewW / SITE_HEADER_LOGO.viewH);
+    const scale = height / SITE_HEADER_LOGO.viewH;
+    page.drawRectangle({ x, y: top - height, width, height, color: HEADER_BG });
+    const originY = top;
+    page.drawSvgPath(polygonPath(SITE_HEADER_LOGO.orange), { x, y: originY, scale, color: LOGO_ORANGE });
+    page.drawSvgPath(polygonPath(SITE_HEADER_LOGO.white), { x, y: originY, scale, color: rgb(1, 1, 1) });
+    return width;
+  };
   const newPage = () => {
     page = doc.addPage([PAGE_W, PAGE_H]);
     pages.push(page);
-    page.drawRectangle({ x: 0, y: PAGE_H - 36, width: PAGE_W, height: 36, color: INK });
-    page.drawRectangle({ x: 0, y: PAGE_H - 40, width: PAGE_W, height: 4, color: PRIMARY });
-    page.drawText("THE FLIP FIXER", { x: MARGIN, y: PAGE_H - 24, size: 10, font: bold, color: CREAM });
-    const right = `Labor estimate  #${number}`;
-    page.drawText(right, {
-      x: PAGE_W - MARGIN - font.widthOfTextAtSize(right, 9),
-      y: PAGE_H - 23,
-      size: 9,
-      font,
-      color: CREAM,
-    });
-    y = PAGE_H - 64;
+    const mark = drawLogo(MARGIN, PAGE_H - 16, 18);
+    textAt("FLIP FIXER", MARGIN + mark + 8, PAGE_H - 32, 11, bold);
+    const right = `Estimate #${number}`;
+    textAt(right, PAGE_W - MARGIN - font.widthOfTextAtSize(right, 8), PAGE_H - 32, 8, font, MUTED);
+    y = PAGE_H - 56;
   };
   const ensure = (height: number) => {
-    if (y - height < FOOTER + 12) newPage();
+    if (y - height < FOOTER + 8) newPage();
   };
-  const text = (value: string, size: number, face: PDFFont, color = INK, x = MARGIN) => {
-    page.drawText(ascii(value), { x, y, size, font: face, color });
-  };
-  const paragraph = (value: string, size = 10, face = font, color = INK) => {
-    for (const line of wrap(value, face, size, PAGE_W - MARGIN * 2)) {
+  const paragraph = (value: string, size = 10, face = font, color = INK, width = CONTENT_W) => {
+    const lines = wrap(value, face, size, width);
+    for (const line of lines) {
       ensure(size + 4);
-      text(line, size, face, color);
-      y -= size + 4;
+      textAt(line, MARGIN, y, size, face, color);
+      y -= size + 3;
     }
-  };
-  const gap = (n = 10) => {
-    y -= n;
+    return lines;
   };
   const heading = (value: string) => {
-    ensure(28);
-    text(value, 13, bold);
-    y -= 18;
-  };
-
-  page.drawRectangle({ x: 0, y: PAGE_H - 108, width: PAGE_W, height: 108, color: INK });
-  page.drawRectangle({ x: 0, y: PAGE_H - 112, width: PAGE_W, height: 4, color: PRIMARY });
-  page.drawRectangle({ x: MARGIN, y: PAGE_H - 78, width: 28, height: 28, color: PRIMARY });
-  page.drawText("FF", { x: MARGIN + 5, y: PAGE_H - 70, size: 11, font: bold, color: CREAM });
-  page.drawText("THE FLIP FIXER", { x: MARGIN + 40, y: PAGE_H - 58, size: 16, font: bold, color: CREAM });
-  page.drawText("Labor and service estimate", { x: MARGIN + 40, y: PAGE_H - 76, size: 10, font, color: rgb(0.85, 0.78, 0.7) });
-  const meta = `#${number}`;
-  page.drawText(meta, {
-    x: PAGE_W - MARGIN - bold.widthOfTextAtSize(meta, 11),
-    y: PAGE_H - 58,
-    size: 11,
-    font: bold,
-    color: CREAM,
-  });
-  const dateLabel = issued.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  page.drawText(dateLabel, {
-    x: PAGE_W - MARGIN - font.widthOfTextAtSize(dateLabel, 9),
-    y: PAGE_H - 76,
-    size: 9,
-    font,
-    color: rgb(0.85, 0.78, 0.7),
-  });
-  y = PAGE_H - 136;
-
-  paragraph(`Prepared for ${args.name}`, 12, bold);
-  paragraph(`${args.phone}  ·  ${args.email}`, 10, font, MUTED);
-  gap(8);
-  paragraph(args.document.projectLabel, 16, bold);
-  paragraph(
-    [args.document.size, ...args.document.selections].filter(Boolean).join("  ·  "),
-    10,
-    font,
-    MUTED,
-  );
-  gap(8);
-  ensure(64);
-  page.drawRectangle({ x: MARGIN, y: y - 52, width: PAGE_W - MARGIN * 2, height: 64, color: WASH });
-  y -= 8;
-  text(args.document.kind === "itemized" ? "Labor and services" : "Labor total", 9, font, MUTED, MARGIN + 12);
-  y -= 22;
-  text(
-    args.document.kind === "itemized" ? money(args.document.totalCents) : "Set after the walkthrough",
-    18,
-    bold,
-    INK,
-    MARGIN + 12,
-  );
-  y -= 16;
-  text(args.document.timeline, 9, font, MUTED, MARGIN + 12);
-  y -= 26;
-  paragraph(LABOR_ONLY_NOTE);
-  if (args.document.rangeLabel) {
-    paragraph(`The free planning range already shown on the site is ${args.document.rangeLabel}. That range is not this labor total.`);
-  }
-  paragraph(`You paid ${args.feeLabel} for this estimate. ${FEE_CREDIT_NOTE}`);
-  paragraph("Each labor rate is that line's labor divided by its quantity, rounded to the cent. Line amounts are the scoped labor.");
-  if (args.document.supplierNote) paragraph(args.document.supplierNote);
-
-  if (args.document.kind === "itemized") {
-    heading("Scope by area");
-    const cols = [210, 54, 52, 72, 76];
-    const headers = ["Work", "Qty", "Unit", "Rate", "Amount"];
-    const drawHeader = () => {
-      ensure(22);
-      page.drawRectangle({ x: MARGIN, y: y - 14, width: PAGE_W - MARGIN * 2, height: 18, color: INK });
-      let x = MARGIN + 6;
-      headers.forEach((label, index) => {
-        page.drawText(label, { x, y: y - 9, size: 8, font: bold, color: CREAM });
-        x += cols[index];
-      });
-      y -= 20;
-    };
-    drawHeader();
-    let area = "";
-    let stripe = false;
-    const paintLine = (line: LaborLine) => {
-      const detail = wrap(line.detail, font, 8, cols[0] - 8);
-      const height = 16 + detail.length * 10;
-      if (y - height < FOOTER + 12) {
-        newPage();
-        drawHeader();
-      }
-      if (line.area !== area) {
-        ensure(20);
-        page.drawRectangle({ x: MARGIN, y: y - 14, width: PAGE_W - MARGIN * 2, height: 18, color: PRIMARY });
-        page.drawText(ascii(line.area).toUpperCase(), { x: MARGIN + 6, y: y - 9, size: 8, font: bold, color: CREAM });
-        y -= 18;
-        area = line.area;
-        stripe = false;
-      }
-      if (stripe) page.drawRectangle({ x: MARGIN, y: y - height + 4, width: PAGE_W - MARGIN * 2, height, color: ZEBRA });
-      stripe = !stripe;
-      let x = MARGIN + 6;
-      const cells = [line.label, line.quantityLabel, line.unit, money(line.rateCents), money(line.amountCents)];
-      cells.forEach((cell, index) => {
-        page.drawText(ascii(cell), { x, y: y - 12, size: 9, font: index === 0 ? bold : font, color: INK });
-        x += cols[index];
-      });
-      let dy = 24;
-      for (const extra of detail) {
-        page.drawText(extra, { x: MARGIN + 6, y: y - dy, size: 8, font, color: MUTED });
-        dy += 10;
-      }
-      y -= height;
-    };
-    for (const line of args.document.lines) paintLine(line);
-    gap(8);
-    ensure(28);
-    page.drawRectangle({ x: MARGIN, y: y - 20, width: PAGE_W - MARGIN * 2, height: 28, color: INK });
-    page.drawText("Labor and services total", { x: MARGIN + 8, y: y - 10, size: 10, font: bold, color: CREAM });
-    const total = money(args.document.totalCents);
-    page.drawText(total, {
-      x: PAGE_W - MARGIN - 8 - bold.widthOfTextAtSize(total, 12),
-      y: y - 12,
-      size: 12,
-      font: bold,
-      color: CREAM,
+    ensure(20);
+    y -= 4;
+    textAt(value, MARGIN, y, 11, bold);
+    y -= 4;
+    page.drawLine({
+      start: { x: MARGIN, y },
+      end: { x: MARGIN + 72, y },
+      thickness: 1.2,
+      color: PRIMARY,
     });
-    y -= 36;
-
-    heading("Options");
-    paragraph("Same finishes you picked. The other sizes use example quantities, not the measurements in your scope.");
-    gap(4);
-    for (const tier of args.document.tiers) {
-      ensure(36);
-      page.drawRectangle({
-        x: MARGIN,
-        y: y - 28,
-        width: PAGE_W - MARGIN * 2,
-        height: 34,
-        color: tier.selected ? WASH : CREAM,
-        borderColor: tier.selected ? PRIMARY : RULE,
-        borderWidth: tier.selected ? 1.5 : 0.5,
-      });
-      const title = tier.selected ? `${tier.size} · your scope` : tier.size;
-      page.drawText(ascii(title), { x: MARGIN + 8, y: y - 14, size: 10, font: bold, color: INK });
-      const amount = money(tier.totalCents);
-      page.drawText(amount, {
-        x: PAGE_W - MARGIN - 8 - bold.widthOfTextAtSize(amount, 11),
-        y: y - 15,
-        size: 11,
-        font: bold,
-        color: INK,
-      });
-      page.drawText(ascii(`${tier.timeline} ${tier.note}`), { x: MARGIN + 8, y: y - 26, size: 8, font, color: MUTED });
-      y -= 40;
-    }
-  } else {
-    heading("Measured on the call");
-    paragraph("This project does not have a standard quantity takeoff. The designer measures it, then writes the labor scope. You are not being shown a guessed total.");
-  }
-
-  const bullets = (title: string, rows: string[]) => {
-    heading(title);
-    for (const row of rows) paragraph(`•  ${row}`, 10, font);
-    gap(4);
+    y -= 12;
   };
-  bullets("Included", args.document.included);
-  bullets("Not included", args.document.excluded);
-  bullets("Before we start", args.document.prep);
-  if (args.document.answers.length) {
-    heading("What you told us");
-    for (const row of args.document.answers) paragraph(`${row.label}: ${row.value}`);
-    gap(4);
+  const bullet = (value: string) => {
+    const lines = wrap(value, font, 10, CONTENT_W - 16);
+    ensure(lines.length * 14 + 2);
+    lines.forEach((line, index) => {
+      if (index === 0) page.drawText("\u2022", { x: MARGIN, y, size: 10, font, color: INK });
+      textAt(line, MARGIN + 14, y, 10, font);
+      y -= 12;
+    });
+  };
+
+  const mark = drawLogo(MARGIN, PAGE_H - 22, 40);
+  textAt("FLIP FIXER", MARGIN + mark + 12, PAGE_H - 42, 18, bold);
+  textAt(CUSTOMER_CONTACT_LINE, MARGIN + mark + 12, PAGE_H - 58, 9, font, MUTED);
+  const meta = [`Estimate #${number}`, `Issued ${dateLabel}`, "Valid 30 days"];
+  meta.forEach((line, index) => {
+    const size = index === 0 ? 10 : 9;
+    const face = index === 0 ? bold : font;
+    textAt(line, PAGE_W - MARGIN - face.widthOfTextAtSize(line, size), PAGE_H - 42 - index * 14, size, face, index === 2 ? PRIMARY : INK);
+  });
+  y = PAGE_H - 22 - 40 - 18;
+  page.drawLine({ start: { x: MARGIN, y: y + 8 }, end: { x: PAGE_W - MARGIN, y: y + 8 }, thickness: 0.6, color: RULE });
+
+  heading("PROJECT");
+  paragraph(copy.project, 10, font);
+
+  heading("WHAT'S INCLUDED");
+  for (const row of copy.included) bullet(row);
+
+  heading("WHAT'S NOT INCLUDED");
+  for (const row of copy.excluded) bullet(row);
+
+  heading("INVESTMENT");
+  if (copy.investment.length) {
+    for (const row of copy.investment) {
+      ensure(16);
+      textAt(row.label, MARGIN, y, 10, font);
+      const amount = money(row.cents);
+      textAt(amount, PAGE_W - MARGIN - font.widthOfTextAtSize(amount, 10), y, 10, font);
+      y -= 14;
+    }
+    ensure(22);
+    y -= 2;
+    page.drawLine({ start: { x: MARGIN, y: y + 12 }, end: { x: PAGE_W - MARGIN, y: y + 12 }, thickness: 0.6, color: INK });
+    textAt("Estimated job total", MARGIN, y, 11, bold);
+    const total = args.document.rangeLabel ?? money(args.document.totalCents);
+    const totalSize = args.document.rangeLabel ? 10 : 12;
+    textAt(total, PAGE_W - MARGIN - bold.widthOfTextAtSize(total, totalSize), y, totalSize, bold);
+    y -= 18;
+  } else {
+    paragraph("Set after we walk the space.");
   }
-  bullets("Next steps", args.document.nextSteps);
-  heading("Cabinet catalog");
-  paragraph(CATALOG_BROWSE_NOTE);
-  paragraph(args.catalogUrl);
-  paragraph(`Questions: call ${SITE.phoneDisplay}.`);
+
+  heading("NOTES");
+  for (const row of copy.notes) {
+    if (!row.includes(args.catalogUrl)) {
+      bullet(row);
+      continue;
+    }
+    bullet("We order materials with you after the designer call. Browse finishes here:");
+    ensure(16);
+    const urlX = MARGIN + 14;
+    const urlW = font.widthOfTextAtSize(args.catalogUrl, 10);
+    textAt(args.catalogUrl, urlX, y, 10, font, PRIMARY);
+    page.drawLine({
+      start: { x: urlX, y: y - 1 },
+      end: { x: urlX + urlW, y: y - 1 },
+      thickness: 0.4,
+      color: PRIMARY,
+    });
+    const linkPage = page;
+    const annot = doc.context.obj({
+      Type: "Annot",
+      Subtype: "Link",
+      Rect: [urlX, y - 2, urlX + urlW, y + 10],
+      Border: [0, 0, 0],
+      A: { Type: "Action", S: "URI", URI: PDFString.of(args.catalogUrl) },
+    });
+    linkPage.node.set(PDFName.of("Annots"), doc.context.obj([doc.context.register(annot)]));
+    y -= 13;
+  }
+
+  ensure(52);
+  y -= 4;
+  paragraph(CUSTOMER_DEPOSIT_LINE, 10, bold);
+  y -= 2;
+  paragraph(PRELIMINARY_ESTIMATE_WORDING, 10, bold);
+  y -= 4;
+  paragraph(CUSTOMER_READY_LINE, 12, bold);
 
   pages.forEach((item, index) => {
-    const label = `Labor and services only  ·  ${SITE.url.replace("https://", "")}  ·  Page ${index + 1} of ${pages.length}`;
+    const label = `theflipfixer.com  ·  San Antonio, TX  ·  ${index + 1} of ${pages.length}`;
     item.drawLine({
       start: { x: MARGIN, y: 28 },
       end: { x: PAGE_W - MARGIN, y: 28 },
       thickness: 0.4,
       color: RULE,
     });
-    item.drawText(label, { x: MARGIN, y: 16, size: 8, font, color: MUTED });
+    item.drawText(ascii(label), { x: MARGIN, y: 14, size: 8, font, color: MUTED });
   });
   return doc.save();
 }

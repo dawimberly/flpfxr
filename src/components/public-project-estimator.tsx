@@ -55,10 +55,10 @@ function materialText(inputs: ProjectInputs, scope: NonNullable<ReturnType<typeo
   ].filter(Boolean).join(", ");
 }
 function includedItems(service: ProjectInputs["service"], floor: ProjectInputs["floor"]): string[] {
-  if (service === "bathroom") return ["Demolition", floor === "tile" ? "Tile" : "Flooring", "Vanity", "Countertop", "Fixtures", "Install labor"];
-  if (service === "kitchen") return ["Demolition", "Cabinets", "Countertops", "Flooring", "Install labor"];
-  if (service === "flooring") return ["Flooring", "Install labor"];
-  if (service === "interior-paint" || service === "exterior-paint") return ["Paint", "Install labor"];
+  if (service === "bathroom") return ["Demolition", floor === "tile" ? "Tile" : "Flooring", "Vanity", "Countertop", "Fixtures", "Installation"];
+  if (service === "kitchen") return ["Demolition", "Cabinets", "Countertops", "Flooring", "Installation"];
+  if (service === "flooring") return ["Flooring", "Installation"];
+  if (service === "interior-paint" || service === "exterior-paint") return ["Paint", "Installation"];
   return [];
 }
 const choiceClass = (selected: boolean) =>

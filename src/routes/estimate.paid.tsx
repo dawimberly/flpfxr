@@ -15,7 +15,7 @@ export const Route = createFileRoute("/estimate/paid")({
     meta: [
       { title: `Estimate payment | ${SITE.name}` },
       { name: "robots", content: "noindex" },
-      { name: "description", content: "Payment status for a Flip Fixer labor estimate." },
+      { name: "description", content: "Payment status for a Flip Fixer job estimate." },
     ],
   }),
 });
@@ -25,11 +25,11 @@ function PaidEstimatePage() {
   const paid = result.status === "paid";
   return (
     <div className="mx-auto max-w-xl px-4 py-16 text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Labor estimate</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your job estimate</p>
       <h1 className="mt-3 font-display text-4xl text-fg">{paid ? "Payment received." : "We're confirming the payment."}</h1>
       <p className="mt-4 text-muted">
         {paid
-          ? "Your itemized labor estimate is on its way by email. It lists labor and services only."
+          ? "Your itemized job estimate is on its way by email. It is the whole job, on the same range you saw on the site."
           : "If Stripe sent you here, the email goes out when the payment clears."}
       </p>
       <p className="mt-3 text-sm text-muted">{FEE_CREDIT_NOTE} {DESIGNER_MATERIALS_NOTE}</p>

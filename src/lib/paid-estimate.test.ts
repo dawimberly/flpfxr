@@ -1,16 +1,17 @@
+import { readFileSync } from "node:fs";
 import { createHmac } from "node:crypto";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { catalogRedirectUrl } from "./catalog-gate.ts";
 import { readDetailedEstimateFeeCents } from "./estimate-fee.ts";
 import { buildLaborDocument, laborDocumentPlainText } from "./labor-estimate.ts";
-import { renderLaborEstimatePdf } from "./labor-estimate-pdf.ts";
+import { renderLaborEstimatePdf, SITE_HEADER_LOGO } from "./labor-estimate-pdf.ts";
 import { decidePayment, readStripeEvent } from "./estimate-next.server.ts";
 import { handleCatalogSignup } from "./catalog-signup.server.ts";
 import { parseStoredPlanner } from "./planner-form.ts";
 import { verifyStripeSignature } from "./stripe-signature.ts";
 import { DEFAULT_PROJECT_INPUTS, type ProjectInputs } from "./public-estimate-options.ts";
-import { projectPlanningEstimate } from "./public-pricing.ts";
+import { formatEstimateRange, projectPlanningEstimate } from "./public-pricing.ts";
 import type { StoredPlanner } from "./planner-form.ts";
 
 const submissionId = "550e8400-e29b-41d4-a716-446655440000";
@@ -58,23 +59,22 @@ describe("estimate fee", () => {
 });
 
 describe("labor document", () => {
-  it("prices labor and services only, with quantities, rates, tiers, and a timeline", () => {
+  it("prices the whole job on the same range as the planner", () => {
     const doc = buildLaborDocument(planner());
     const built = projectPlanningEstimate(planner().project)!;
-    const expected = Math.round(built.labor * 100) + Math.round(built.support * 100);
     assert.equal(doc.kind, "itemized");
-    assert.equal(doc.totalCents, expected);
-    assert.ok(doc.lines.length >= 8);
-    assert.ok(doc.areas.includes("Cabinets"));
-    assert.ok(doc.areas.includes("Floor"));
+    assert.equal(doc.totalCents, Math.round(built.low) * 100);
+    assert.equal(doc.lines.reduce((sum, line) => sum + line.amountCents, 0), doc.totalCents);
+    assert.equal(doc.rangeLabel, formatEstimateRange(built));
+    assert.equal(doc.rangeLabel, "between $12,800 and $16,000");
+    assert.ok(doc.lines.some((line) => line.label === "Cabinets - supplied and installed"));
+    assert.ok(doc.lines.some((line) => line.label === "Counters - supplied and installed"));
+    assert.equal(doc.supplierNote, null);
+    assert.doesNotMatch(doc.excluded.join(" "), /Material prices|do not put prices/i);
     assert.ok(doc.tiers.length === 3);
     assert.equal(doc.tiers.find((tier) => tier.selected)?.totalCents, doc.totalCents);
     assert.match(doc.timeline, /working day/);
     assert.doesNotMatch(doc.timeline, /\$650|crew day/i);
-    const floor = doc.lines.find((line) => line.label === "Floor installation")!;
-    const source = built.lines.find((line) => line.id === "floor")!;
-    assert.notEqual(floor.amountCents, Math.round(source.materials * 100));
-    assert.equal(floor.rateCents, Math.round(floor.amountCents / floor.quantity));
     const text = laborDocumentPlainText(doc, {
       name: "Ada",
       phone: "2104369117",
@@ -82,30 +82,51 @@ describe("labor document", () => {
       feeLabel: "$35.00",
       catalogUrl: "https://stylesbydesigntx.com/shop?ref=flipfixer",
     });
-    assert.match(text, /Material prices are not included/);
-    assert.match(text, /Request a designer call/);
-    assert.match(text, /fillers, toe kick, and baseboard/);
+    assert.match(text, /FLIP FIXER/);
+    assert.match(text, /WHAT'S INCLUDED/);
+    assert.match(text, /WHAT'S NOT INCLUDED/);
+    assert.match(text, /INVESTMENT/);
+    assert.match(text, /NOTES/);
+    assert.match(text, /Materials named for this job/);
+    assert.match(text, /between \$12,800 and \$16,000/);
+    assert.match(text, /Cabinets - supplied and installed/);
+    assert.doesNotMatch(text, /Material prices|do not put prices|labor only|labor and services/i);
+    assert.match(text, /Itemized job estimate/);
+    assert.match(text, /Estimated job total/);
+    assert.doesNotMatch(text, /\blabor\b/i);
+    assert.match(text, /50% deposit schedules the work/);
+    assert.match(text, /Ready when you are/);
     assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
-    assert.doesNotMatch(text, /insured|insurance/i);
+    assert.doesNotMatch(text, /168 sq ft|8 boxes|Per unit/);
+    assert.doesNotMatch(text, /\$\d[\d,]*\.\d{2}\s*\//);
+    assert.doesNotMatch(text, /\binsured\b/i);
+    assert.doesNotMatch(text, /divided by|rounded to the cent/i);
     assert.doesNotMatch(text, /\$3\.85|\$185/);
   });
 
-  it("leaves supplier-installed stone out of the labor lines", () => {
-    const doc = buildLaborDocument(planner({ counter: "quartz" }));
-    assert.equal(doc.lines.some((line) => line.label === "Countertop installation"), false);
-    assert.match(doc.supplierNote ?? "", /designer confirms it/);
+  it("includes quartz counters and a larger cabinet package in the job total", () => {
+    const plain = buildLaborDocument(planner());
+    const withPanel = buildLaborDocument(planner({ xlFridgeBoxes: 1 }));
+    const cabinets = (doc: ReturnType<typeof buildLaborDocument>) =>
+      doc.lines.find((line) => line.label === "Cabinets - supplied and installed")?.amountCents ?? 0;
+    assert.ok(cabinets(withPanel) > cabinets(plain));
+    const quartz = buildLaborDocument(planner({ counter: "quartz" }));
+    const built = projectPlanningEstimate(planner({ counter: "quartz" }).project)!;
+    assert.equal(quartz.rangeLabel, formatEstimateRange(built));
+    assert.ok(quartz.lines.some((line) => line.label === "Counters - supplied and installed"));
+    assert.equal(quartz.supplierNote, null);
   });
 
-  it("keeps shower valve labor and drops fixture product cost", () => {
+  it("prices a bathroom on the planner range, including fixtures", () => {
     const input = planner({ service: "bathroom", floor: "tile", shower: "ceramic" });
     const doc = buildLaborDocument(input);
     const built = projectPlanningEstimate(input.project)!;
-    const valve = doc.lines.find((line) => line.label === "Shower valve labor");
-    assert.equal(valve?.amountCents, 22500);
-    const fixture = built.lines.find((line) => line.id === "fixture-allowance")!;
-    const fixtureLine = doc.lines.find((line) => line.label === "Fixture installation")!;
-    assert.notEqual(fixtureLine.amountCents, Math.round(fixture.materials * 100));
-    assert.doesNotMatch(JSON.stringify(doc.excluded), /insured|insurance/i);
+    assert.equal(doc.rangeLabel, formatEstimateRange(built));
+    assert.equal(doc.rangeLabel, "between $9,300 and $11,700");
+    const fixtures = doc.lines.find((line) => line.label === "Fixtures - supplied and installed");
+    const source = built.lines.find((line) => line.id === "fixture-allowance")!;
+    assert.ok((fixtures?.amountCents ?? 0) > Math.round(source.materials * 100));
+    assert.doesNotMatch(JSON.stringify(doc.excluded), /\binsured\b|Material prices/i);
   });
 });
 
@@ -196,6 +217,15 @@ describe("planner form", () => {
 });
 
 describe("labor pdf", () => {
+  it("draws the same logo file the live header uses", () => {
+    const svg = readFileSync(new URL("../../public/logo.svg", import.meta.url), "utf8");
+    assert.equal(SITE_HEADER_LOGO.source, "public/logo.svg");
+    assert.ok(svg.includes(SITE_HEADER_LOGO.white));
+    assert.ok(svg.includes(SITE_HEADER_LOGO.orange));
+    assert.match(svg, /#f08330/);
+    assert.match(svg, /#fff/);
+  });
+
   it("renders a branded multi-section pdf without material prices", async () => {
     const doc = buildLaborDocument(planner());
     const bytes = await renderLaborEstimatePdf({
@@ -209,16 +239,47 @@ describe("labor pdf", () => {
       issued: new Date("2026-11-02T12:00:00Z"),
     });
     assert.equal(Buffer.from(bytes.subarray(0, 5)).toString(), "%PDF-");
+    const { PDFDocument } = await import("pdf-lib");
+    const pdfDoc = await PDFDocument.load(bytes);
+    assert.ok(pdfDoc.getPageCount() <= 3, `expected 2-3 pages, got ${pdfDoc.getPageCount()}`);
     const { extractPdfText } = await import("./pdf-text.ts");
     const text = await extractPdfText(bytes);
-    assert.match(text, /THE FLIP FIXER/);
-    assert.match(text, /Floor installation/);
-    assert.match(text, /Labor and services total/);
-    assert.match(text, /Before we start/);
-    assert.match(text, /Next steps/);
-    assert.match(text, /stylesbydesigntx.com\/shop\?ref=flipfixer/);
-    assert.match(text, /Request a designer call/);
-    assert.doesNotMatch(text, /insured|insurance/i);
+    assert.match(text, /FLIP FIXER/);
+    assert.match(text, /theflipfixer\.com . jon@theflipfixer\.com . San Antonio, TX/);
+    assert.match(text, /Estimate #20261102-550E/);
+    assert.match(text, /Valid 30 days/);
+    assert.match(text, /PROJECT/);
+    assert.match(text, /WHAT'S INCLUDED/);
+    assert.match(text, /WHAT'S NOT INCLUDED/);
+    assert.match(text, /INVESTMENT/);
+    assert.match(text, /Estimated job total/);
+    assert.match(text, /between \$12,800 and \$16,000/);
+    assert.match(text, /Cabinets - supplied and installed/);
+    assert.match(text, /\u2022/);
+    assert.doesNotMatch(text, /Material prices|do not put prices|labor only|labor and services/i);
+    assert.doesNotMatch(text, /\blabor\b/i);
+    assert.match(text, /NOTES/);
+    assert.match(text, /50% deposit schedules the work\. Balance due on completion\. Price good 30 days\./);
+    assert.match(text, /Final prices set after onsite inspection/);
+    assert.match(text, /Ready when you are/);
+    assert.match(text, /Materials named for this job/);
+    assert.doesNotMatch(text, /Per unit|168 sq ft|8 boxes|Qty/);
+    assert.doesNotMatch(text, /\$\d[\d,]*\.\d{2}\s*\//);
+    const { PDFName } = await import("pdf-lib");
+    const links = pdfDoc.getPages().flatMap((item) => {
+      const found = item.node.lookup(PDFName.of("Annots")) as { size?: () => number; get?: (index: number) => unknown } | undefined;
+      if (!found?.size || !found.get) return [];
+      const rows: string[] = [];
+      for (let index = 0; index < found.size(); index += 1) {
+        const ref = found.get(index);
+        const obj = ref ? pdfDoc.context.lookup(ref as never) : undefined;
+        if (obj) rows.push(obj.toString());
+      }
+      return rows;
+    });
+    assert.match(links.join("\n"), /stylesbydesigntx\.com\/shop\?ref=flipfixer/);
+    assert.doesNotMatch(text, /divided by|rounded to the cent/i);
+    assert.doesNotMatch(text, /\binsured\b/i);
   });
 });
 

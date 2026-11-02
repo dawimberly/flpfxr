@@ -24,7 +24,7 @@ function PrivacyPage() {
           <h2 className="font-display text-2xl text-fg">When you contact us</h2>
           <p>We use the name, phone number, email address, job details, and optional photo you provide to respond to your inquiry and discuss the work. Please avoid including sensitive personal information in your message or photo.</p>
           <p>Our job inquiry forms send messages through our email delivery provider, Resend, and store them in our website database hosted by Neon. The separate Community partnership form sends information through FormSubmit. Our website is hosted by Vercel. These service providers process information to operate the website and deliver your request.</p>
-          <p>A paid labor estimate is charged by Stripe. We store the payment status with your inquiry and email the PDF to the address you gave us. Cabinet catalog requests are stored the same way as other inquiries. The catalog is browse-only.</p>
+          <p>A paid job estimate is charged by Stripe. We store the payment status with your inquiry and email the PDF to the address you gave us. Cabinet catalog requests are stored the same way as other inquiries. The catalog is browse-only.</p>
           <p>The form can save a draft in your browser so you can retry a failed submission. Advertising click identifiers and the page where you arrived may be included with your inquiry to help us understand how you found us.</p>
         </div>
         <div className="space-y-3">
