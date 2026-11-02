@@ -23,12 +23,17 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
+import { Route as ApiCatalogSignupRouteImport } from './routes/api/catalog-signup'
+import { Route as ApiEstimateCheckoutRouteImport } from './routes/api/estimate-checkout'
+import { Route as ApiEstimateInquiryRouteImport } from './routes/api/estimate-inquiry'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as EstimatePaidRouteImport } from './routes/estimate.paid'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +105,21 @@ const TestimonialsRoute = TestimonialsRouteImport.update({
   path: '/testimonials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCatalogSignupRoute = ApiCatalogSignupRouteImport.update({
+  id: '/api/catalog-signup',
+  path: '/api/catalog-signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEstimateCheckoutRoute = ApiEstimateCheckoutRouteImport.update({
+  id: '/api/estimate-checkout',
+  path: '/api/estimate-checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEstimateInquiryRoute = ApiEstimateInquiryRouteImport.update({
+  id: '/api/estimate-inquiry',
+  path: '/api/estimate-inquiry',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLeadsRoute = ApiLeadsRouteImport.update({
   id: '/api/leads',
   path: '/api/leads',
@@ -114,6 +134,11 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const EstimatePaidRoute = EstimatePaidRouteImport.update({
+  id: '/paid',
+  path: '/paid',
+  getParentRoute: () => EstimateRoute,
 } as any)
 const EstimatorIndexRoute = EstimatorIndexRouteImport.update({
   id: '/',
@@ -130,6 +155,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -137,7 +167,7 @@ export interface FileRoutesByFullPath {
   '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
-  '/estimate': typeof EstimateRoute
+  '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
@@ -146,12 +176,17 @@ export interface FileRoutesByFullPath {
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
+  '/api/catalog-signup': typeof ApiCatalogSignupRoute
+  '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
+  '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/estimate/paid': typeof EstimatePaidRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -159,7 +194,7 @@ export interface FileRoutesByTo {
   '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
-  '/estimate': typeof EstimateRoute
+  '/estimate': typeof EstimateRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
@@ -167,12 +202,17 @@ export interface FileRoutesByTo {
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
+  '/api/catalog-signup': typeof ApiCatalogSignupRoute
+  '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
+  '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/estimate/paid': typeof EstimatePaidRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/blog': typeof BlogIndexRoute
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -181,7 +221,7 @@ export interface FileRoutesById {
   '/bathroom': typeof BathroomRoute
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
-  '/estimate': typeof EstimateRoute
+  '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/kitchen': typeof KitchenRoute
@@ -190,12 +230,17 @@ export interface FileRoutesById {
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
   '/testimonials': typeof TestimonialsRoute
+  '/api/catalog-signup': typeof ApiCatalogSignupRoute
+  '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
+  '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/blog/$slug': typeof BlogSlugRoute
+  '/estimate/paid': typeof EstimatePaidRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -214,12 +259,17 @@ export interface FileRouteTypes {
     | '/roof'
     | '/services'
     | '/testimonials'
+    | '/api/catalog-signup'
+    | '/api/estimate-checkout'
+    | '/api/estimate-inquiry'
     | '/api/leads'
     | '/blog/$slug'
+    | '/estimate/paid'
     | '/estimator/roof'
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -235,12 +285,17 @@ export interface FileRouteTypes {
     | '/roof'
     | '/services'
     | '/testimonials'
+    | '/api/catalog-signup'
+    | '/api/estimate-checkout'
+    | '/api/estimate-inquiry'
     | '/api/leads'
     | '/blog/$slug'
+    | '/estimate/paid'
     | '/estimator/roof'
     | '/blog'
     | '/estimator'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
   id:
     | '__root__'
     | '/'
@@ -257,12 +312,17 @@ export interface FileRouteTypes {
     | '/roof'
     | '/services'
     | '/testimonials'
+    | '/api/catalog-signup'
+    | '/api/estimate-checkout'
+    | '/api/estimate-inquiry'
     | '/api/leads'
     | '/blog/$slug'
+    | '/estimate/paid'
     | '/estimator/roof'
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -271,7 +331,7 @@ export interface RootRouteChildren {
   BathroomRoute: typeof BathroomRoute
   CommunityRoute: typeof CommunityRoute
   ContactRoute: typeof ContactRoute
-  EstimateRoute: typeof EstimateRoute
+  EstimateRoute: typeof EstimateRouteWithChildren
   EstimatorRoute: typeof EstimatorRouteWithChildren
   GalleryRoute: typeof GalleryRoute
   KitchenRoute: typeof KitchenRoute
@@ -280,10 +340,14 @@ export interface RootRouteChildren {
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
   TestimonialsRoute: typeof TestimonialsRoute
+  ApiCatalogSignupRoute: typeof ApiCatalogSignupRoute
+  ApiEstimateCheckoutRoute: typeof ApiEstimateCheckoutRoute
+  ApiEstimateInquiryRoute: typeof ApiEstimateInquiryRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
   BlogSlugRoute: typeof BlogSlugRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -386,6 +450,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TestimonialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/catalog-signup': {
+      id: '/api/catalog-signup'
+      path: '/api/catalog-signup'
+      fullPath: '/api/catalog-signup'
+      preLoaderRoute: typeof ApiCatalogSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/estimate-checkout': {
+      id: '/api/estimate-checkout'
+      path: '/api/estimate-checkout'
+      fullPath: '/api/estimate-checkout'
+      preLoaderRoute: typeof ApiEstimateCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/estimate-inquiry': {
+      id: '/api/estimate-inquiry'
+      path: '/api/estimate-inquiry'
+      fullPath: '/api/estimate-inquiry'
+      preLoaderRoute: typeof ApiEstimateInquiryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/leads': {
       id: '/api/leads'
       path: '/api/leads'
@@ -406,6 +491,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/estimate/paid': {
+      id: '/estimate/paid'
+      path: '/paid'
+      fullPath: '/estimate/paid'
+      preLoaderRoute: typeof EstimatePaidRouteImport
+      parentRoute: typeof EstimateRoute
     }
     '/estimator/': {
       id: '/estimator/'
@@ -428,8 +520,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface EstimateRouteChildren {
+  EstimatePaidRoute: typeof EstimatePaidRoute
+}
+
+const EstimateRouteChildren: EstimateRouteChildren = {
+  EstimatePaidRoute: EstimatePaidRoute,
+}
+
+const EstimateRouteWithChildren = EstimateRoute._addFileChildren(
+  EstimateRouteChildren,
+)
 
 interface EstimatorRouteChildren {
   EstimatorRoofRoute: typeof EstimatorRoofRoute
@@ -451,7 +562,7 @@ const rootRouteChildren: RootRouteChildren = {
   BathroomRoute: BathroomRoute,
   CommunityRoute: CommunityRoute,
   ContactRoute: ContactRoute,
-  EstimateRoute: EstimateRoute,
+  EstimateRoute: EstimateRouteWithChildren,
   EstimatorRoute: EstimatorRouteWithChildren,
   GalleryRoute: GalleryRoute,
   KitchenRoute: KitchenRoute,
@@ -460,10 +571,14 @@ const rootRouteChildren: RootRouteChildren = {
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
   TestimonialsRoute: TestimonialsRoute,
+  ApiCatalogSignupRoute: ApiCatalogSignupRoute,
+  ApiEstimateCheckoutRoute: ApiEstimateCheckoutRoute,
+  ApiEstimateInquiryRoute: ApiEstimateInquiryRoute,
   ApiLeadsRoute: ApiLeadsRoute,
   BlogSlugRoute: BlogSlugRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

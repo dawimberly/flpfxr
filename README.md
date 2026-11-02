@@ -88,6 +88,23 @@ Public lead forms post to same-origin **`/api/leads`** (not FormSubmit). The ser
 
 Until `RESEND_API_KEY` is configured on Vercel, the form shows an error and asks the visitor to call or text — it will not pretend the lead was sent.
 
+### Cabinet catalog and paid labor estimate
+
+Migration `migrations/0005_estimate_fee.sql` adds payment and planner columns on `contact_leads`. It runs with the other migrations on deploy when `DATABASE_URL` is set.
+
+| Variable | Purpose |
+|----------|---------|
+| `SBD_CATALOG_BASE_URL` | Catalog origin. Default `https://stylesbydesigntx.com` |
+| `SBD_CATALOG_PATH` | Catalog path. Default `/shop` |
+| `STRIPE_SECRET_KEY` | Styles by Design Stripe secret. Required to start checkout |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `DETAILED_ESTIMATE_FEE_CENTS` | Fee in cents. Default `3500` ($35) |
+| `RESEND_API_KEY` | Emails the PDF to the customer and notifies staff. The webhook retries while this is missing |
+
+The catalog link is `https://stylesbydesigntx.com/shop?ref=flipfixer` unless those env vars change it. The shop is browse-only. Stripe webhook endpoint: `https://theflipfixer.com/api/stripe/webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`.
+
+The free planning range stays on `/estimate`. After name, phone, and email, the visitor can buy the labor PDF or send a free inquiry. Both write a `contact_leads` row. The PDF prices labor and services only. Material prices are not in it. A designer calls to finalize cabinets, fillers, toe kick, and baseboard. The fee is credited toward the job if they book.
+
 ---
 
 ## Employee account scripts
