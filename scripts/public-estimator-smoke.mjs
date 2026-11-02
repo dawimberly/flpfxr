@@ -107,6 +107,12 @@ try {
     const bodyText=async()=>page.locator("body").innerText();
     assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
     await page.getByTestId("estimate-included").waitFor();
+    const sample = page.getByTestId("sample-estimate");
+    await sample.getByRole("heading", { name: "See a sample estimate" }).waitFor();
+    const sampleLink = sample.getByRole("link", { name: "Open the sample estimate PDF" });
+    assert.equal(await sampleLink.getAttribute("href"), "/sample-estimate.pdf");
+    assert.equal(await sampleLink.getAttribute("target"), "_blank");
+    await sample.getByText("SAMPLE", { exact: true }).waitFor();
     await page.getByText("Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage.",{exact:true}).waitFor();
 
     const floor=page.getByLabel("Kitchen floor (sq ft)",{exact:true});
