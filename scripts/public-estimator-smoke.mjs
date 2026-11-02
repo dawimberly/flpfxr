@@ -48,7 +48,7 @@ try {
     assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
     await page.getByTestId("estimate-total").getByText("between $9,000 and $11,200",{exact:true}).waitFor();
-    assert.equal(await page.getByText("Preliminary estimate only — not a quote. Final price is set after we see the space.",{exact:true}).count(),1);
+    assert.equal(await page.getByText("Preliminary estimate only — not a quote. Final prices set after onsite inspection.",{exact:true}).count(),1);
     await page.evaluate(()=>document.fonts?.ready);
     const fold=await page.locator("#estimate-fold").boundingBox();
     assert.ok(fold,"Fold block is missing");
@@ -92,7 +92,7 @@ try {
     });
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
-    await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only — not a quote. Final price is set after we see the space.",{exact:true}).waitFor();
+    await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only — not a quote. Final prices set after onsite inspection.",{exact:true}).waitFor();
     await page.getByTestId("estimate-total").getByText("between $12,300 and $15,400",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
@@ -161,7 +161,7 @@ try {
     const message=await page.locator('textarea[name="message"]').inputValue();
     assert.match(message,/between \$9,000 and \$11,200/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
-    assert.match(message,/Preliminary estimate only — not a quote\. Final price is set after we see the space\./);
+    assert.match(message,/Preliminary estimate only — not a quote\. Final prices set after onsite inspection\./);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
     assert.equal(await page.locator('input[name="Source"]').inputValue(),"estimate");
     assert.equal(await page.evaluate(()=>sessionStorage.getItem("ff-first-landing-path")),"/estimate");
