@@ -11,10 +11,17 @@ export const JOB_MINIMUM = 1500;
 const PERSON_HOURS_PER_CREW_DAY = 16;
 const PROJECT_SUPPORT = { Small: 250, Medium: 450, Large: 750 } as const;
 
+/**
+ * Northville install labor is $75 for a cabinet box and $125 for an oversized box
+ * (pantries, refrigerator panels, tall towers). The public planner keeps 1.5
+ * person-hours on a standard box and scales the XL fridge box by that ratio.
+ */
+export const XL_FRIDGE_LABOR_RATIO = 125 / 75;
 /** Owner-specified person-hours, not crew-hours. Primer consumes half a pass. */
 export const TRADE_HOURS = {
   tileFloor: 0.35, surroundTile: 0.5, lvp: 0.06,
   interiorPaintPerCoat: 0.03, exteriorPaint: 0.04, cabinetBox: 1.5,
+  xlFridgeBox: 1.5 * (125 / 75),
   // TODO Jon: confirm these retained/provisional non-specified productivity assumptions.
   woodFloor: 0.08, carpetFloor: 0.08, trim: 0.15, countertop: 0.08,
   backsplashTile: 0.5, fixture: 1.5,
@@ -33,6 +40,8 @@ const REFERENCE_COST = {
   trim: 2.85, interiorPaint: 0.45, exteriorPaint: 0.55,
   interiorPrimer: 0.22, exteriorPrimer: 0.28,
   baseCabinet: 185, wallCabinet: 145, backsplash: 8.75,
+  /** Same $185 base-box reference, times the oversized labor ratio, nearest dollar. Not a refrigerator-cabinet quote. */
+  xlFridgeBox: Math.round(185 * (125 / 75)),
 };
 
 /**
@@ -200,6 +209,9 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
   if (input.service === "kitchen") {
     add("base-cabinets", scope.base, REFERENCE_COST.baseCabinet, TRADE_HOURS.cabinetBox);
     add("wall-cabinets", scope.wallUnits, REFERENCE_COST.wallCabinet, TRADE_HOURS.cabinetBox);
+    if (scope.xlFridgeBoxes > 0) {
+      add("xl-fridge", scope.xlFridgeBoxes, REFERENCE_COST.xlFridgeBox, TRADE_HOURS.xlFridgeBox);
+    }
     if (input.counter === "quartz" || input.counter === "granite") {
       const coverage = stoneCoverage(scope.counters, scope.counters > SMALL_PIECE_SQFT);
       remnantStone = coverage.remnant;
@@ -257,6 +269,8 @@ function areasFrom(input: ProjectInputs): ScopeAreas {
   if (input.showerSqft !== undefined) areas.showerSqft = input.showerSqft;
   if (input.counterSqft !== undefined) areas.counterSqft = input.counterSqft;
   if (input.roomSqft !== undefined) areas.roomSqft = input.roomSqft;
+  if (input.cabinetBoxes !== undefined) areas.cabinetBoxes = input.cabinetBoxes;
+  if (input.xlFridgeBoxes !== undefined) areas.xlFridgeBoxes = input.xlFridgeBoxes;
   return areas;
 }
 

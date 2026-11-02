@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
-  COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, projectScope, presetAreas, parseSqft, scopeAreaError,
+  COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, projectScope, presetAreas, parseSqft, parseBoxCount, scopeAreaError,
   vanityForSize, selectedVanity,
   type ExteriorCoats, type ProjectInputs, type ProjectService, type ProjectSize, type ScopeAreas,
 } from "@/lib/public-estimate-options";
@@ -31,7 +31,13 @@ const sqftText = (n: number) => {
 };
 function sizeText(service: ProjectInputs["service"], scope: NonNullable<ReturnType<typeof projectScope>>) {
   if (service === "bathroom") return `${sqftText(scope.floor)} sq ft floor, ${sqftText(scope.shower)} sq ft shower`;
-  if (service === "kitchen") return `${sqftText(scope.floor)} sq ft floor, ${sqftText(scope.counters)} sq ft counters`;
+  if (service === "kitchen") {
+    const boxes = scope.base + scope.wallUnits;
+    const xl = scope.xlFridgeBoxes
+      ? `, ${sqftText(scope.xlFridgeBoxes)} XL fridge ${scope.xlFridgeBoxes === 1 ? "box" : "boxes"}`
+      : "";
+    return `${sqftText(scope.floor)} sq ft floor, ${sqftText(scope.counters)} sq ft counters, ${sqftText(boxes)} cabinet boxes${xl}`;
+  }
   if (service === "flooring") return `${sqftText(scope.floor)} sq ft`;
   return `${sqftText(scope.wall)} sq ft`;
 }
@@ -70,11 +76,13 @@ export function PublicProjectEstimator({
   const showerParsed = parseSqft(areas.shower);
   const counterParsed = parseSqft(areas.counter);
   const roomParsed = parseSqft(areas.room);
-  const parseError = floorParsed.error || showerParsed.error || counterParsed.error || roomParsed.error;
+  const boxesParsed = parseBoxCount(areas.boxes);
+  const xlParsed = parseBoxCount(areas.xl);
+  const parseError = floorParsed.error || showerParsed.error || counterParsed.error || roomParsed.error || boxesParsed.error || xlParsed.error;
   const areaPayload: ScopeAreas = inputs.service === "bathroom"
     ? { floorSqft: floorParsed.value, showerSqft: showerParsed.value }
     : inputs.service === "kitchen"
-    ? { floorSqft: floorParsed.value, counterSqft: counterParsed.value }
+    ? { floorSqft: floorParsed.value, counterSqft: counterParsed.value, cabinetBoxes: boxesParsed.value, xlFridgeBoxes: xlParsed.value }
     : inputs.service === "flooring" || inputs.service === "interior-paint" || inputs.service === "exterior-paint"
     ? { roomSqft: roomParsed.value }
     : {};
@@ -203,6 +211,16 @@ export function PublicProjectEstimator({
             <input id="estimate-counter-sqft" type="text" inputMode="decimal" value={areas.counter} placeholder="Optional"
               aria-invalid={Boolean(counterParsed.error) || Boolean(areaError && /counter/i.test(areaError))}
               onChange={e => setAreas(prev => ({ ...prev, counter: e.target.value }))} className={fieldClass} />
+          </label> : null}
+          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-cabinet-boxes">Cabinet boxes
+            <input id="estimate-cabinet-boxes" type="text" inputMode="numeric" value={areas.boxes}
+              aria-invalid={Boolean(boxesParsed.error) || Boolean(areaError && /cabinet boxes/i.test(areaError))}
+              onChange={e => setAreas(prev => ({ ...prev, boxes: e.target.value }))} className={fieldClass} />
+          </label> : null}
+          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-xl-fridge">XL fridge boxes
+            <input id="estimate-xl-fridge" type="text" inputMode="numeric" value={areas.xl}
+              aria-invalid={Boolean(xlParsed.error) || Boolean(areaError && /XL fridge/i.test(areaError))}
+              onChange={e => setAreas(prev => ({ ...prev, xl: e.target.value }))} className={fieldClass} />
           </label> : null}
           {inputs.service === "flooring" || inputs.service === "interior-paint" || inputs.service === "exterior-paint" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-room-sqft">{inputs.service === "flooring" ? "Floor area (sq ft)" : "Area to paint (sq ft)"}
             <input id="estimate-room-sqft" type="text" inputMode="decimal" value={areas.room}
