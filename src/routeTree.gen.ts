@@ -31,6 +31,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as EstimatePaidRouteImport } from './routes/estimate.paid'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
+import { Route as EstimatorInvoicesRouteImport } from './routes/estimator.invoices'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
@@ -145,6 +146,11 @@ const EstimatorIndexRoute = EstimatorIndexRouteImport.update({
   path: '/',
   getParentRoute: () => EstimatorRoute,
 } as any)
+const EstimatorInvoicesRoute = EstimatorInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => EstimatorRoute,
+} as any)
 const EstimatorRoofRoute = EstimatorRoofRouteImport.update({
   id: '/roof',
   path: '/roof',
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/api/leads': typeof ApiLeadsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
+  '/estimator/invoices': typeof EstimatorInvoicesRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/api/leads': typeof ApiLeadsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
+  '/estimator/invoices': typeof EstimatorInvoicesRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/blog': typeof BlogIndexRoute
   '/estimator': typeof EstimatorIndexRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/api/leads': typeof ApiLeadsRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
+  '/estimator/invoices': typeof EstimatorInvoicesRoute
   '/estimator/roof': typeof EstimatorRoofRoute
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/api/leads'
     | '/blog/$slug'
     | '/estimate/paid'
+    | '/estimator/invoices'
     | '/estimator/roof'
     | '/blog/'
     | '/estimator/'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/api/leads'
     | '/blog/$slug'
     | '/estimate/paid'
+    | '/estimator/invoices'
     | '/estimator/roof'
     | '/blog'
     | '/estimator'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/api/leads'
     | '/blog/$slug'
     | '/estimate/paid'
+    | '/estimator/invoices'
     | '/estimator/roof'
     | '/blog/'
     | '/estimator/'
@@ -506,6 +518,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EstimatorIndexRouteImport
       parentRoute: typeof EstimatorRoute
     }
+    '/estimator/invoices': {
+      id: '/estimator/invoices'
+      path: '/invoices'
+      fullPath: '/estimator/invoices'
+      preLoaderRoute: typeof EstimatorInvoicesRouteImport
+      parentRoute: typeof EstimatorRoute
+    }
     '/estimator/roof': {
       id: '/estimator/roof'
       path: '/roof'
@@ -543,11 +562,13 @@ const EstimateRouteWithChildren = EstimateRoute._addFileChildren(
 )
 
 interface EstimatorRouteChildren {
+  EstimatorInvoicesRoute: typeof EstimatorInvoicesRoute
   EstimatorRoofRoute: typeof EstimatorRoofRoute
   EstimatorIndexRoute: typeof EstimatorIndexRoute
 }
 
 const EstimatorRouteChildren: EstimatorRouteChildren = {
+  EstimatorInvoicesRoute: EstimatorInvoicesRoute,
   EstimatorRoofRoute: EstimatorRoofRoute,
   EstimatorIndexRoute: EstimatorIndexRoute,
 }
