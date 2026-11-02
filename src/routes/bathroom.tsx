@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CabinetCatalogGate } from "@/components/cabinet-catalog-gate";
 import { LeadForm } from "@/components/lead-form";
 import {
   FeaturedProjectPhoto,
@@ -44,6 +45,12 @@ function BathroomLanding() {
       </header>
 
       <FeaturedProjectPhoto service="bathroom" />
+
+      <section className="mx-auto max-w-6xl px-4 pb-6">
+        <div className="md:max-w-xl">
+          <CabinetCatalogGate defaultProject="bathroom" />
+        </div>
+      </section>
 
       <section id="send-job" className="mx-auto max-w-6xl scroll-mt-28 px-4 pb-16">
         <div className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-border)] md:max-w-xl md:p-8">

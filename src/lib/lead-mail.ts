@@ -17,6 +17,8 @@ export type LeadMailInput = {
   subject: string;
   text: string;
   attachments?: LeadMailAttachment[];
+  /** Defaults to contact-lead/{submissionId}. Use a distinct key for a second email about the same lead. */
+  idempotencyKey?: string;
 };
 
 export type LeadMailResult =
@@ -62,7 +64,7 @@ export async function sendLeadEmail(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "Idempotency-Key": `contact-lead/${input.submissionId}`,
+        "Idempotency-Key": input.idempotencyKey || `contact-lead/${input.submissionId}`,
       },
       body: JSON.stringify(payload),
     });
