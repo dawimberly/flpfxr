@@ -119,7 +119,7 @@ export function estimateEventParams(inputs: ProjectInputs, customSqft: boolean) 
   const counter = COUNTER_MATERIALS.find(row => row.id === inputs.counter)?.id;
   const shower = SHOWER_MATERIALS.find(row => row.id === inputs.shower)?.id;
   if (["kitchen", "bathroom", "flooring"].includes(service) && floor) params.floor_material = floor;
-  if (service === "kitchen" && counter) params.counter_material = counter;
+  if ((service === "kitchen" || service === "bathroom") && counter) params.counter_material = counter;
   if (service === "bathroom") {
     if (shower) params.shower_material = shower;
     const vanity = selectedVanity(size, inputs.vanity);
