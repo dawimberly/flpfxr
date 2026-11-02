@@ -131,7 +131,7 @@ try {
 
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
-    await page.getByText("Demolition",{exact:true}).waitFor();
+    await page.getByTestId("estimate-included").getByText("Demolition",{exact:true}).waitFor();
     await page.getByText("between $9,300 and $11,700",{exact:true}).waitFor();
     await page.getByLabel("Shower wall").selectOption("stone");
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);

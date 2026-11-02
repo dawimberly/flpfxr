@@ -195,7 +195,7 @@ export function EstimateNextStep({
               <Input id="next-email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="min-h-11" />
             </div>
           </div>
-          <div className={step === 3 ? "space-y-4" : "hidden"}>
+          <div hidden={step !== 3} className={step === 3 ? "space-y-4" : "hidden"}>
               <p className="text-sm text-muted">{LABOR_ONLY_NOTE} {FEE_CREDIT_NOTE}</p>
               {preview && preview.kind === "itemized" ? (
                 <div className="rounded-xl border border-border bg-bg p-3 text-sm text-fg">
