@@ -18,6 +18,7 @@ export const Route = createFileRoute("/estimate")({
         { title: `${headline} | ${SITE.name}` },
         { name: "description", content: "Explore preliminary planning ranges for kitchen, bathroom, flooring, painting and other remodeling projects in San Antonio." },
       ],
+      scripts: [{ src: "https://js.stripe.com/dahlia/stripe.js" }],
     };
   },
 });

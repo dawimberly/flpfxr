@@ -7,6 +7,7 @@ import { readDetailedEstimateFeeCents } from "./estimate-fee.ts";
 import { buildLaborDocument, laborDocumentPlainText } from "./labor-estimate.ts";
 import { renderLaborEstimatePdf, SITE_HEADER_LOGO } from "./labor-estimate-pdf.ts";
 import { decidePayment, readStripeEvent } from "./estimate-next.server.ts";
+import { createCheckoutSession, STRIPE_API_VERSION } from "./stripe-checkout.ts";
 import { handleCatalogSignup } from "./catalog-signup.server.ts";
 import { parseStoredPlanner } from "./planner-form.ts";
 import { verifyStripeSignature } from "./stripe-signature.ts";
@@ -131,6 +132,70 @@ describe("labor document", () => {
 });
 
 describe("stripe", () => {
+  it("opens an embedded form checkout session on the dahlia API", async () => {
+    let body = "";
+    let version = "";
+    const result = await createCheckoutSession({
+      secretKey: "sk_test_x",
+      amountCents: 3500,
+      submissionId,
+      customerEmail: "ada@example.com",
+      productName: "Itemized job estimate",
+      productDescription: "Whole job",
+      returnUrl: "https://theflipfixer.com/estimate/paid?session_id={CHECKOUT_SESSION_ID}",
+      idempotencyKey: "detailed-estimate/form/abc",
+    }, async (_url, init) => {
+      body = String(init?.body ?? "");
+      version = new Headers(init?.headers).get("Stripe-Version") ?? "";
+      return new Response(JSON.stringify({
+        id: "cs_test_1",
+        client_secret: "cs_test_1_secret",
+        payment_status: "unpaid",
+        status: "open",
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    assert.equal(version, STRIPE_API_VERSION);
+    assert.equal(result.ok && result.clientSecret, "cs_test_1_secret");
+    assert.match(body, /(?:^|&)mode=payment(?:&|$)/);
+    assert.match(body, /ui_mode=form/);
+    assert.match(body, /billing_address_collection=auto/);
+    assert.match(body, /phone_number_collection(?:%5B|\[)enabled(?:%5D|\])=false/);
+    assert.match(body, /automatic_tax(?:%5B|\[)enabled(?:%5D|\])=false/);
+    assert.match(body, /submit_type=auto/);
+    assert.match(body, /integration_identifier=custom_embedded_web_0001/);
+    assert.match(body, /unit_amount%5D=3500/);
+    assert.match(body, /return_url=/);
+    assert.doesNotMatch(body, /payment_method_collection|success_url|cancel_url/);
+    assert.doesNotMatch(body, /(?:^|&)line_items%5B0%5D%5Bprice%5D=/);
+  });
+
+  it("uses STRIPE_PRICE_ID as the line item when it is set", async () => {
+    let body = "";
+    const priceId = "price_1UXVMe06qKM9mFyYSupUbGx0";
+    await createCheckoutSession({
+      secretKey: "sk_test_x",
+      amountCents: 3500,
+      submissionId,
+      customerEmail: "ada@example.com",
+      productName: "Itemized job estimate",
+      productDescription: "Whole job",
+      returnUrl: "https://theflipfixer.com/estimate/paid?session_id={CHECKOUT_SESSION_ID}",
+      idempotencyKey: "detailed-estimate/form/price/abc",
+      priceId,
+    }, async (_url, init) => {
+      body = String(init?.body ?? "");
+      return new Response(JSON.stringify({
+        id: "cs_test_price",
+        client_secret: "cs_test_price_secret",
+        payment_status: "unpaid",
+        status: "open",
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    assert.match(body, new RegExp(`line_items%5B0%5D%5Bprice%5D=${priceId}`));
+    assert.match(body, /line_items%5B0%5D%5Bquantity%5D=1/);
+    assert.doesNotMatch(body, /price_data|unit_amount/);
+  });
+
   it("checks the webhook signature and reads a paid checkout session", () => {
     const payload = JSON.stringify({
       type: "checkout.session.completed",

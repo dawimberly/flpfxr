@@ -1,5 +1,8 @@
+/** Checkout Sessions API for the embedded form. Dahlia or later. */
+export const STRIPE_API_VERSION = "2026-03-25.dahlia";
+
 export type StripeSessionResult =
-  | { ok: true; id: string; url: string | null; paymentStatus: string; status: string }
+  | { ok: true; id: string; clientSecret: string | null; url: string | null; paymentStatus: string; status: string }
   | { ok: false; status: number; message: string };
 
 export function encodeStripeForm(fields: Record<string, string | number | undefined>): string {
@@ -19,27 +22,41 @@ export async function createCheckoutSession(
     customerEmail: string;
     productName: string;
     productDescription: string;
-    successUrl: string;
-    cancelUrl: string;
+    returnUrl: string;
     idempotencyKey: string;
+    /** Catalog price, such as Itemized Job Estimate (PDF). Omit to use price_data. */
+    priceId?: string;
   },
   fetchImpl: typeof fetch = fetch,
 ): Promise<StripeSessionResult> {
+  const lineItem = args.priceId
+    ? {
+        "line_items[0][price]": args.priceId,
+        "line_items[0][quantity]": 1,
+      }
+    : {
+        "line_items[0][quantity]": 1,
+        "line_items[0][price_data][currency]": "usd",
+        "line_items[0][price_data][unit_amount]": args.amountCents,
+        "line_items[0][price_data][product_data][name]": args.productName,
+        "line_items[0][price_data][product_data][description]": args.productDescription,
+      };
   const body = encodeStripeForm({
     mode: "payment",
-    success_url: args.successUrl,
-    cancel_url: args.cancelUrl,
+    ui_mode: "form",
+    return_url: args.returnUrl,
+    billing_address_collection: "auto",
+    "phone_number_collection[enabled]": "false",
+    "automatic_tax[enabled]": "false",
+    submit_type: "auto",
+    integration_identifier: "custom_embedded_web_0001",
     client_reference_id: args.submissionId,
     customer_email: args.customerEmail,
     "metadata[lead_id]": args.submissionId,
     "metadata[source]": "detailed_estimate",
     "payment_intent_data[metadata][lead_id]": args.submissionId,
     "payment_intent_data[metadata][source]": "detailed_estimate",
-    "line_items[0][quantity]": 1,
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": args.amountCents,
-    "line_items[0][price_data][product_data][name]": args.productName,
-    "line_items[0][price_data][product_data][description]": args.productDescription,
+    ...lineItem,
   });
   let res: Response;
   try {
@@ -49,6 +66,7 @@ export async function createCheckoutSession(
         Authorization: `Bearer ${args.secretKey}`,
         "Content-Type": "application/x-www-form-urlencoded",
         "Idempotency-Key": args.idempotencyKey,
+        "Stripe-Version": STRIPE_API_VERSION,
       },
       body,
     });
@@ -73,6 +91,7 @@ export async function createCheckoutSession(
   return {
     ok: true,
     id: rec.id,
+    clientSecret: typeof rec.client_secret === "string" ? rec.client_secret : null,
     url: typeof rec.url === "string" ? rec.url : null,
     paymentStatus: typeof rec.payment_status === "string" ? rec.payment_status : "",
     status: typeof rec.status === "string" ? rec.status : "",
