@@ -177,8 +177,17 @@ try {
       });
       await cta.getByRole("button", { name: "Get your free estimate", exact: true }).click();
       await page.getByRole("heading", { name: "A few details" }).waitFor();
+      await page.getByText("Address or ZIP (optional)", { exact: true }).waitFor();
+      assert.equal(await page.locator("#next-address").getAttribute("required"), null);
+      await page.getByTestId("estimate-next").screenshot({ path: join(artifacts, "estimate-address-optional.png") });
       await page.getByRole("button", { name: "Continue", exact: true }).click();
       await page.getByRole("heading", { name: "How do we reach you?" }).waitFor();
+      for (const id of ["#next-name", "#next-phone", "#next-email"]) {
+        assert.equal(await page.locator(id).getAttribute("required"), "", `${id} is required`);
+      }
+      await page.getByTestId("estimate-next").screenshot({ path: join(artifacts, "estimate-required-contact.png") });
+      await page.getByRole("button", { name: "Continue", exact: true }).click();
+      await page.getByText("Add your name so we know who to call back.").waitFor();
       await page.locator("#next-name").fill("LOCAL MOCK ONLY");
       await page.locator("#next-phone").fill("2105550100");
       await page.locator("#next-email").fill("sample@example.com");
@@ -191,6 +200,7 @@ try {
       assert.equal(inquiries[0].size, "Medium");
       assert.equal(inquiries[0].shower, "ceramic");
       assert.equal(inquiries[0].name, "LOCAL MOCK ONLY");
+      assert.equal(inquiries[0].email, "sample@example.com");
     }
 
     await page.getByRole("link",{name:"Request an on-site estimate"}).click();
@@ -203,12 +213,20 @@ try {
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
     assert.equal(await page.locator('input[name="Source"]').inputValue(),"estimate");
     assert.equal(await page.evaluate(()=>sessionStorage.getItem("ff-first-landing-path")),"/estimate");
+    const contactEmail = page.locator('input[name="email"]');
+    assert.equal(await contactEmail.getAttribute("required"), "");
     await page.locator('input[name="name"]').fill("LOCAL MOCK ONLY");
     await page.locator('input[name="phone"]').fill("2105550100");
     await page.locator('textarea[name="message"]').fill("Please call me tomorrow about this project.");
+    await page.locator("form").first().screenshot({ path: join(artifacts, "contact-required-email-"+width+".png") });
+    await page.getByRole("button",{name:"Send it over",exact:true}).click();
+    await page.getByText("Add your email so we can send your estimate.").waitFor();
+    assert.equal(leadRequests.length,0,"Missing email must not post");
+    await contactEmail.fill("sample@example.com");
     await page.getByRole("button",{name:"Send it over",exact:true}).click();
     await page.getByRole("heading",{name:"Sent.",exact:true}).waitFor();
     assert.equal(leadRequests.length,1,"Exactly one mocked request");
+    assert.equal(leadRequests[0].email,"sample@example.com");
     assert.equal(leadRequests[0].Source,"estimate");
     assert.equal(leadRequests[0].estimate_service,"bathroom");
     assert.equal(leadRequests[0].estimate_size,"Medium");

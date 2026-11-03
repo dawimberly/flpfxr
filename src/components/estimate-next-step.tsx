@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { captureAdClickIds } from "@/lib/formsubmit";
 import { buildLaborDocument } from "@/lib/labor-estimate";
-import { isValidSubmissionId, parseLeadApiResponse } from "@/lib/lead-delivery";
+import { isValidSubmissionId, leadEmailProblem, parseLeadApiResponse } from "@/lib/lead-delivery";
 import { trackContactFormSubmit } from "@/lib/google-ads";
 import {
   DECISION_OPTIONS,
@@ -164,7 +164,7 @@ export function EstimateNextStep({
           </div>
           <div className={step === 1 ? "space-y-4" : "hidden"}>
               <p className="text-sm text-muted">{label}. These answers show up in the estimate and in the note we keep.</p>
-              <label className="block text-sm font-semibold text-fg" htmlFor="next-address">Property address
+              <label className="block text-sm font-semibold text-fg" htmlFor="next-address">Address or ZIP (optional)
                 <input id="next-address" name="address" autoComplete="street-address" className={fieldClass} />
               </label>
               <label className="block text-sm font-semibold text-fg" htmlFor="next-occupancy">Who is in the home
@@ -196,15 +196,15 @@ export function EstimateNextStep({
           <div className={step === 2 ? "space-y-4" : "hidden"}>
             <div className="space-y-2">
               <Label htmlFor="next-name">Name *</Label>
-              <Input id="next-name" name="name" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="min-h-11" />
+              <Input id="next-name" name="name" required autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="min-h-11" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="next-phone">Phone *</Label>
-              <Input id="next-phone" name="phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="min-h-11" />
+              <Input id="next-phone" name="phone" type="tel" required autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="min-h-11" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="next-email">Email *</Label>
-              <Input id="next-email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="min-h-11" />
+              <Input id="next-email" name="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="min-h-11" />
             </div>
           </div>
           <div hidden={step !== 3} className={step === 3 ? "space-y-4" : "hidden"}>
@@ -279,9 +279,20 @@ export function EstimateNextStep({
                 type="button"
                 className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary px-4 font-semibold text-primary-fg"
                 onClick={() => {
-                  if (step === 2 && (name.trim().length < 2 || phone.replace(/\D/g, "").length < 10 || !email.includes("@"))) {
-                    setError("Add your name, a 10-digit phone, and an email.");
-                    return;
+                  if (step === 2) {
+                    if (name.trim().length < 2) {
+                      setError("Add your name so we know who to call back.");
+                      return;
+                    }
+                    if (phone.replace(/\D/g, "").length < 10) {
+                      setError("Add a 10-digit phone so we can call you back.");
+                      return;
+                    }
+                    const emailProblem = leadEmailProblem(email);
+                    if (emailProblem) {
+                      setError(emailProblem);
+                      return;
+                    }
                   }
                   setError("");
                   setStep((value) => value + 1);

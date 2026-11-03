@@ -10,7 +10,7 @@ import { PROJECT_SERVICES, PROJECT_SIZES } from "./public-estimate-options.ts";
 
 function form(fields: Record<string, string>) {
   const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) data.set(key, value);
+  for (const [key, value] of Object.entries({ email: "visitor@example.com", ...fields })) data.set(key, value);
   return data;
 }
 
@@ -165,6 +165,27 @@ describe("lead submit server", () => {
     const body = await res.json();
     assert.equal(body.ok, true);
     assert.equal(body.discarded, true);
+    assert.equal(mailCalls.length, 0);
+  });
+
+  it("rejects a lead with a missing or invalid email", async () => {
+    for (const email of ["", "   ", "not-an-email", "a@b"]) {
+      const res = await handleLeadFormData(
+        form({
+          submissionId,
+          name: "Jon",
+          phone: "2104369117",
+          email,
+          message: "Need a quote",
+        }),
+        new Request("https://theflipfixer.com/api/leads", { method: "POST" }),
+      );
+      assert.equal(res.status, 400);
+      const body = await res.json();
+      assert.equal(body.ok, false);
+      assert.equal(body.code, "validation");
+      assert.equal(body.message, "Add your email so we can send your estimate.");
+    }
     assert.equal(mailCalls.length, 0);
   });
 
