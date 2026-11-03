@@ -72,6 +72,17 @@ export function isValidSubmissionId(id: string): boolean {
   );
 }
 
+export const LEAD_EMAIL_MESSAGE = "Add your email so we can send your estimate.";
+
+const LEAD_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Empty and malformed addresses share one message so the form can ask for a usable email. */
+export function leadEmailProblem(email: string): string | null {
+  const value = email.trim();
+  if (!value || value.length > 200 || !LEAD_EMAIL_PATTERN.test(value)) return LEAD_EMAIL_MESSAGE;
+  return null;
+}
+
 export function validateLeadFields(input: {
   name: string;
   email: string;
@@ -102,12 +113,8 @@ export function validateLeadFields(input: {
     return { ok: false, message: "Phone number looks invalid." };
   }
 
-  const email = input.email.trim();
-  if (email) {
-    if (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return { ok: false, message: "Email looks invalid. Leave it blank if you prefer." };
-    }
-  }
+  const emailProblem = leadEmailProblem(input.email);
+  if (emailProblem) return { ok: false, message: emailProblem };
 
   return { ok: true, phoneDigits };
 }

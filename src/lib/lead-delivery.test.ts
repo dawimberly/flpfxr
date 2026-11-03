@@ -9,6 +9,7 @@ import {
   isValidSubmissionId,
   parseLeadApiResponse,
   shouldTrackAcceptedLead,
+  LEAD_EMAIL_MESSAGE,
   validateLeadFields,
   validateLeadPhoto,
 } from "./lead-delivery.ts";
@@ -68,6 +69,16 @@ describe("lead delivery validation", () => {
       }).ok,
       false,
     );
+    for (const email of ["", "not-an-email", "a@b"]) {
+      const result = validateLeadFields({
+        name: "Jon",
+        email,
+        phone: "2104369117",
+        message: "Kitchen remodel in Alamo Heights",
+      });
+      assert.equal(result.ok, false);
+      if (!result.ok) assert.equal(result.message, LEAD_EMAIL_MESSAGE);
+    }
   });
 
   it("validates submission ids", () => {

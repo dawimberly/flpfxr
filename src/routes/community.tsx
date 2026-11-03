@@ -196,11 +196,12 @@ function CommunityPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Phone *</Label>
                   <Input
                     id="phone"
                     name="phone"
                     type="tel"
+                    required
                     autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}

@@ -11,6 +11,7 @@ import {
   LEAD_API_PATH,
   claimAcceptedLeadConversion,
   isValidSubmissionId,
+  leadEmailProblem,
   parseLeadApiResponse,
   shouldTrackAcceptedLead,
   type LeadEstimateMetadata,
@@ -47,7 +48,6 @@ export function LeadForm({
   compact = false,
   showAffiliation = !compact,
   showPhoto = !compact,
-  showEmail = !compact,
   children,
 }: {
   sent?: boolean;
@@ -59,7 +59,6 @@ export function LeadForm({
   compact?: boolean;
   showAffiliation?: boolean;
   showPhoto?: boolean;
-  showEmail?: boolean;
   children?: ReactNode;
 }) {
   const [selectedService, setSelectedService] = useState(initialService);
@@ -115,6 +114,12 @@ export function LeadForm({
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 10) {
       setPhoneError("Add a 10-digit phone so we can call you back.");
+      return;
+    }
+    const emailProblem = leadEmailProblem(email);
+    if (emailProblem) {
+      setPhoneError("");
+      setSubmitError(emailProblem);
       return;
     }
     setPhoneError("");
@@ -294,22 +299,18 @@ export function LeadForm({
           <p className="text-sm text-destructive">{phoneError}</p>
         ) : null}
       </div>
-      {showEmail ? (
       <div className="space-y-2">
-        <Label htmlFor={`${source}-email`}>Email</Label>
+        <Label htmlFor={`${source}-email`}>Email *</Label>
         <Input
           id={`${source}-email`}
           name="email"
           type="email"
+          required
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <p className="text-xs text-subtle">Optional. Phone is enough.</p>
       </div>
-      ) : (
-        <input type="hidden" name="email" value={email} />
-      )}
       {children}
       {showJobType ? (
         <div className="space-y-2">

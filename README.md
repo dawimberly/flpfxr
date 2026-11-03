@@ -78,15 +78,15 @@ Auth uses **Better Auth** with email/password. Migrations under `migrations/` ap
 
 ### Contact form delivery
 
-Public lead forms post to same-origin **`/api/leads`** (not FormSubmit). The server emails `LEAD_TO_EMAIL` through [Resend](https://resend.com) when `RESEND_API_KEY` is set, and stores an idempotent row in Neon (`contact_leads`) when `DATABASE_URL` is set.
+Public lead forms post to same-origin **`/api/leads`** (not FormSubmit). Name, phone, and a valid email are required. An address or ZIP is optional. The server emails `LEAD_TO_EMAIL` through [Resend](https://resend.com) when `RESEND_API_KEY` is set, and stores an idempotent row in Neon (`contact_leads`) when `DATABASE_URL` is set.
 
 | Variable | Purpose |
 |----------|---------|
 | `RESEND_API_KEY` | Resend API key (required for inbox delivery) |
 | `LEAD_TO_EMAIL` | Inbox (default `Jon@TheFlipFixer.com`) |
-| `LEAD_FROM_EMAIL` | Verified sender, e.g. `The Flip Fixer <leads@theflipfixer.com>` |
+| `LEAD_FROM_EMAIL` | Verified sender, e.g. `The Flip Fixer <leads@theflipfixer.com>`. Unset uses `The Flip Fixer <onboarding@resend.dev>` |
 
-Until `RESEND_API_KEY` is configured on Vercel, the form shows an error and asks the visitor to call or text — it will not pretend the lead was sent.
+Until `RESEND_API_KEY` is configured on Vercel, the form shows an error and asks the visitor to call or text — it will not pretend the lead was sent. The `onboarding@resend.dev` sender only delivers to the email address on the Resend account. Mail to `Jon@TheFlipFixer.com` from that sender succeeds only when that address owns the Resend account. A verified domain is required for any other recipient.
 
 ### Cabinet catalog and paid labor estimate
 

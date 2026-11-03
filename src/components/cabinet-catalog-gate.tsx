@@ -14,7 +14,7 @@ import {
   type CatalogProjectId,
 } from "@/lib/catalog-gate";
 import { captureAdClickIds } from "@/lib/formsubmit";
-import { isValidSubmissionId, parseLeadApiResponse } from "@/lib/lead-delivery";
+import { isValidSubmissionId, leadEmailProblem, parseLeadApiResponse } from "@/lib/lead-delivery";
 import { trackContactFormSubmit } from "@/lib/google-ads";
 import { CATALOG_BROWSE_NOTE, CATALOG_CTA, DESIGNER_MATERIALS_NOTE } from "@/lib/offer-copy";
 
@@ -56,6 +56,22 @@ export function CabinetCatalogGate({
     event.preventDefault();
     setError("");
     const form = new FormData(event.currentTarget);
+    const name = String(form.get("name") ?? "");
+    const phone = String(form.get("phone") ?? "");
+    const email = String(form.get("email") ?? "");
+    if (name.trim().length < 2) {
+      setError("Add your name so we know who to call back.");
+      return;
+    }
+    if (phone.replace(/\D/g, "").length < 10) {
+      setError("Add a 10-digit phone so we can call you back.");
+      return;
+    }
+    const emailProblem = leadEmailProblem(email);
+    if (emailProblem) {
+      setError(emailProblem);
+      return;
+    }
     if (!submissionId.current || !isValidSubmissionId(submissionId.current)) submissionId.current = newSubmissionId();
     form.set("submissionId", submissionId.current);
     form.set("project_type", projectType);
@@ -102,7 +118,7 @@ export function CabinetCatalogGate({
           <DialogHeader>
             <DialogTitle>{CATALOG_CTA}</DialogTitle>
             <DialogDescription>
-              Leave your name and phone. We save the lead, then open the catalog. {CATALOG_BROWSE_NOTE}
+              Leave your name, phone, and email. We save the lead, then open the catalog. {CATALOG_BROWSE_NOTE}
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4 px-5 pb-6 sm:px-6" onSubmit={onSubmit} noValidate>

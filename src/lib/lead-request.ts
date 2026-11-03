@@ -67,7 +67,6 @@ export function requireContact(form: FormData, message: string) {
   });
   if (!fields.ok) return { ok: false as const, message: fields.message };
   const email = formString(form, "email").trim();
-  if (!email) return { ok: false as const, message: "Add an email so we can send the estimate and call you back." };
   return {
     ok: true as const,
     submissionId,
