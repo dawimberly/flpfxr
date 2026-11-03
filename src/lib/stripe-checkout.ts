@@ -24,9 +24,23 @@ export async function createCheckoutSession(
     productDescription: string;
     returnUrl: string;
     idempotencyKey: string;
+    /** Catalog price, such as Itemized Job Estimate (PDF). Omit to use price_data. */
+    priceId?: string;
   },
   fetchImpl: typeof fetch = fetch,
 ): Promise<StripeSessionResult> {
+  const lineItem = args.priceId
+    ? {
+        "line_items[0][price]": args.priceId,
+        "line_items[0][quantity]": 1,
+      }
+    : {
+        "line_items[0][quantity]": 1,
+        "line_items[0][price_data][currency]": "usd",
+        "line_items[0][price_data][unit_amount]": args.amountCents,
+        "line_items[0][price_data][product_data][name]": args.productName,
+        "line_items[0][price_data][product_data][description]": args.productDescription,
+      };
   const body = encodeStripeForm({
     mode: "payment",
     ui_mode: "form",
@@ -42,11 +56,7 @@ export async function createCheckoutSession(
     "metadata[source]": "detailed_estimate",
     "payment_intent_data[metadata][lead_id]": args.submissionId,
     "payment_intent_data[metadata][source]": "detailed_estimate",
-    "line_items[0][quantity]": 1,
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": args.amountCents,
-    "line_items[0][price_data][product_data][name]": args.productName,
-    "line_items[0][price_data][product_data][description]": args.productDescription,
+    ...lineItem,
   });
   let res: Response;
   try {

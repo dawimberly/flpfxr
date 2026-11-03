@@ -166,6 +166,34 @@ describe("stripe", () => {
     assert.match(body, /unit_amount%5D=3500/);
     assert.match(body, /return_url=/);
     assert.doesNotMatch(body, /payment_method_collection|success_url|cancel_url/);
+    assert.doesNotMatch(body, /(?:^|&)line_items%5B0%5D%5Bprice%5D=/);
+  });
+
+  it("uses STRIPE_PRICE_ID as the line item when it is set", async () => {
+    let body = "";
+    const priceId = "price_1UXVMe06qKM9mFyYSupUbGx0";
+    await createCheckoutSession({
+      secretKey: "sk_test_x",
+      amountCents: 3500,
+      submissionId,
+      customerEmail: "ada@example.com",
+      productName: "Itemized job estimate",
+      productDescription: "Whole job",
+      returnUrl: "https://theflipfixer.com/estimate/paid?session_id={CHECKOUT_SESSION_ID}",
+      idempotencyKey: "detailed-estimate/form/price/abc",
+      priceId,
+    }, async (_url, init) => {
+      body = String(init?.body ?? "");
+      return new Response(JSON.stringify({
+        id: "cs_test_price",
+        client_secret: "cs_test_price_secret",
+        payment_status: "unpaid",
+        status: "open",
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    assert.match(body, new RegExp(`line_items%5B0%5D%5Bprice%5D=${priceId}`));
+    assert.match(body, /line_items%5B0%5D%5Bquantity%5D=1/);
+    assert.doesNotMatch(body, /price_data|unit_amount/);
   });
 
   it("checks the webhook signature and reads a paid checkout session", () => {

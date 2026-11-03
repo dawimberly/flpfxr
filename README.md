@@ -96,9 +96,10 @@ Migration `migrations/0005_estimate_fee.sql` adds payment and planner columns on
 |----------|---------|
 | `SBD_CATALOG_BASE_URL` | Catalog origin. Default `https://stylesbydesigntx.com` |
 | `SBD_CATALOG_PATH` | Catalog path. Default `/shop` |
-| `STRIPE_SECRET_KEY` | Styles by Design Stripe secret. Required to start checkout |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Publishable key for the embedded Checkout form on `/estimate` |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
+| `STRIPE_SECRET_KEY` | Stripe secret. Required to start checkout |
+| `STRIPE_PRICE_ID` | Catalog price id. Unset uses the inline $35 `price_data` line |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret for `https://theflipfixer.com/api/stripe/webhook` |
 | `DETAILED_ESTIMATE_FEE_CENTS` | Fee in cents. Default `3500` ($35) |
 | `RESEND_API_KEY` | Emails the PDF to the customer and notifies staff. The webhook retries while this is missing |
 

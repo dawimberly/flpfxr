@@ -341,6 +341,7 @@ export async function handleEstimateCheckout(
   }
 
   const returnUrl = `${origin}/estimate/paid?session_id={CHECKOUT_SESSION_ID}`;
+  const priceId = process.env.STRIPE_PRICE_ID?.trim() || undefined;
   const session = await (deps.createSession ?? createCheckoutSession)({
     secretKey: secret,
     amountCents: feeCents,
@@ -349,7 +350,8 @@ export async function handleEstimateCheckout(
     productName: "Itemized job estimate",
     productDescription: "Whole-job estimate on the same planning range. Credited toward the job if you book.",
     returnUrl,
-    idempotencyKey: `detailed-estimate/form/${contact.submissionId}`,
+    priceId,
+    idempotencyKey: `detailed-estimate/form/${priceId ?? "inline"}/${contact.submissionId}`,
   });
   if (!session.ok) {
     console.error("[checkout] stripe session failed", session.message);

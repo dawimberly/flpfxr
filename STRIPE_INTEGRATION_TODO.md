@@ -1,15 +1,15 @@
 # Stripe embedded Checkout — values to replace
 
-This is the $35 job estimate on `/estimate`. Checkout stays in `mode=payment` with the existing `price_data` line item. The form is embedded on theflipfixer.com instead of a redirect to hosted Checkout.
+This is the $35 job estimate on `/estimate`. Checkout stays in `mode=payment`. When `STRIPE_PRICE_ID` is set, the line item is that catalog price. Otherwise it uses the inline `price_data` $35 line. The form is embedded on theflipfixer.com instead of a redirect to hosted Checkout.
 
 Replace these before the form can take a real card:
 
-| Placeholder | Where | Replace with |
+| Env var | Where | Replace with |
 | --- | --- | --- |
-| `STRIPE_SECRET_KEY` | Server env (Vercel) | Secret key from the Styles by Design Stripe account. Unchanged from the previous checkout. |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Client env (Vercel, Vite) | Publishable key from the same Stripe account. Must be available at build time. |
-| `STRIPE_WEBHOOK_SECRET` | Server env | Signing secret for `https://theflipfixer.com/api/stripe/webhook`. |
-| `return_url` host | `src/lib/estimate-next.server.ts` | Already `https://theflipfixer.com/estimate/paid?session_id={CHECKOUT_SESSION_ID}` in production. On a preview host it uses that host's origin. |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Client env (Vercel, Vite) | Publishable key from the same Stripe account as the secret. Must be available at build time. |
+| `STRIPE_SECRET_KEY` | Server env (Vercel) | Secret key for that account. |
+| `STRIPE_PRICE_ID` | Server env (Vercel) | Catalog price for **Itemized Job Estimate (PDF)**, $35: `price_1UXVMe06qKM9mFyYSupUbGx0`. Leave unset to keep the inline `price_data` line. The price and the secret key must be on the same Stripe account. |
+| `STRIPE_WEBHOOK_SECRET` | Server env | Signing secret for the webhook below. |
 
 If either key is missing, the paid button tells the visitor to send a free inquiry or call. The inquiry path does not need Stripe.
 
@@ -27,7 +27,7 @@ If either key is missing, the paid button tells the visitor to send a free inqui
 | `automatic_tax[enabled]` | `false` |
 | `submit_type` | `auto` |
 | `integration_identifier` | `custom_embedded_web_0001` |
-| `line_items[0]` | Existing `price_data`: USD, quantity 1, unit amount from `DETAILED_ESTIMATE_FEE_CENTS` (default 3500) |
+| `line_items[0]` | When `STRIPE_PRICE_ID` is set: `{ price: STRIPE_PRICE_ID, quantity: 1 }`. Otherwise `price_data`: USD, quantity 1, unit amount from `DETAILED_ESTIMATE_FEE_CENTS` (default 3500) |
 | `metadata` / `client_reference_id` | Lead id, unchanged |
 | `payment_method_collection` | Omitted. Payment mode does not send it. |
 | `success_url` / `cancel_url` | Omitted. The form uses `return_url`. |
@@ -38,14 +38,15 @@ The page loads `https://js.stripe.com/dahlia/stripe.js` from a script tag in the
 
 Appearance uses the site palette: background `#121416`, primary `#f08330`, text `#f3efe8`, font Outfit, radius `12px`, theme `night`.
 
-Fulfillment is unchanged: `checkout.session.completed` (and async payment succeeded) on `/api/stripe/webhook` emails the PDF.
+Fulfillment is unchanged. Stripe sends `checkout.session.completed` to `https://theflipfixer.com/api/stripe/webhook`, and that handler emails the PDF. Also subscribe `checkout.session.async_payment_succeeded` on that same endpoint.
 
 ## Setup
 
-1. Put `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` on the Vercel project for Production (and Preview if you want the form there).
-2. Redeploy so Vite inlines the publishable key.
-3. In the Stripe Dashboard, point a webhook at `https://theflipfixer.com/api/stripe/webhook` for `checkout.session.completed` and `checkout.session.async_payment_succeeded`.
-4. Register `theflipfixer.com` as a payment-method domain if you want wallets on the embedded form.
+1. Put these on the Vercel project for Production (and Preview if you want the form there): `VITE_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`.
+2. Set `STRIPE_PRICE_ID` to `price_1UXVMe06qKM9mFyYSupUbGx0` only on the Stripe account that owns that price.
+3. Redeploy so Vite inlines the publishable key.
+4. In the Stripe Dashboard, point a webhook at `https://theflipfixer.com/api/stripe/webhook` for `checkout.session.completed`.
+5. Register `theflipfixer.com` as a payment-method domain if you want wallets on the embedded form.
 
 ## Test cards
 
