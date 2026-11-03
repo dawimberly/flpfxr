@@ -3,10 +3,11 @@ import { createHmac } from "node:crypto";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { catalogRedirectUrl } from "./catalog-gate.ts";
-import { readDetailedEstimateFeeCents } from "./estimate-fee.ts";
+import { publicEstimateOffer, readDetailedEstimateFeeCents } from "./estimate-fee.ts";
+import { paidEstimateEnabled } from "./paid-estimate-flag.ts";
 import { buildLaborDocument, laborDocumentPlainText } from "./labor-estimate.ts";
 import { renderLaborEstimatePdf, SITE_HEADER_LOGO } from "./labor-estimate-pdf.ts";
-import { decidePayment, readStripeEvent } from "./estimate-next.server.ts";
+import { decidePayment, handleEstimateCheckout, handleFreeInquiry, readStripeEvent } from "./estimate-next.server.ts";
 import { handleCatalogSignup } from "./catalog-signup.server.ts";
 import { parseStoredPlanner } from "./planner-form.ts";
 import { verifyStripeSignature } from "./stripe-signature.ts";
@@ -47,6 +48,80 @@ describe("catalog url", () => {
       catalogRedirectUrl({ SBD_CATALOG_BASE_URL: "javascript:alert(1)" } as NodeJS.ProcessEnv),
       "https://stylesbydesigntx.com/shop?ref=flipfixer",
     );
+  });
+});
+
+describe("paid estimate flag", () => {
+  it("stays off unless the value is true", () => {
+    assert.equal(paidEstimateEnabled(undefined), false);
+    assert.equal(paidEstimateEnabled(null), false);
+    assert.equal(paidEstimateEnabled(""), false);
+    assert.equal(paidEstimateEnabled("false"), false);
+    assert.equal(paidEstimateEnabled("1"), false);
+    assert.equal(paidEstimateEnabled("yes"), false);
+    assert.equal(paidEstimateEnabled(" true "), true);
+    assert.equal(paidEstimateEnabled("TRUE"), true);
+  });
+
+  it("hides the public fee until checkout is enabled", () => {
+    assert.equal(publicEstimateOffer({} as NodeJS.ProcessEnv).feeLabel, null);
+    assert.equal(publicEstimateOffer({ VITE_PAID_ESTIMATE_ENABLED: "false" } as NodeJS.ProcessEnv).feeLabel, null);
+    assert.equal(
+      publicEstimateOffer({ VITE_PAID_ESTIMATE_ENABLED: "true" } as NodeJS.ProcessEnv).feeLabel,
+      "$35.00",
+    );
+  });
+
+  it("refuses checkout while the flag is off", async () => {
+    const previous = process.env.VITE_PAID_ESTIMATE_ENABLED;
+    delete process.env.VITE_PAID_ESTIMATE_ENABLED;
+    try {
+      const form = new FormData();
+      const response = await handleEstimateCheckout(form, new Request("https://theflipfixer.com/api/estimate-checkout"));
+      assert.equal(response.status, 503);
+      const body = await response.json() as { code?: string };
+      assert.equal(body.code, "not_configured");
+    } finally {
+      if (previous === undefined) delete process.env.VITE_PAID_ESTIMATE_ENABLED;
+      else process.env.VITE_PAID_ESTIMATE_ENABLED = previous;
+    }
+  });
+});
+
+describe("free inquiry", () => {
+  it("includes the planner selections in the lead", async () => {
+    const stored = planner();
+    const form = new FormData();
+    form.set("submissionId", submissionId);
+    form.set("name", "Ada Lovelace");
+    form.set("phone", "2104369117");
+    form.set("email", "ada@example.com");
+    form.set("service", stored.project.service);
+    form.set("size", stored.project.size);
+    form.set("floor", stored.project.floor);
+    form.set("counter", stored.project.counter);
+    form.set("shower", stored.project.shower);
+    form.set("prime", "1");
+    form.set("exterior_coats", "1");
+    form.set("new_toilet", "1");
+    form.set("address", stored.address);
+    form.set("note", stored.note);
+    let message = "";
+    const response = await handleFreeInquiry(form, new Request("https://theflipfixer.com/api/estimate-inquiry"), {
+      handleLead: async (next) => {
+        message = String(next.get("message") ?? "");
+        return Response.json({ ok: true, submissionId });
+      },
+      savePlanner: async () => {},
+      sendMail: async () => ({ ok: true, id: "local" }),
+    });
+    assert.equal(response.status, 200);
+    assert.match(message, /Kitchen remodeling/);
+    assert.match(message, /Size: Medium/);
+    assert.match(message, /between \$12,800 and \$16,000/);
+    assert.match(message, /120 Broadway/);
+    assert.match(message, /Side gate is open/);
+    assert.doesNotMatch(message, /insured/i);
   });
 });
 

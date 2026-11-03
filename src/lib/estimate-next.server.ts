@@ -24,6 +24,7 @@ import {
   type StoredPlanner,
 } from "./planner-form.ts";
 import { PROJECT_SERVICES } from "./public-estimate-options.ts";
+import { paidEstimateEnabled } from "./paid-estimate-flag.ts";
 import { createCheckoutSession } from "./stripe-checkout.ts";
 import { verifyStripeSignature } from "./stripe-signature.ts";
 import { CATALOG_BROWSE_NOTE, DESIGNER_MATERIALS_NOTE, FEE_CREDIT_NOTE } from "./offer-copy.ts";
@@ -256,6 +257,12 @@ export async function handleEstimateCheckout(
 ): Promise<Response> {
   if (isHoneypot(form)) {
     return Response.json({ ok: true, discarded: true, submissionId: formString(form, "submissionId") });
+  }
+  if (!paidEstimateEnabled(process.env.VITE_PAID_ESTIMATE_ENABLED)) {
+    return Response.json(
+      { ok: false, code: "not_configured", message: "The paid estimate is not available right now. Send a free inquiry or call." },
+      { status: 503 },
+    );
   }
   const ip = clientIp(request);
   if (!checkLeadRateLimit(ip, deps.now)) {
