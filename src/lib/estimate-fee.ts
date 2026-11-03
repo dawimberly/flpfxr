@@ -1,3 +1,5 @@
+import { paidEstimateEnabled } from "./paid-estimate-flag.ts";
+
 export const DEFAULT_DETAILED_ESTIMATE_FEE_CENTS = 3500;
 const MIN_FEE_CENTS = 50;
 const MAX_FEE_CENTS = 100_000;
@@ -24,6 +26,9 @@ export function publicEstimateOffer(env: NodeJS.ProcessEnv = process.env): {
   feeCents: number | null;
   feeLabel: string | null;
 } {
+  if (!paidEstimateEnabled(env.VITE_PAID_ESTIMATE_ENABLED)) {
+    return { feeCents: null, feeLabel: null };
+  }
   try {
     const feeCents = readDetailedEstimateFeeCents(env);
     return { feeCents, feeLabel: formatUsdFromCents(feeCents) };

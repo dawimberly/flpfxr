@@ -20,6 +20,9 @@ import {
   FEE_CREDIT_NOTE,
   LABOR_ONLY_NOTE,
 } from "@/lib/offer-copy";
+import { paidEstimateEnabled } from "@/lib/paid-estimate-flag";
+
+const paidEstimateOn = paidEstimateEnabled(import.meta.env.VITE_PAID_ESTIMATE_ENABLED);
 
 const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p-3 text-fg";
 
@@ -76,7 +79,7 @@ export function EstimateNextStep({
     if (step < 3) return;
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const choice = submitter?.value === "buy" ? "buy" : "inquiry";
-    if (choice === "buy" && (!canBuy || !feeLabel)) return;
+    if (choice === "buy" && (!paidEstimateOn || !canBuy || !feeLabel)) return;
     setError("");
     if (!submissionId.current || !isValidSubmissionId(submissionId.current)) submissionId.current = newSubmissionId();
     const data = new FormData(event.currentTarget);
@@ -129,22 +132,30 @@ export function EstimateNextStep({
     <section className="mt-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-border)] md:p-8" data-testid="estimate-next">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Step {step + 1} of 4</p>
       <h2 className="mt-2 font-display text-2xl text-fg">
-        {step === 0 ? "Your job estimate, or a free call" : step === 1 ? "A few details" : step === 2 ? "How do we reach you?" : "Choose one"}
+        {step === 0
+          ? (paidEstimateOn ? "Your job estimate, or a free call" : "Get your free estimate")
+          : step === 1 ? "A few details" : step === 2 ? "How do we reach you?" : (paidEstimateOn ? "Choose one" : "Get your free estimate")}
       </h2>
-      {cancelled ? <p className="mt-2 text-sm text-fg">Checkout closed before payment. The planning range is still free.</p> : null}
+      {paidEstimateOn && cancelled ? <p className="mt-2 text-sm text-fg">Checkout closed before payment. The planning range is still free.</p> : null}
       <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
           <div className={step === 0 ? "space-y-3 text-sm leading-relaxed text-muted" : "hidden"}>
-            <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate for the whole job, on that same range. Or send a free inquiry and we call you back.</p>
-            <ul className="list-disc space-y-1 pl-5 text-fg">
-              <li>{LABOR_ONLY_NOTE}</li>
-              <li>Other sizes and an on-site timeline are in the PDF.</li>
-              <li>{DESIGNER_MATERIALS_NOTE}</li>
-              <li>{CATALOG_BROWSE_NOTE}</li>
-              <li>{FEE_CREDIT_NOTE}</li>
-            </ul>
-            <SampleEstimate feeLabel={feeLabel} />
+            {paidEstimateOn ? (
+              <>
+                <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate for the whole job, on that same range. Or send a free inquiry and we call you back.</p>
+                <ul className="list-disc space-y-1 pl-5 text-fg">
+                  <li>{LABOR_ONLY_NOTE}</li>
+                  <li>Other sizes and an on-site timeline are in the PDF.</li>
+                  <li>{DESIGNER_MATERIALS_NOTE}</li>
+                  <li>{CATALOG_BROWSE_NOTE}</li>
+                  <li>{FEE_CREDIT_NOTE}</li>
+                </ul>
+              </>
+            ) : (
+              <p>The range above is free. Tell us how to reach you and we will call you back about this project.</p>
+            )}
+            <SampleEstimate feeLabel={paidEstimateOn ? feeLabel : null} paid={paidEstimateOn} />
             <button type="button" className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 font-semibold text-primary-fg" onClick={() => setStep(1)}>
-              Continue
+              {paidEstimateOn ? "Continue" : "Get your free estimate"}
             </button>
           </div>
           <div className="hidden" aria-hidden="true">
@@ -197,7 +208,9 @@ export function EstimateNextStep({
             </div>
           </div>
           <div hidden={step !== 3} className={step === 3 ? "space-y-4" : "hidden"}>
-              <p className="text-sm text-muted">{LABOR_ONLY_NOTE} {FEE_CREDIT_NOTE}</p>
+              {paidEstimateOn ? <p className="text-sm text-muted">{LABOR_ONLY_NOTE} {FEE_CREDIT_NOTE}</p> : (
+                <p className="text-sm text-muted">We will save the project you built above and call you back.</p>
+              )}
               {preview && preview.kind === "itemized" ? (
                 <div className="rounded-xl border border-border bg-bg p-3 text-sm text-fg">
                   <p className="font-semibold">{preview.projectLabel} · {preview.size}</p>
@@ -207,33 +220,49 @@ export function EstimateNextStep({
                       <li key={line.label}>{line.label}</li>
                     ))}
                   </ul>
-                  <p className="mt-2 text-muted">The itemized job estimate is in the PDF, after payment. This preview is the scope, not the price.</p>
+                  <p className="mt-2 text-muted">{paidEstimateOn ? "The itemized job estimate is in the PDF, after payment. This preview is the scope, not the price." : "This is the scope we will talk through with you."}</p>
                 </div>
               ) : (
                 <p className="text-sm text-fg">For a project outside the planner, the PDF explains the walkthrough. The designer measures it and writes the job estimate. No guessed total.</p>
               )}
               {blockedReason ? <p className="text-sm text-fg">{blockedReason} You can still send a free inquiry.</p> : null}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="submit"
-                  name="choice"
-                  value="buy"
-                  disabled={!canBuy || !feeLabel || submitting !== null}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-3 text-center font-semibold text-primary-fg disabled:opacity-60"
-                >
-                  {submitting === "buy" ? "Starting checkout…" : `Buy the itemized estimate${feeLabel ? ` — ${feeLabel}` : ""}`}
-                </button>
+              {paidEstimateOn ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="submit"
+                    name="choice"
+                    value="buy"
+                    disabled={!canBuy || !feeLabel || submitting !== null}
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-3 text-center font-semibold text-primary-fg disabled:opacity-60"
+                  >
+                    {submitting === "buy" ? "Starting checkout…" : `Buy the itemized estimate${feeLabel ? ` — ${feeLabel}` : ""}`}
+                  </button>
+                  <button
+                    type="submit"
+                    name="choice"
+                    value="inquiry"
+                    disabled={submitting !== null}
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/70 px-4 py-3 text-center font-semibold text-primary disabled:opacity-60"
+                  >
+                    {submitting === "inquiry" ? "Sending…" : "Send a free inquiry"}
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="submit"
                   name="choice"
                   value="inquiry"
                   disabled={submitting !== null}
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/70 px-4 py-3 text-center font-semibold text-primary disabled:opacity-60"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-3 text-center font-semibold text-primary-fg disabled:opacity-60"
                 >
-                  {submitting === "inquiry" ? "Sending…" : "Send a free inquiry"}
+                  {submitting === "inquiry" ? "Sending…" : "Get your free estimate"}
                 </button>
-              </div>
-              <p className="text-xs text-subtle">Free inquiry: we save the project, email you a confirmation, and call you back. Paid estimate: Stripe checkout, then the PDF arrives by email. {CATALOG_BROWSE_NOTE}</p>
+              )}
+              <p className="text-xs text-subtle">
+                {paidEstimateOn
+                  ? `Free inquiry: we save the project, email you a confirmation, and call you back. Paid estimate: Stripe checkout, then the PDF arrives by email. ${CATALOG_BROWSE_NOTE}`
+                  : "We save this project, email you a confirmation, and call you back."}
+              </p>
           </div>
           {error ? (
             <p className="text-sm text-destructive">
@@ -267,7 +296,7 @@ export function EstimateNextStep({
   );
 }
 
-function SampleEstimate({ feeLabel }: { feeLabel: string | null }) {
+function SampleEstimate({ feeLabel, paid }: { feeLabel: string | null; paid: boolean }) {
   const price = feeLabel ?? "$35";
   return (
     <div data-testid="sample-estimate" className="flex gap-4 rounded-xl border border-border bg-bg p-3">
@@ -290,7 +319,9 @@ function SampleEstimate({ feeLabel }: { feeLabel: string | null }) {
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-fg">See a sample estimate</h3>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          For {price} you get an itemized job estimate like this: what is included, what is not, and the estimated total for the whole job.
+          {paid
+            ? `For ${price} you get an itemized job estimate like this: what is included, what is not, and the estimated total for the whole job.`
+            : "A sample of the itemized job estimate: what is included, what is not, and the estimated total for the whole job."}
         </p>
       </div>
     </div>
