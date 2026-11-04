@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { businessJsonLd } from "./business-jsonld.ts";
+import { BUSINESS_GEO, GOOGLE_BUSINESS_URL, GOOGLE_MAPS_CID, businessJsonLd } from "./business-jsonld.ts";
 import { SERVICE_AREAS } from "./site.ts";
 
 describe("businessJsonLd", () => {
@@ -19,7 +19,15 @@ describe("businessJsonLd", () => {
     assert.equal("openingHoursSpecification" in data, false);
     assert.equal("aggregateRating" in data, false);
     assert.equal("review" in data, false);
-    assert.equal("sameAs" in data, false);
+    assert.equal(BigInt(`0xe62dc3c84e756249`).toString(), GOOGLE_MAPS_CID);
+    assert.notEqual(GOOGLE_MAPS_CID, "16586208226577359433");
+    assert.deepEqual(data.sameAs, [GOOGLE_BUSINESS_URL]);
+    const geo = data.geo as { "@type": string; latitude: number; longitude: number };
+    assert.equal(geo["@type"], "GeoCoordinates");
+    assert.equal(geo.latitude, BUSINESS_GEO.latitude);
+    assert.equal(geo.longitude, BUSINESS_GEO.longitude);
+    assert.equal(geo.latitude, 29.4581826);
+    assert.equal(geo.longitude, -98.518079);
     const areas = data.areaServed as Array<{ name: string; address: { addressRegion: string } }>;
     assert.deepEqual(
       areas.map((area) => area.name),

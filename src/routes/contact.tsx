@@ -5,6 +5,7 @@ import { LeadForm } from "@/components/lead-form";
 import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
 import { retainedAdSearch } from "@/lib/estimate-landing";
+import { GOOGLE_BUSINESS_URL } from "@/lib/business-jsonld";
 import { AREA_LINE, DISCOUNT_ACCEPTED, JOB_DISCOUNT, PROJECT_FIT, SITE, type ServiceId } from "@/lib/site";
 
 type Search = {
@@ -214,6 +215,14 @@ function ContactPage() {
             className="block text-muted hover:text-primary"
           >
             {SITE.email}
+          </a>
+          <a
+            href={GOOGLE_BUSINESS_URL}
+            className="block text-muted hover:text-primary"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Find us on Google
           </a>
           <p className="text-muted">{AREA_LINE}</p>
           <p className="text-sm leading-relaxed text-subtle">

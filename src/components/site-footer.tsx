@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { CallLink, CallNumber } from "@/components/call-link";
+import { GOOGLE_BUSINESS_URL } from "@/lib/business-jsonld";
 import { AREA_PAGES } from "@/lib/areas";
 import { EXTRA_NAV, NAV, SERVICE_AREAS, SITE } from "@/lib/site";
 
@@ -64,6 +65,15 @@ export function SiteFooter() {
             >
               <Mail className="size-4 text-primary" />
               {SITE.email}
+            </a>
+            <a
+              href={GOOGLE_BUSINESS_URL}
+              className="flex items-center gap-2 hover:text-fg"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <MapPin className="size-4 text-primary" />
+              Find us on Google
             </a>
           </div>
         </div>
