@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { fillerCostAnalysis, priceOffList } from "../lib/public-estimate-costs.server.ts";
 import { readFileSync } from "node:fs";
 import {
   adjustedCrewDays, planningEstimate, projectPlanningEstimate, projectEstimateLeadMessage,
@@ -8,7 +9,7 @@ import {
   REMNANT_MAY_BE_AVAILABLE_PER_SQFT,
 } from "../lib/public-pricing.ts";
 import {
-  DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, fillerCostAnalysis, presetAreas, priceOffList,
+  DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, presetAreas,
   projectScope, scopeAreaError, selectedVanity, type ProjectInputs,
 } from "../lib/public-estimate-options.ts";
 const input = (changes: Partial<ProjectInputs> = {}): ProjectInputs => ({ ...DEFAULT_PROJECT_INPUTS, ...changes });

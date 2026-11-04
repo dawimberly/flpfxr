@@ -45,7 +45,7 @@ const GENERAL_CONTACT: ContactCopy = {
 };
 
 /** Contact copy for each service. */
-const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
+const SERVICE_CONTACT: Partial<Record<ServiceId, ContactCopy>> = {
   roofing: {
     eyebrow: "Roofing",
     documentTitle: "Schedule a roof inspection",
@@ -118,14 +118,6 @@ const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
     intro: "Paint, floors, fixtures, and punch lists for rentals and homes for sale.",
     placeholder: "Neighborhood, rental or listing, and when it needs to be ready.",
   },
-  "insurance-claims": {
-    eyebrow: "Insurance claims",
-    documentTitle: "Insurance claim rebuild specialists",
-    description: `Insurance claim rebuild specialists in San Antonio. Contact us. ${AREA_LINE}`,
-    title: "Insurance claim rebuild specialists in San Antonio.",
-    intro: "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.",
-    placeholder: "Address, what happened, and when you want someone out.",
-  },
   consulting: {
     eyebrow: "Walkthrough",
     documentTitle: "Walkthrough",
@@ -141,8 +133,8 @@ function isServiceId(value: string | undefined): value is ServiceId {
 }
 
 function contactCopy(service: string | undefined, side: Search["side"]): ContactCopy | null {
-  if (side === "exterior" || service === "roofing") return SERVICE_CONTACT.roofing;
-  if (isServiceId(service)) return SERVICE_CONTACT[service];
+  if (side === "exterior" || service === "roofing") return SERVICE_CONTACT.roofing ?? null;
+  if (isServiceId(service)) return SERVICE_CONTACT[service] ?? null;
   return null;
 }
 
@@ -191,13 +183,6 @@ function ContactPage() {
     <div>
       <PageIntro eyebrow={copy.eyebrow} title={copy.title}>
         <p>{copy.intro}</p>
-        {serviceFromUrl === "insurance-claims" ? (
-          <p className="mt-3">
-            <Link to="/insurance-claims" className="font-medium text-primary">
-              Insurance claim rebuilds
-            </Link>
-          </p>
-        ) : null}
         {specific ? null : <p className="mt-3 text-fg">{PROJECT_FIT}</p>}
         <CallTextActions className="mt-6 hidden justify-center sm:flex" />
       </PageIntro>

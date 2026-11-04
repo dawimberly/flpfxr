@@ -16,10 +16,12 @@ import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimateRouteImport } from './routes/estimate'
 import { Route as EstimatorRouteImport } from './routes/estimator'
+import { Route as FinancingRouteImport } from './routes/financing'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as InsuranceClaimsRouteImport } from './routes/insurance-claims'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as NorthvilleRouteImport } from './routes/northville'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -73,6 +75,11 @@ const EstimatorRoute = EstimatorRouteImport.update({
   path: '/estimator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinancingRoute = FinancingRouteImport.update({
+  id: '/financing',
+  path: '/financing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
@@ -91,6 +98,11 @@ const KitchenRoute = KitchenRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NorthvilleRoute = NorthvilleRouteImport.update({
+  id: '/northville',
+  path: '/northville',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -187,10 +199,12 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
+  '/financing': typeof FinancingRoute
   '/gallery': typeof GalleryRoute
   '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/northville': typeof NorthvilleRoute
   '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -216,10 +230,12 @@ export interface FileRoutesByTo {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
+  '/financing': typeof FinancingRoute
   '/gallery': typeof GalleryRoute
   '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/northville': typeof NorthvilleRoute
   '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -247,10 +263,12 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
+  '/financing': typeof FinancingRoute
   '/gallery': typeof GalleryRoute
   '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/northville': typeof NorthvilleRoute
   '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -279,10 +297,12 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimate'
     | '/estimator'
+    | '/financing'
     | '/gallery'
     | '/insurance-claims'
     | '/kitchen'
     | '/login'
+    | '/northville'
     | '/privacy'
     | '/roof'
     | '/services'
@@ -308,10 +328,12 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/estimate'
+    | '/financing'
     | '/gallery'
     | '/insurance-claims'
     | '/kitchen'
     | '/login'
+    | '/northville'
     | '/privacy'
     | '/roof'
     | '/services'
@@ -338,10 +360,12 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimate'
     | '/estimator'
+    | '/financing'
     | '/gallery'
     | '/insurance-claims'
     | '/kitchen'
     | '/login'
+    | '/northville'
     | '/privacy'
     | '/roof'
     | '/services'
@@ -369,10 +393,12 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EstimateRoute: typeof EstimateRouteWithChildren
   EstimatorRoute: typeof EstimatorRouteWithChildren
+  FinancingRoute: typeof FinancingRoute
   GalleryRoute: typeof GalleryRoute
   InsuranceClaimsRoute: typeof InsuranceClaimsRoute
   KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
+  NorthvilleRoute: typeof NorthvilleRoute
   PrivacyRoute: typeof PrivacyRoute
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
@@ -440,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EstimatorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financing': {
+      id: '/financing'
+      path: '/financing'
+      fullPath: '/financing'
+      preLoaderRoute: typeof FinancingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery': {
       id: '/gallery'
       path: '/gallery'
@@ -466,6 +499,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/northville': {
+      id: '/northville'
+      path: '/northville'
+      fullPath: '/northville'
+      preLoaderRoute: typeof NorthvilleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -624,10 +664,12 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EstimateRoute: EstimateRouteWithChildren,
   EstimatorRoute: EstimatorRouteWithChildren,
+  FinancingRoute: FinancingRoute,
   GalleryRoute: GalleryRoute,
   InsuranceClaimsRoute: InsuranceClaimsRoute,
   KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
+  NorthvilleRoute: NorthvilleRoute,
   PrivacyRoute: PrivacyRoute,
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,

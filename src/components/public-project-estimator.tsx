@@ -6,10 +6,8 @@ import {
   vanityForSize, selectedVanity,
   type ExteriorCoats, type ProjectInputs, type ProjectService, type ProjectSize, type ScopeAreas,
 } from "@/lib/public-estimate-options";
-import {
-  projectPlanningEstimate, projectEstimateLeadMessage, formatEstimateRange,
-  PRELIMINARY_ESTIMATE_WORDING,
-} from "@/lib/public-pricing";
+import { loadPublicEstimate } from "@/lib/public-estimate";
+import { formatPublicEstimate, PRELIMINARY_ESTIMATE_WORDING } from "@/lib/public-estimate-display";
 import { SERVICE_AREAS, saveLeadDraft, type ServiceId } from "@/lib/site";
 import {
   DEFAULT_ESTIMATE_HEADLINE, ESTIMATE_INTRO, estimateHandoffSearch, estimateLandingUrl,
@@ -65,9 +63,11 @@ const choiceClass = (selected: boolean) =>
 export function PublicProjectEstimator({
   landing,
   search,
+  initialEstimate,
 }: {
   landing: EstimateLanding;
   search: Record<string, unknown>;
+  initialEstimate: Awaited<ReturnType<typeof loadPublicEstimate>>;
 }) {
   const [explicitService, setExplicitService] = useState(landing.explicitService);
   const [inputs, setInputs] = useState(() => inputsFromLanding(landing));
@@ -90,7 +90,21 @@ export function PublicProjectEstimator({
   const scope = projectScope(inputs.service, inputs.size, areaPayload);
   const valid = !areaError;
   const current: ProjectInputs | null = valid ? { ...inputs, ...areaPayload } : null;
-  const estimate = current ? projectPlanningEstimate(current) : null;
+  const requestKey = JSON.stringify(current);
+  const [priced, setPriced] = useState({ key: requestKey, value: initialEstimate });
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const estimate = priced.key === requestKey ? priced.value : null;
+  useEffect(() => {
+    if (requestKey === "null" || priced.key === requestKey) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      loadPublicEstimate({ data: JSON.parse(requestKey) as ProjectInputs })
+        .then(value => { if (!cancelled) setPriced({ key: requestKey, value }); })
+        .catch(() => { if (!cancelled) setFailedKey(requestKey); });
+    }, 180);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [requestKey, priced.key]);
+  const ready = valid && (!scope || Boolean(estimate));
   const summaryRef = useRef<HTMLDivElement>(null);
   const hasScope = Boolean(scope);
   const presets = presetAreas(inputs.service, inputs.size);
@@ -100,7 +114,7 @@ export function PublicProjectEstimator({
   const customSqft = relevantAreas.some(key => parseSqft(areas[key]).value !== parseSqft(presets[key]).value);
   useEffect(() => {
     const node = summaryRef.current;
-    if (!node || !valid || !hasScope) return;
+    if (!node || !ready || !hasScope) return;
     const record = () => trackEstimateRangeShown(inputs, customSqft);
     if (typeof IntersectionObserver === "undefined") { record(); return; }
     const observer = new IntersectionObserver(entries => {
@@ -108,7 +122,7 @@ export function PublicProjectEstimator({
     });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [inputs, customSqft, valid, hasScope]);
+  }, [inputs, customSqft, ready, hasScope]);
   useEffect(() => {
     if (areaError) trackEstimateOutOfRange(inputs.service);
   }, [areaError, inputs.service]);
@@ -122,15 +136,15 @@ export function PublicProjectEstimator({
   const patch = <K extends keyof ProjectInputs>(key: K, value: ProjectInputs[K]) =>
     setInputs(prev => ({ ...prev, [key]: value }));
   const handOff = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!current) { event.preventDefault(); return; }
+    if (!current || (scope && !estimate)) { event.preventDefault(); return; }
     trackEstimateHandoffClick(inputs);
     saveLeadDraft({
       service: serviceId(inputs.service), scope: inputs.size.toLowerCase(), submissionId: undefined,
-      message: projectEstimateLeadMessage(current),
+      message: estimate?.leadMessage ?? "Please contact me about my custom project.",
       estimate: {
         estimate_service: inputs.service,
         estimate_size: inputs.size,
-        estimate_range: estimate ? formatEstimateRange(estimate) : undefined,
+        estimate_range: estimate ? formatPublicEstimate(estimate.total) : undefined,
       },
     });
   };
@@ -185,13 +199,14 @@ export function PublicProjectEstimator({
             {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
             {estimate && scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary">
               <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
-              <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{formatEstimateRange(estimate)}</p>
+              <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{formatPublicEstimate(estimate.total)}</p>
               <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
             </div> : null}
           </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
+          {valid && scope && !estimate ? <p role="status" className="mt-3 text-sm text-muted">{failedKey === requestKey ? "Unable to load your estimate. Try changing a selection or call Jon." : "Updating your estimate…"}</p> : null}
           <Link to="/contact" search={handoff}
-            onClick={handOff} aria-disabled={!valid}
-            className={`mt-2 inline-flex min-h-11 w-full scroll-mb-28 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg md:mt-6 md:py-3 ${valid ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
+            onClick={handOff} aria-disabled={!ready}
+            className={`mt-2 inline-flex min-h-11 w-full scroll-mb-28 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg md:mt-6 md:py-3 ${ready ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
           {trust ? <p className="mt-1.5 text-sm leading-snug text-muted" data-testid="estimate-trust">{trust}</p> : null}
         </div>
       </div>

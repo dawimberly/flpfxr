@@ -134,23 +134,18 @@ export function parseBoxCount(raw: string): { value: number | null; error: strin
   return { value: Number(s), error: null };
 }
 /** Vanities and filler strips. Kitchen box prices are the amounts on the box costs. */
-export const CUSTOMER_LIST_DISCOUNT = 0.1;
-export const CONTRACTOR_LIST_DISCOUNT = 0.4;
-export function priceOffList(list: number, discount: number) {
-  return Math.round(list * (1 - discount) * 100) / 100;
-}
-export type VanitySize = { id: string; label: string; list: number; widthIn: number; double: boolean };
+export type VanitySize = { id: string; label: string; widthIn: number; double: boolean };
 /** Standard vanity cabinet depth. The top area follows the selected width. */
 export const VANITY_TOP_DEPTH_IN = 22;
 export const VANITY_SIZES: VanitySize[] = [
-  { id: "VA24", label: "24-inch vanity", list: 186, widthIn: 24, double: false },
-  { id: "VA27", label: "27-inch vanity", list: 288, widthIn: 27, double: false },
-  { id: "VA30", label: "30-inch vanity", list: 220, widthIn: 30, double: false },
-  { id: "VA36", label: "36-inch vanity", list: 273, widthIn: 36, double: false },
-  { id: "VA42DL", label: "42-inch vanity", list: 345, widthIn: 42, double: false },
-  { id: "VA48D", label: "48-inch vanity", list: 429, widthIn: 48, double: false },
-  { id: "VA60D", label: "60-inch vanity", list: 499, widthIn: 60, double: false },
-  { id: "VA60DD", label: "60-inch double vanity", list: 463, widthIn: 60, double: true },
+  { id: "VA24", label: "24-inch vanity", widthIn: 24, double: false },
+  { id: "VA27", label: "27-inch vanity", widthIn: 27, double: false },
+  { id: "VA30", label: "30-inch vanity", widthIn: 30, double: false },
+  { id: "VA36", label: "36-inch vanity", widthIn: 36, double: false },
+  { id: "VA42DL", label: "42-inch vanity", widthIn: 42, double: false },
+  { id: "VA48D", label: "48-inch vanity", widthIn: 48, double: false },
+  { id: "VA60D", label: "60-inch vanity", widthIn: 60, double: false },
+  { id: "VA60DD", label: "60-inch double vanity", widthIn: 60, double: true },
 ];
 export function vanityTopSqft(vanity: VanitySize) {
   return Math.round((vanity.widthIn * VANITY_TOP_DEPTH_IN) / 144 * 100) / 100;
@@ -164,23 +159,6 @@ export function getVanity(id: string) {
 export function selectedVanity(size: ProjectSize, vanityId?: string) {
   return (vanityId ? getVanity(vanityId) : null) ?? getVanity(vanityForSize(size))!;
 }
-/** Base fillers are Northville MSRP and were not copied into the contractor file. Closet fillers are in that file. */
-export const FILLER_STRIPS = [
-  { sku: "BF336", name: "3 in × 36 in base filler", list: 24, source: "Northville MSRP" },
-  { sku: "BF636", name: "6 in × 36 in base filler", list: 50, source: "Northville MSRP" },
-  { sku: "TK8", name: "Toe kick", list: 19, source: "Northville MSRP" },
-  { sku: "TF196", name: "Closet filler 1.5 in × 96 in", list: 22, source: "Styles by Design contractor catalog" },
-  { sku: "TF396", name: "Closet filler 3 in × 96 in", list: 67, source: "Styles by Design contractor catalog" },
-  { sku: "TF696", name: "Closet filler 6 in × 96 in", list: 136, source: "Styles by Design contractor catalog" },
-] as const;
-export function fillerCostAnalysis() {
-  return FILLER_STRIPS.map(row => ({
-    ...row,
-    contractor: priceOffList(row.list, CONTRACTOR_LIST_DISCOUNT),
-    customer: priceOffList(row.list, CUSTOMER_LIST_DISCOUNT),
-  }));
-}
-export const INCLUDED_FILLER_SKU = "BF336";
 const sqftText = (n: number) => {
   const tenths = Math.round(n * 10) / 10;
   return Number.isInteger(tenths) ? String(tenths) : tenths.toFixed(1);
@@ -211,7 +189,7 @@ export function projectScope(service: ProjectService, size: ProjectSize, areas: 
       return {
         floor, wall, trim, shower, counters: vanityTopSqft(vanity), backsplash: 0, base: 0, wallUnits: 0, xlFridgeBoxes: 0, doubleVanity: vanity.double,
         summary: `Example: ${sqftText(floor)} sq ft bathroom, ${sqftText(shower)} sq ft surround, ${vanity.label}, one 3-inch filler strip, floor, trim, wall paint, demolition, setting materials, waterproofing and a basic fixture allowance.`,
-        assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft) and trim (${sqftText(trim)} ft) are scaled from the ${size} example. Surround is ${sqftText(shower)} sq ft${surroundNote}. Vanity is a ${vanity.label}, priced at 10% off the cabinet list. One 3-inch filler strip is included at that same discount. Fixtures and demolition stay with the ${size} example.`,
+        assumptions: `Using ${sqftText(floor)} sq ft of floor. Walls (${sqftText(wall)} sq ft) and trim (${sqftText(trim)} ft) are scaled from the ${size} example. Surround is ${sqftText(shower)} sq ft${surroundNote}. Vanity is a ${vanity.label}. One 3-inch filler strip is included. Fixtures and demolition stay with the ${size} example.`,
         exclusions: "Existing layout retained. Basic finish demolition and shower waterproofing materials included. Plumbing relocation, electrical, permits and concealed repairs require separate allowances.",
       };
     }

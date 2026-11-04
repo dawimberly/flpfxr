@@ -1,6 +1,6 @@
 /** Customer-facing sentences shared by the planner, emails, and the labor PDF. */
 
-export const CATALOG_CTA = "Shop the full cabinet catalog at 15% off retail";
+export const CATALOG_CTA = "Explore cabinet options with a designer";
 
 export const DESIGNER_MATERIALS_NOTE =
   "A Flip Fixer designer will call to finalize cabinets, fillers, toe kick, and baseboard. Material purchases are not self-serve.";

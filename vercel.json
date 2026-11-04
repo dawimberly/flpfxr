@@ -2,27 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "fix/public-estimator-ad-safety": false
+      "fix/public-estimator-ad-safety": false,
+      "feat/northville-trust-review": false
     }
   },
   "redirects": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "www.theflipfixer.com" }],
-      "destination": "https://theflipfixer.com/",
-      "statusCode": 301
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.theflipfixer.com" }],
-      "destination": "https://theflipfixer.com/:path*",
-      "statusCode": 301
-    },
-    {
-      "source": "/",
       "has": [
-        { "type": "host", "value": "theflipfixer.com" },
-        { "type": "header", "key": "x-forwarded-proto", "value": "http" }
+        {
+          "type": "host",
+          "value": "www.theflipfixer.com"
+        }
       ],
       "destination": "https://theflipfixer.com/",
       "statusCode": 301
@@ -30,8 +21,42 @@
     {
       "source": "/:path*",
       "has": [
-        { "type": "host", "value": "theflipfixer.com" },
-        { "type": "header", "key": "x-forwarded-proto", "value": "http" }
+        {
+          "type": "host",
+          "value": "www.theflipfixer.com"
+        }
+      ],
+      "destination": "https://theflipfixer.com/:path*",
+      "statusCode": 301
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "theflipfixer.com"
+        },
+        {
+          "type": "header",
+          "key": "x-forwarded-proto",
+          "value": "http"
+        }
+      ],
+      "destination": "https://theflipfixer.com/",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "theflipfixer.com"
+        },
+        {
+          "type": "header",
+          "key": "x-forwarded-proto",
+          "value": "http"
+        }
       ],
       "destination": "https://theflipfixer.com/:path*",
       "statusCode": 301

@@ -86,7 +86,7 @@ export const GALLERY_FILTERS: Array<{
 export const FAQS = [
   {
     q: "What kind of jobs do you take?",
-    a: "We focus on indoor, full-room kitchen and bathroom remodels. We also do flooring, paint, handyman work, outdoor, make-ready, and insurance claim rebuilds. Tell us about the room and what you want to change. Alamo Heights, The Dominion, Kerrville, Boerne, San Antonio, and nearby.",
+    a: "We focus on indoor, full-room kitchen and bathroom remodels. We also do flooring, paint, handyman work, outdoor, make-ready. Tell us about the room and what you want to change. Alamo Heights, The Dominion, Kerrville, Boerne, San Antonio, and nearby.",
   },
   {
     q: "How do I get a price?",

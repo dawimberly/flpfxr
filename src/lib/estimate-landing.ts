@@ -29,7 +29,7 @@ const HEADLINES: Record<ProjectService, string> = {
 };
 
 export const DEFAULT_ESTIMATE_HEADLINE = "Plan your next project.";
-export const ESTIMATE_INTRO = "Choose a project size and materials. The range is a preliminary estimate for the whole job.";
+export const ESTIMATE_INTRO = "Choose a project size and materials. See one preliminary estimate for the whole job.";
 
 const TRUST_ORDER = ["San Antonio", "Boerne", "Alamo Heights"];
 

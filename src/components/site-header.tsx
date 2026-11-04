@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, MessageSquare, Phone } from "lucide-react";
+import { ChevronDown, Menu, MessageSquare, Phone } from "lucide-react";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden min-w-0 items-center gap-0.5 xl:flex">
+        <nav className="hidden min-w-0 items-center gap-0.5 2xl:flex">
           {NAV.map((item) => {
             const active =
               item.to === "/"
@@ -64,6 +64,12 @@ export function SiteHeader() {
               </Link>
             );
           })}
+          <details className="group relative">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-md px-2 py-2 text-sm font-medium uppercase tracking-wide text-muted hover:bg-surface-2 hover:text-fg">More <ChevronDown className="size-4" /></summary>
+            <nav aria-label="More pages" className="absolute right-0 top-full mt-2 min-w-60 rounded-xl border border-border bg-bg p-2 shadow-lg">
+              {EXTRA_NAV.map(item => <Link key={item.to} to={item.to} className="block rounded-lg px-3 py-3 text-sm font-medium text-fg hover:bg-surface-2" onClick={event => event.currentTarget.closest("details")?.removeAttribute("open")}>{item.label}</Link>)}
+            </nav>
+          </details>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -85,13 +91,13 @@ export function SiteHeader() {
               <Button
                 variant="secondary"
                 size="icon"
-                className="xl:hidden"
+                className="2xl:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="bg-bg">
+            <SheetContent side="right" className="overflow-y-auto bg-bg">
               <SheetHeader>
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
