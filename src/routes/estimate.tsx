@@ -3,12 +3,10 @@ import { PublicProjectEstimator } from "@/components/public-project-estimator";
 import {
   DEFAULT_ESTIMATE_HEADLINE, estimateLandingFromSearch, estimateRouteSearch, headlineFor,
 } from "@/lib/estimate-landing";
-import { loadEstimateOffer } from "@/lib/estimate-offer";
 import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/estimate")({
   component: EstimatePage,
-  loader: () => loadEstimateOffer(),
   validateSearch: (search: Record<string, unknown>) => estimateRouteSearch(search),
   head: ({ match }) => {
     const landing = estimateLandingFromSearch(match?.search ?? {});
@@ -24,7 +22,6 @@ export const Route = createFileRoute("/estimate")({
 
 function EstimatePage() {
   const search = Route.useSearch();
-  const offer = Route.useLoaderData();
   const landing = estimateLandingFromSearch(search);
-  return <PublicProjectEstimator landing={landing} search={search} feeLabel={offer.feeLabel} />;
+  return <PublicProjectEstimator landing={landing} search={search} />;
 }

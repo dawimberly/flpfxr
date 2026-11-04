@@ -183,6 +183,27 @@ describe("ads events", () => {
     }
   });
 
+  it("deduplicates an accepted lead and sends its UUID only to Ads", () => {
+    Object.assign(window, { sessionStorage });
+    const id = "550e8400-e29b-41d4-a716-446655440010";
+    trackContactFormSubmit({ email: "fixture@example.invalid" }, id.toUpperCase());
+    trackContactFormSubmit({ email: "fixture@example.invalid" }, id);
+    const conversions = calls.filter(call => call[1] === "conversion");
+    assert.equal(conversions.length, 1);
+    assert.equal((conversions[0][2] as { transaction_id: string }).transaction_id, id);
+    const leads = calls.filter(call => call[1] === "generate_lead");
+    assert.equal(leads.length, 1);
+    assert.equal("transaction_id" in (leads[0][2] as object), false);
+    trackContactFormSubmit(undefined, "550e8400-e29b-41d4-a716-446655440011");
+    assert.equal(calls.filter(call => call[1] === "conversion").length, 2);
+  });
+
+  it("rejects malformed or empty supplied lead IDs", () => {
+    trackContactFormSubmit(undefined, "not-a-uuid");
+    trackContactFormSubmit(undefined, "");
+    assert.equal(calls.length, 0);
+  });
+
   it("allows a second accepted submission in the same session to count", () => {
     trackContactFormSubmit({ name: "A", phone: "2104369117" });
     trackContactFormSubmit({ name: "B", phone: "2104369118" });
