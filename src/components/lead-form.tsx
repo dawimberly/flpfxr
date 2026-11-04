@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { captureAdClickIds } from "@/lib/formsubmit";
 import {
   LEAD_API_PATH,
-  claimAcceptedLeadConversion,
   isValidSubmissionId,
   leadEmailProblem,
   parseLeadApiResponse,
@@ -183,12 +182,9 @@ export function LeadForm({
       }
       if (shouldTrackAcceptedLead(parsed)) {
         const trackedId = parsed.submissionId || submissionIdRef.current || "";
-        if (
-          !trackedThisSubmit.current &&
-          claimAcceptedLeadConversion(trackedId)
-        ) {
+        if (!trackedThisSubmit.current) {
           trackedThisSubmit.current = true;
-          trackContactFormSubmit({ name, email, phone });
+          trackContactFormSubmit({ name, email, phone }, trackedId);
         }
         setDone(true);
         submissionIdRef.current = null;

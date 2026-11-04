@@ -1,3 +1,4 @@
+import { claimAcceptedLeadConversion } from "./lead-delivery.ts";
 import {
   LEAD_PENDING_KEY,
   buildLeadPending,
@@ -329,12 +330,13 @@ export function consumePendingLeadSubmit(): boolean {
 
 /**
  * Count one accepted form lead for Ads + GA4.
- * Call only after FormSubmit acceptance (ajax) or a matching pending thank-you.
- * Do not call from a bare `?sent=1` page load. Reload dedupe is the caller's job
- * (pending is single-use; ajax path only runs on submit).
+ * Call only after explicit server acceptance. Reuse the accepted submission UUID
+ * on retries; it is also the Ads transaction ID. Never call on a page view.
  */
-export function trackContactFormSubmit(userData?: EnhancedUserData) {
-  if (typeof window === "undefined") return;
+export function trackContactFormSubmit(userData?: EnhancedUserData, submissionId?: string) {
+  if (!canTrackGoogle()) return;
+  const transactionId = submissionId?.trim().toLowerCase();
+  if (submissionId !== undefined && !claimAcceptedLeadConversion(transactionId ?? "")) return;
 
   const adsUserData = userData ? setEnhancedUserData(userData) : undefined;
 
@@ -345,6 +347,7 @@ export function trackContactFormSubmit(userData?: EnhancedUserData) {
   // event_callback keeps the hit alive if a native redirect races the tag.
   gtag("event", "conversion", {
     send_to: GOOGLE_ADS_LEAD_SEND_TO,
+    ...(transactionId ? { transaction_id: transactionId } : {}),
     ...(adsUserData ? { user_data: adsUserData } : {}),
     value: 1.0,
     currency: "USD",

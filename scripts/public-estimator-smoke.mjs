@@ -162,46 +162,11 @@ try {
     assert.deepEqual(undersized,[],"Tap targets must be at least 44px high");
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=3,"Horizontal overflow");
     await page.evaluate(()=>window.scrollTo(0,0));
-    const cta = page.getByTestId("estimate-next");
-    await cta.getByRole("button", { name: "Get your free estimate", exact: true }).waitFor();
-    await cta.screenshot({ path: join(artifacts, "estimate-free-cta-" + width + ".png") });
+    assert.equal(await page.getByTestId("estimate-next").count(), 0, "Planner has no competing four-step form");
+    assert.equal(await page.getByRole("button", { name: /Shop the full cabinet catalog/ }).count(), 0);
+    assert.doesNotMatch(await page.locator("main").innerText(), /finalize cabinets|cabinet catalog|15% off retail/i);
+    assert.equal(await page.getByRole("link", { name: "Request an on-site estimate", exact: true }).count(), 1);
     await page.screenshot({path:join(artifacts,"public-estimator-smoke-"+width+".png"),fullPage:true});
-
-    if (width === 1280) {
-      const inquiries = [];
-      await page.route("**/api/estimate-inquiry", async (route) => {
-        const request = route.request();
-        const form = await new Request(request.url(), { method: "POST", headers: request.headers(), body: request.postDataBuffer() }).formData();
-        inquiries.push(Object.fromEntries([...form.entries()].filter(([, value]) => typeof value === "string")));
-        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, submissionId: form.get("submissionId") }) });
-      });
-      await cta.getByRole("button", { name: "Get your free estimate", exact: true }).click();
-      await page.getByRole("heading", { name: "A few details" }).waitFor();
-      await page.getByText("Address or ZIP (optional)", { exact: true }).waitFor();
-      assert.equal(await page.locator("#next-address").getAttribute("required"), null);
-      await page.getByTestId("estimate-next").screenshot({ path: join(artifacts, "estimate-address-optional.png") });
-      await page.getByRole("button", { name: "Continue", exact: true }).click();
-      await page.getByRole("heading", { name: "How do we reach you?" }).waitFor();
-      for (const id of ["#next-name", "#next-phone", "#next-email"]) {
-        assert.equal(await page.locator(id).getAttribute("required"), "", `${id} is required`);
-      }
-      await page.getByTestId("estimate-next").screenshot({ path: join(artifacts, "estimate-required-contact.png") });
-      await page.getByRole("button", { name: "Continue", exact: true }).click();
-      await page.getByText("Add your name so we know who to call back.").waitFor();
-      await page.locator("#next-name").fill("LOCAL MOCK ONLY");
-      await page.locator("#next-phone").fill("2105550100");
-      await page.locator("#next-email").fill("sample@example.com");
-      await page.getByRole("button", { name: "Continue", exact: true }).click();
-      await page.getByRole("heading", { name: "Get your free estimate" }).waitFor();
-      await page.getByRole("button", { name: "Get your free estimate", exact: true }).click();
-      await page.getByTestId("estimate-inquiry-sent").waitFor();
-      assert.equal(inquiries.length, 1, "Free estimate CTA posts one inquiry");
-      assert.equal(inquiries[0].service, "bathroom");
-      assert.equal(inquiries[0].size, "Medium");
-      assert.equal(inquiries[0].shower, "ceramic");
-      assert.equal(inquiries[0].name, "LOCAL MOCK ONLY");
-      assert.equal(inquiries[0].email, "sample@example.com");
-    }
 
     await page.getByRole("link",{name:"Request an on-site estimate"}).click();
     await page.waitForURL(/\/contact/);

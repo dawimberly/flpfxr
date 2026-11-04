@@ -98,7 +98,7 @@ export function CabinetCatalogGate({
         name: String(form.get("name") ?? ""),
         email: String(form.get("email") ?? ""),
         phone: String(form.get("phone") ?? ""),
-      });
+      }, parsed.submissionId || submissionId.current);
       window.location.assign(redirectUrl);
     } catch {
       setError("Could not open the catalog. Call or text instead.");

@@ -20,8 +20,6 @@ import {
   trackEstimateStart, trackEstimateRangeShown, trackEstimateOutOfRange,
   trackEstimateHandoffClick,
 } from "@/lib/google-ads";
-import { CabinetCatalogGate } from "@/components/cabinet-catalog-gate";
-import { EstimateNextStep } from "@/components/estimate-next-step";
 
 const fieldClass = "mt-2 min-h-11 w-full rounded-lg border border-border bg-bg p-3 text-fg";
 const EXCLUSIONS = "Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage.";
@@ -67,11 +65,9 @@ const choiceClass = (selected: boolean) =>
 export function PublicProjectEstimator({
   landing,
   search,
-  feeLabel = null,
 }: {
   landing: EstimateLanding;
   search: Record<string, unknown>;
-  feeLabel?: string | null;
 }) {
   const [explicitService, setExplicitService] = useState(landing.explicitService);
   const [inputs, setInputs] = useState(() => inputsFromLanding(landing));
@@ -280,35 +276,6 @@ export function PublicProjectEstimator({
         </ul>
         <p className="mt-2 text-sm text-muted" data-testid="estimate-exclusions">{EXCLUSIONS}</p>
       </div> : null}
-      {inputs.service === "kitchen" || inputs.service === "bathroom" ? (
-        <div className="mt-4">
-          <CabinetCatalogGate defaultProject={inputs.service === "bathroom" ? "bathroom" : "kitchen"} compact />
-        </div>
-      ) : null}
-      <EstimateNextStep
-        feeLabel={feeLabel}
-        cancelled={search.checkout === "cancelled"}
-        canBuy={inputs.service === "custom" || Boolean(estimate)}
-        blockedReason={areaError}
-        project={current}
-        fields={{
-          service: inputs.service,
-          size: inputs.size,
-          floor: inputs.floor,
-          counter: inputs.counter,
-          shower: inputs.shower,
-          prime: inputs.prime ? "1" : "0",
-          exterior_coats: String(inputs.exteriorCoats),
-          vanity: inputs.vanity ?? "",
-          new_toilet: inputs.newToilet ? "1" : "0",
-          floor_sqft: inputs.service === "bathroom" || inputs.service === "kitchen" ? areas.floor : "",
-          shower_sqft: inputs.service === "bathroom" ? areas.shower : "",
-          counter_sqft: inputs.service === "kitchen" ? areas.counter : "",
-          room_sqft: inputs.service === "flooring" || inputs.service === "interior-paint" || inputs.service === "exterior-paint" ? areas.room : "",
-          cabinet_boxes: inputs.service === "kitchen" ? areas.boxes : "",
-          xl_fridge_boxes: inputs.service === "kitchen" ? areas.xl : "",
-        }}
-      />
     </div>
   );
 }

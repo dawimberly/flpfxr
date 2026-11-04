@@ -69,6 +69,7 @@ export function EstimateNextStep({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const submissionId = useRef<string | null>(null);
+  const sending = useRef(false);
   const label = project ? PROJECT_SERVICES.find((row) => row.id === project.service)?.label : "Your project";
   const preview = project && canBuy && project.service !== "custom"
     ? buildLaborDocument({ v: 1, project, address: "", note: "", occupancy: "", timing: "", decision: "" } satisfies StoredPlanner, false)
@@ -76,7 +77,7 @@ export function EstimateNextStep({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (step < 3) return;
+    if (step < 3 || sent || sending.current) return;
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const choice = submitter?.value === "buy" ? "buy" : "inquiry";
     if (choice === "buy" && (!paidEstimateOn || !canBuy || !feeLabel)) return;
@@ -86,6 +87,7 @@ export function EstimateNextStep({
     data.set("submissionId", submissionId.current);
     for (const [key, value] of Object.entries(fields)) data.set(key, value);
     for (const [key, value] of Object.entries(captureAdClickIds())) if (value) data.set(key, value);
+    sending.current = true;
     setSubmitting(choice);
     try {
       const res = await fetch(choice === "buy" ? "/api/estimate-checkout" : "/api/estimate-inquiry", { method: "POST", body: data });
@@ -109,11 +111,12 @@ export function EstimateNextStep({
         setError(parsed.ok ? "Could not send the inquiry. Call or text instead." : parsed.message);
         return;
       }
-      trackContactFormSubmit({ name, email, phone });
+      trackContactFormSubmit({ name, email, phone }, parsed.submissionId || submissionId.current);
       setSent(true);
     } catch {
       setError(choice === "buy" ? "Could not start checkout. Call or text instead." : "Could not send the inquiry. Call or text instead.");
     } finally {
+      sending.current = false;
       setSubmitting(null);
     }
   };
