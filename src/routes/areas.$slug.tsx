@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { OwnerTodo } from "@/components/owner-todo";
+import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import { type AreaLink, type AreaPage, areaBySlug } from "@/lib/areas";
 import { PROCESS, SITE, TESTIMONIALS } from "@/lib/site";
@@ -98,6 +99,21 @@ function AreaPageView() {
           </p>
         ))}
         <AreaReview area={area} />
+        {area.photos?.length ? (
+          <section aria-label="Project photos" className="mt-8 space-y-8">
+            {area.photos.map((photo) => (
+              <figure key={photo.src}>
+                <Photo
+                  src={photo.src}
+                  alt={photo.alt}
+                  loading="lazy"
+                  className="photo-frame aspect-[4/3] w-full object-cover"
+                />
+                <figcaption className="mt-3 text-sm text-muted">{photo.caption}</figcaption>
+              </figure>
+            ))}
+          </section>
+        ) : null}
         <AreaLinks links={area.links} />
         <OwnerTodo items={area.todos} />
       </article>

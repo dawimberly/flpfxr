@@ -25,7 +25,8 @@ function AreasIndex() {
       <PageIntro eyebrow="Service areas" title="Service areas around San Antonio">
         <p>
           Twelve places are on the list. Five have their own pages: the ones named in the short
-          area line, plus Stone Oak, because a published review names it.
+          area line, plus Stone Oak, where a published review names a kitchen and a covered patio
+          with green turf is a real job.
         </p>
       </PageIntro>
 

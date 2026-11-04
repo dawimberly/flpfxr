@@ -122,7 +122,7 @@ const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
     documentTitle: "Insurance claim rebuild specialists",
     description: `Insurance claim rebuild specialists in San Antonio. Contact us. ${AREA_LINE}`,
     title: "Insurance claim rebuild specialists in San Antonio.",
-    intro: "We are insurance claim specialists. After fire or storm damage we rebuild from tear-out through finish and catch scope the carrier left out.",
+    intro: "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.",
     placeholder: "Address, what happened, and when you want someone out.",
   },
   consulting: {

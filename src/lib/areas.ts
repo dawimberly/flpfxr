@@ -35,6 +35,7 @@ export type AreaPage = {
   showProcess?: boolean;
   links: readonly AreaLink[];
   todos: readonly string[];
+  photos?: readonly { src: string; alt: string; caption: string }[];
 };
 
 const phone = SITE.phoneDisplay;
@@ -65,17 +66,34 @@ export const AREA_PAGES: readonly AreaPage[] = [
   {
     slug: "stone-oak",
     name: "Stone Oak",
-    title: "Kitchen remodeling in Stone Oak",
-    description: `Stone Oak kitchen remodeling. Call ${phone}. Jennifer R. wrote about a kitchen renovation in Stone Oak.`,
+    title: "Kitchen remodeling and a turf patio in Stone Oak",
+    description: `Stone Oak kitchen remodeling and a covered patio with green turf. Call ${phone}. Jennifer R. wrote about a kitchen renovation in Stone Oak.`,
     paragraphs: [
-      `Stone Oak is on the service-area list. It is not in the short area line (${AREA_LINE}). This page exists because a published review names Stone Oak.`,
-      "Jennifer R. of Stone Oak wrote about a kitchen renovation. The review does not name cabinets, a street, or a price. The quote is below, unchanged.",
-      "Kitchen remodels are cabinets, counters, and floors. We walk the room and give you a number. The kitchen journal follows one real kitchen from tear-out through a herringbone floor. That journal does not say the house was in Stone Oak, so this page does not claim it was.",
-      "Helotes, Hollywood Park, and Shavano Park are on the service list and do not have their own pages. Hollywood Park has a separate review, from Scott S., about home repairs. That review is on the reviews page. It is not a Stone Oak job.",
+      `Stone Oak is on the service-area list. It is not in the short area line (${AREA_LINE}). Jennifer R. wrote about a kitchen renovation here, and the outdoor job we can place in Stone Oak is a covered patio with green turf.`,
+      "Jennifer R.'s review does not name cabinets, a street, or a price. The quote is below, unchanged. The kitchen journal follows one real kitchen from tear-out through a herringbone floor. That journal does not say the house was in Stone Oak, so this page does not claim it was.",
+      "The patio photos are the covered outdoor room with green turf. They show the turf, wood posts, a hot tub, and a square fire pit. Helotes, Hollywood Park, and Shavano Park are on the service list and do not have their own pages. Hollywood Park has a separate review, from Scott S., about home repairs. That review is on the reviews page. It is not a Stone Oak job.",
     ],
     reviewName: "Jennifer R.",
+    photos: [
+      {
+        src: "/images/patio.webp",
+        alt: "Covered Stone Oak patio with green turf, wood posts, and tools still on the job",
+        caption: "Green turf on the covered patio, with tools still out.",
+      },
+      {
+        src: "/images/patio1.webp",
+        alt: "Covered Stone Oak patio with green turf, a hot tub, and a screened roof",
+        caption: "The same patio with the hot tub in place.",
+      },
+      {
+        src: "/images/patio2.webp",
+        alt: "Green turf on a Stone Oak patio at dusk, with a square fire pit and string lights",
+        caption: "Fire pit set in the turf.",
+      },
+    ],
     links: [
       { label: "Kitchen remodeling", to: "/kitchen" },
+      { label: "Outdoor work", to: "/contact", service: "outdoor" },
       {
         label: "Kitchen journal: before, during, and after",
         to: "/blog/$slug",
@@ -83,9 +101,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
       },
       { label: "All reviews", to: "/testimonials" },
     ],
-    todos: [
-      "Add a Stone Oak project note only if you are willing to publish it. Do not label the kitchen journal or the gallery kitchens as Stone Oak unless that is the house.",
-    ],
+    todos: [],
   },
   {
     slug: "boerne",
@@ -141,8 +157,8 @@ export const AREA_PAGES: readonly AreaPage[] = [
     description: `Kerrville remodeling and insurance claim rebuilds. Call ${phone}. Kerrville is on the service list. No Kerrville review is published.`,
     paragraphs: [
       `Kerrville is on the service-area list and in the short line on the site: ${AREA_LINE} No review on this site is placed in Kerrville.`,
-      "Insurance claim rebuilds are one of the services we publish for the areas we list, Kerrville included. The published description is fire or storm damage, rebuilt from tear-out through finish, catching scope the carrier left out. That description is not a Kerrville story.",
-      "Dan Wimberly's published bio says he has a decade handling insurance claims and has regularly secured 20-50% increases in approved scope. That figure is his insurance-rebuild record. It is not a Kerrville result, and this page does not turn it into one.",
+      "Insurance claim rebuilds are one of the services we publish for the areas we list, Kerrville included. The published description is fire, storm, or water damage, rebuilt from tear-out through finish, catching scope the carrier left out. That description is not a Kerrville story.",
+      "Dan meets adjusters on site. He has written and negotiated hundreds of insurance claims. His biggest increase was 40%, a $130k increase on a fire claim, and he typically gets a 10-20% increase in approved scope. That is his track record, not a Kerrville result, and not a guarantee.",
       `Kitchen and bathroom remodels are the other main work. Call or text ${phone} and say Kerrville and what you want done.`,
     ],
     links: [

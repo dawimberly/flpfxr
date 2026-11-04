@@ -1,12 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LeadForm } from "@/components/lead-form";
-import { OwnerTodo } from "@/components/owner-todo";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { PageIntro } from "@/components/site-shell";
 import { CREW, SITE } from "@/lib/site";
 
 const INSURANCE_BODY =
-  "We are insurance claim specialists. After fire or storm damage we rebuild from tear-out through finish and catch scope the carrier left out.";
+  "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.";
 
 export const Route = createFileRoute("/insurance-claims")({
   component: InsuranceClaimsPage,
@@ -20,7 +19,7 @@ export const Route = createFileRoute("/insurance-claims")({
       { title: `Insurance claim rebuilds in San Antonio | ${SITE.name}` },
       {
         name: "description",
-        content: `Fire and storm damage rebuilds in San Antonio. Call ${SITE.phoneDisplay}. We rebuild from tear-out through finish.`,
+        content: `Fire, storm, and water-damage rebuilds in San Antonio. Call ${SITE.phoneDisplay}. We rebuild from tear-out through finish.`,
       },
     ],
   }),
@@ -34,18 +33,17 @@ function InsuranceClaimsPage() {
       <PageIntro eyebrow="Insurance claims" title="Insurance claim rebuilds in San Antonio">
         <p>{INSURANCE_BODY}</p>
         <p className="mt-4">
-          That is the description already used on the services page and the contact form. It covers
-          fire and storm damage. It does not name a carrier, a claim number, or a promise about
-          what an insurer will approve.
+          Fire, storm, and water damage. The page does not name a carrier, a claim number, or a
+          promise about what an insurer will approve.
         </p>
       </PageIntro>
 
       <article className="mx-auto max-w-3xl space-y-8 px-4 pb-12 text-left">
         <section>
-          <h2 className="font-display text-2xl text-fg">Scope the carrier left out</h2>
+          <h2 className="font-display text-2xl text-fg">Adjusters and the scope</h2>
           <p className="mt-3 text-lg leading-relaxed text-muted">
-            {dan ? dan.bio : "Dan Wimberly writes the scope and works the job."} That record stays
-            his. It is not a guarantee, and it is not a review.
+            {dan ? dan.bio : "Dan Wimberly writes the scope and works the job."} That is his track
+            record, not a guarantee, and it is not a review.
           </p>
           <p className="mt-3">
             <Link to="/about" className="font-medium text-primary hover:underline">
@@ -70,14 +68,6 @@ function InsuranceClaimsPage() {
             .
           </p>
         </section>
-
-        <OwnerTodo
-          items={[
-            "Water damage is not claimed on this page. Say whether water-damage rebuilds should be listed, and the sentence you want published, before that is added.",
-            "Working with adjusters is not described on the site. Add the steps you actually take with an adjuster, and anything you will not promise, or leave the page as tear-out through finish and scope the carrier left out.",
-            "Keep the 20-50% line attributed to Dan's bio. Do not turn it into a guarantee or add review stars to the page.",
-          ]}
-        />
       </article>
 
       <section id="send-job" className="scroll-mt-28 border-t border-border bg-surface px-4 py-12 md:py-16">
