@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { CallLink, CallNumber } from "@/components/call-link";
-import { NAV, SERVICE_AREAS, SITE } from "@/lib/site";
+import { GOOGLE_BUSINESS_URL } from "@/lib/business-jsonld";
+import { AREA_PAGES } from "@/lib/areas";
+import { EXTRA_NAV, NAV, SERVICE_AREAS, SITE } from "@/lib/site";
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -18,11 +20,26 @@ export function SiteFooter() {
           <p className="text-sm font-semibold uppercase tracking-wider text-fg">
             Service areas
           </p>
+          <nav aria-label="Service areas" className="mt-3 flex flex-col gap-2 text-sm">
+            {AREA_PAGES.map((area) => (
+              <Link
+                key={area.slug}
+                to="/areas/$slug"
+                params={{ slug: area.slug }}
+                className="text-muted hover:text-primary"
+              >
+                {area.name}
+              </Link>
+            ))}
+            <Link to="/areas" className="text-muted hover:text-primary">
+              All service areas
+            </Link>
+          </nav>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            {SERVICE_AREAS.join(" · ")}
+            Also: {SERVICE_AREAS.filter((name) => !AREA_PAGES.some((area) => area.name === name)).join(" · ")}
           </p>
           <nav className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            {NAV.map((item) => (
+            {[...NAV, ...EXTRA_NAV].map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -48,6 +65,15 @@ export function SiteFooter() {
             >
               <Mail className="size-4 text-primary" />
               {SITE.email}
+            </a>
+            <a
+              href={GOOGLE_BUSINESS_URL}
+              className="flex items-center gap-2 hover:text-fg"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <MapPin className="size-4 text-primary" />
+              Find us on Google
             </a>
           </div>
         </div>

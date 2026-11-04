@@ -2,6 +2,13 @@ export const SEO_ORIGIN = "https://theflipfixer.com";
 export const PUBLIC_PAGE_PATHS = [
   "/",
   "/services",
+  "/insurance-claims",
+  "/areas",
+  "/areas/alamo-heights",
+  "/areas/stone-oak",
+  "/areas/boerne",
+  "/areas/the-dominion",
+  "/areas/kerrville",
   "/estimate",
   "/kitchen",
   "/bathroom",

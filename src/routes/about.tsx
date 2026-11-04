@@ -24,9 +24,11 @@ function AboutPage() {
       <PageIntro eyebrow="About" title={SITE.name}>
         <p>
           We remodel kitchens and baths, fix what's broken, and get rentals and
-          listings ready to show. We are insurance claim specialists: after fire
-          or storm damage we rebuild from tear-out through finish. Design is
-          handled in-house. 30+ years on the tools. You get a clear price, a
+          listings ready to show. We are insurance claim specialists: after fire,
+          storm, or water damage we rebuild from tear-out through finish.{" "}
+          <Link to="/insurance-claims" className="font-medium text-primary">
+            Insurance claim rebuilds
+          </Link>. Design is handled in-house. 30+ years on the tools. You get a clear price, a
           real plan, and a crew that treats the house like it's still yours.
         </p>
         <p className="mt-1 sm:mt-4">

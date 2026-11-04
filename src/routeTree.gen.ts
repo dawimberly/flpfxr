@@ -17,6 +17,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimateRouteImport } from './routes/estimate'
 import { Route as EstimatorRouteImport } from './routes/estimator'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as InsuranceClaimsRouteImport } from './routes/insurance-claims'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -27,6 +28,8 @@ import { Route as ApiCatalogSignupRouteImport } from './routes/api/catalog-signu
 import { Route as ApiEstimateCheckoutRouteImport } from './routes/api/estimate-checkout'
 import { Route as ApiEstimateInquiryRouteImport } from './routes/api/estimate-inquiry'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
+import { Route as AreasIndexRouteImport } from './routes/areas.index'
+import { Route as AreasSlugRouteImport } from './routes/areas.$slug'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as EstimatePaidRouteImport } from './routes/estimate.paid'
@@ -73,6 +76,11 @@ const EstimatorRoute = EstimatorRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsuranceClaimsRoute = InsuranceClaimsRouteImport.update({
+  id: '/insurance-claims',
+  path: '/insurance-claims',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KitchenRoute = KitchenRouteImport.update({
@@ -125,6 +133,16 @@ const ApiLeadsRoute = ApiLeadsRouteImport.update({
   path: '/api/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AreasIndexRoute = AreasIndexRouteImport.update({
+  id: '/areas/',
+  path: '/areas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AreasSlugRoute = AreasSlugRouteImport.update({
+  id: '/areas/$slug',
+  path: '/areas/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -170,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
+  '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -180,9 +199,11 @@ export interface FileRoutesByFullPath {
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/areas/$slug': typeof AreasSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
   '/estimator/roof': typeof EstimatorRoofRoute
+  '/areas/': typeof AreasIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -196,6 +217,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
   '/gallery': typeof GalleryRoute
+  '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -206,9 +228,11 @@ export interface FileRoutesByTo {
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/areas/$slug': typeof AreasSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
   '/estimator/roof': typeof EstimatorRoofRoute
+  '/areas': typeof AreasIndexRoute
   '/blog': typeof BlogIndexRoute
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -224,6 +248,7 @@ export interface FileRoutesById {
   '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
   '/gallery': typeof GalleryRoute
+  '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -234,9 +259,11 @@ export interface FileRoutesById {
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/areas/$slug': typeof AreasSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
   '/estimator/roof': typeof EstimatorRoofRoute
+  '/areas/': typeof AreasIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -253,6 +280,7 @@ export interface FileRouteTypes {
     | '/estimate'
     | '/estimator'
     | '/gallery'
+    | '/insurance-claims'
     | '/kitchen'
     | '/login'
     | '/privacy'
@@ -263,9 +291,11 @@ export interface FileRouteTypes {
     | '/api/estimate-checkout'
     | '/api/estimate-inquiry'
     | '/api/leads'
+    | '/areas/$slug'
     | '/blog/$slug'
     | '/estimate/paid'
     | '/estimator/roof'
+    | '/areas/'
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
@@ -279,6 +309,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimate'
     | '/gallery'
+    | '/insurance-claims'
     | '/kitchen'
     | '/login'
     | '/privacy'
@@ -289,9 +320,11 @@ export interface FileRouteTypes {
     | '/api/estimate-checkout'
     | '/api/estimate-inquiry'
     | '/api/leads'
+    | '/areas/$slug'
     | '/blog/$slug'
     | '/estimate/paid'
     | '/estimator/roof'
+    | '/areas'
     | '/blog'
     | '/estimator'
     | '/api/auth/$'
@@ -306,6 +339,7 @@ export interface FileRouteTypes {
     | '/estimate'
     | '/estimator'
     | '/gallery'
+    | '/insurance-claims'
     | '/kitchen'
     | '/login'
     | '/privacy'
@@ -316,9 +350,11 @@ export interface FileRouteTypes {
     | '/api/estimate-checkout'
     | '/api/estimate-inquiry'
     | '/api/leads'
+    | '/areas/$slug'
     | '/blog/$slug'
     | '/estimate/paid'
     | '/estimator/roof'
+    | '/areas/'
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
@@ -334,6 +370,7 @@ export interface RootRouteChildren {
   EstimateRoute: typeof EstimateRouteWithChildren
   EstimatorRoute: typeof EstimatorRouteWithChildren
   GalleryRoute: typeof GalleryRoute
+  InsuranceClaimsRoute: typeof InsuranceClaimsRoute
   KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -344,7 +381,9 @@ export interface RootRouteChildren {
   ApiEstimateCheckoutRoute: typeof ApiEstimateCheckoutRoute
   ApiEstimateInquiryRoute: typeof ApiEstimateInquiryRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
+  AreasSlugRoute: typeof AreasSlugRoute
   BlogSlugRoute: typeof BlogSlugRoute
+  AreasIndexRoute: typeof AreasIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
@@ -406,6 +445,13 @@ declare module '@tanstack/react-router' {
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insurance-claims': {
+      id: '/insurance-claims'
+      path: '/insurance-claims'
+      fullPath: '/insurance-claims'
+      preLoaderRoute: typeof InsuranceClaimsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kitchen': {
@@ -476,6 +522,20 @@ declare module '@tanstack/react-router' {
       path: '/api/leads'
       fullPath: '/api/leads'
       preLoaderRoute: typeof ApiLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/areas/': {
+      id: '/areas/'
+      path: '/areas'
+      fullPath: '/areas/'
+      preLoaderRoute: typeof AreasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/areas/$slug': {
+      id: '/areas/$slug'
+      path: '/areas/$slug'
+      fullPath: '/areas/$slug'
+      preLoaderRoute: typeof AreasSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog/': {
@@ -565,6 +625,7 @@ const rootRouteChildren: RootRouteChildren = {
   EstimateRoute: EstimateRouteWithChildren,
   EstimatorRoute: EstimatorRouteWithChildren,
   GalleryRoute: GalleryRoute,
+  InsuranceClaimsRoute: InsuranceClaimsRoute,
   KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
@@ -575,7 +636,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiEstimateCheckoutRoute: ApiEstimateCheckoutRoute,
   ApiEstimateInquiryRoute: ApiEstimateInquiryRoute,
   ApiLeadsRoute: ApiLeadsRoute,
+  AreasSlugRoute: AreasSlugRoute,
   BlogSlugRoute: BlogSlugRoute,
+  AreasIndexRoute: AreasIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,

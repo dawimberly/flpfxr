@@ -51,7 +51,7 @@ function BlogArticle() {
         <div className="mx-auto max-w-3xl px-4 pb-16">
           <Photo
             src={post.image}
-            alt=""
+            alt={post.imageAlt}
             className="photo-frame mb-10 aspect-[16/9] w-full object-cover"
           />
           <p className="mb-8 text-sm text-muted">By The Flip Fixer · San Antonio, Texas</p>

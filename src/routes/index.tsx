@@ -4,11 +4,11 @@ import { CallLink, CallNumber } from "@/components/call-link";
 import { LeadForm } from "@/components/lead-form";
 import { ProjectTellButton } from "@/components/remodel-project-proof";
 import { Photo } from "@/components/photo";
+import { businessJsonLd } from "@/lib/business-jsonld";
 import {
   SITE,
   AREA_LINE,
   FEATURED_REVIEW,
-  SERVICE_AREAS,
 } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
@@ -18,19 +18,7 @@ export const Route = createFileRoute("/")({
     return sent ? { sent: true as const } : {};
   },
   head: () => ({
-    scripts: [{ type: "application/ld+json", children: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "GeneralContractor",
-      "@id": `${SITE.url}/#business`,
-      name: SITE.name,
-      url: `${SITE.url}/`,
-      telephone: `+1${SITE.phone}`,
-      email: SITE.email,
-      description: SITE.tagline,
-      logo: `${SITE.url}/logo.svg`,
-      image: `${SITE.url}/og.jpg`,
-      areaServed: SERVICE_AREAS.map(name => ({ "@type": "Place", name: `${name}, Texas` })),
-    }).replace(/</g, "\\u003c") }],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(businessJsonLd()).replace(/</g, "\\u003c") }],
     links: [{ rel: "canonical", href: `${SITE.url}/` }],
     meta: [
       { title: `Kitchen & Bathroom Remodeling in San Antonio | ${SITE.name}` },
@@ -101,6 +89,8 @@ function Home() {
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
           <Link to="/kitchen" className="font-medium text-primary hover:underline">Kitchen remodeling</Link>
           <Link to="/bathroom" className="font-medium text-primary hover:underline">Bathroom remodeling</Link>
+          <Link to="/insurance-claims" className="font-medium text-primary hover:underline">Insurance claim rebuilds</Link>
+          <Link to="/areas" className="font-medium text-primary hover:underline">Service areas</Link>
           <Link to="/services" className="font-medium text-primary hover:underline">Other services</Link>
         </div>
       </section>

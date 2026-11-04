@@ -24,7 +24,7 @@ export const CREW = [
     role: "Estimating, coordination, and insurance claims",
     src: "/images/crew-dan-v3.webp",
     line: "15 years as a contractor. A decade handling insurance claims.",
-    bio: "Dan has 15 years as a contractor and a decade handling insurance claims. He writes the scope, sets the price, and works the job with us. On insurance rebuilds he catches what the carrier left out, and he has regularly secured 20-50% increases in approved scope.",
+    bio: "Dan has 15 years as a contractor and a decade handling insurance claims. He writes the scope, sets the price, and works the job with us. On insurance rebuilds he catches what the carrier left out. He meets adjusters on site and has written and negotiated hundreds of insurance claims. His biggest increase was 40%, a $130k increase on a fire claim. He typically gets a 10-20% increase in approved scope, which often lets us upgrade the homeowner at no extra cost.",
   },
 ] as const;
 
@@ -43,6 +43,15 @@ export const NAV = [
   { to: "/contact", label: "Contact" },
 ] as const;
 
+/**
+ * Insurance and area pages. Kept off the desktop bar so the existing header
+ * still fits. They are in the mobile menu, the footer, and in-page links.
+ */
+export const EXTRA_NAV = [
+  { to: "/insurance-claims", label: "Insurance" },
+  { to: "/areas", label: "Areas" },
+] as const;
+
 export const SERVICE_AREAS = [
   "Alamo Heights",
   "Terrell Hills",
@@ -56,6 +65,8 @@ export const SERVICE_AREAS = [
   "Boerne",
   "Kerrville",
   "San Antonio",
+  "New Braunfels",
+  "Fredericksburg",
 ] as const;
 
 export const AREA_LINE =
@@ -142,7 +153,7 @@ export const SERVICES: Array<{
     id: "insurance-claims",
     title: "Insurance claims",
     short: "Insurance claim rebuild specialists.",
-    body: "We are insurance claim specialists. After fire or storm damage we rebuild from tear-out through finish and catch scope the carrier left out.",
+    body: "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.",
     image: "/images/gallery-22-f.webp",
     group: "Specialty",
   },

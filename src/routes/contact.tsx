@@ -5,6 +5,7 @@ import { LeadForm } from "@/components/lead-form";
 import { TextLink } from "@/components/text-link";
 import { PageIntro } from "@/components/site-shell";
 import { retainedAdSearch } from "@/lib/estimate-landing";
+import { GOOGLE_BUSINESS_URL } from "@/lib/business-jsonld";
 import { AREA_LINE, DISCOUNT_ACCEPTED, JOB_DISCOUNT, PROJECT_FIT, SITE, type ServiceId } from "@/lib/site";
 
 type Search = {
@@ -122,7 +123,7 @@ const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
     documentTitle: "Insurance claim rebuild specialists",
     description: `Insurance claim rebuild specialists in San Antonio. Contact us. ${AREA_LINE}`,
     title: "Insurance claim rebuild specialists in San Antonio.",
-    intro: "We are insurance claim specialists. After fire or storm damage we rebuild from tear-out through finish and catch scope the carrier left out.",
+    intro: "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.",
     placeholder: "Address, what happened, and when you want someone out.",
   },
   consulting: {
@@ -190,6 +191,13 @@ function ContactPage() {
     <div>
       <PageIntro eyebrow={copy.eyebrow} title={copy.title}>
         <p>{copy.intro}</p>
+        {serviceFromUrl === "insurance-claims" ? (
+          <p className="mt-3">
+            <Link to="/insurance-claims" className="font-medium text-primary">
+              Insurance claim rebuilds
+            </Link>
+          </p>
+        ) : null}
         {specific ? null : <p className="mt-3 text-fg">{PROJECT_FIT}</p>}
         <CallTextActions className="mt-6 hidden justify-center sm:flex" />
       </PageIntro>
@@ -207,6 +215,14 @@ function ContactPage() {
             className="block text-muted hover:text-primary"
           >
             {SITE.email}
+          </a>
+          <a
+            href={GOOGLE_BUSINESS_URL}
+            className="block text-muted hover:text-primary"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Find us on Google
           </a>
           <p className="text-muted">{AREA_LINE}</p>
           <p className="text-sm leading-relaxed text-subtle">

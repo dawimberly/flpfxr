@@ -37,7 +37,7 @@ function BlogPage() {
             key={post.slug}
             className="overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-border)]"
           >
-            <Photo src={post.image} alt="" className="aspect-[4/3] w-full object-cover" />
+            <Photo src={post.image} alt={post.imageAlt} className="aspect-[4/3] w-full object-cover" />
             <div className="p-6">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary">
                 {post.category}
