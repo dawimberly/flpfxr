@@ -21,7 +21,7 @@ export const Route = createFileRoute("/kitchen")({
       { title: `Kitchen Remodeling in San Antonio | ${SITE.legalName}` },
       {
         name: "description",
-        content: `Kitchen remodels in San Antonio. Indoor, full-room remodels. ${AREA_LINE}`,
+        content: `Kitchen remodeling in San Antonio. Call or text ${SITE.phoneDisplay} to schedule a walkthrough. ${AREA_LINE}`,
       },
     ],
   }),

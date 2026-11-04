@@ -4,6 +4,7 @@ export type BlogPost = {
   category: string;
   description: string;
   image: string;
+  imageAlt: string;
   sections: Array<{ title: string; body: string }>;
   photos?: Array<{ src: string; alt: string; caption: string }>;
 };
@@ -16,6 +17,8 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "See one of our real kitchen remodels through tear-out, cabinet installation, and the finished room.",
     image: "/images/gallery-23-d.webp",
+    imageAlt:
+      "Finished sink run with shaker cabinets, light countertops, and a herringbone wood floor",
     sections: [
       {
         title: "The starting point",
@@ -73,6 +76,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "A little preparation makes the walkthrough more useful. Here is what to have ready and what to discuss.",
     image: "/images/gallery-09-c.webp",
+    imageAlt: "White kitchen with a black island by The Flip Fixer",
     sections: [
       {
         title: "Start with what needs to change",
@@ -103,6 +107,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Understand the scope, allowances, and assumptions behind a remodeling price before you compare numbers.",
     image: "/images/gallery-01-a.webp",
+    imageAlt: "Farmhouse kitchen by The Flip Fixer",
     sections: [
       {
         title: "An estimate helps you plan",
@@ -133,6 +138,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "What happens between approving the work and enjoying the finished room? Walk through the main stages.",
     image: "/images/gallery-08-a.webp",
+    imageAlt: "Gray shaker kitchen by The Flip Fixer",
     sections: [
       {
         title: "1. Plan and protect",

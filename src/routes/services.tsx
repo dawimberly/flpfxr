@@ -65,20 +65,35 @@ function ServiceCard({
         {service.body}
       </p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-        <Link
-          to="/contact"
-          search={{ service: service.id }}
-          className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
-        >
-          {service.id === "roofing"
-            ? "Schedule an inspection with our roofing specialist"
-            : service.id === "insurance-claims"
-              ? "Contact us"
+        {service.id === "insurance-claims" ? (
+          <Link
+            to="/insurance-claims"
+            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+          >
+            Insurance claim rebuilds
+          </Link>
+        ) : (
+          <Link
+            to="/contact"
+            search={{ service: service.id }}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+          >
+            {service.id === "roofing"
+              ? "Schedule an inspection with our roofing specialist"
               : service.id === "consulting"
                 ? "Schedule a walkthrough"
                 : "Get a price"}
-        </Link>
-        {serviceHasWork(service.id) ? (
+          </Link>
+        )}
+        {service.id === "insurance-claims" ? (
+          <Link
+            to="/contact"
+            search={{ service: "insurance-claims" }}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-muted hover:text-primary hover:underline"
+          >
+            Contact us
+          </Link>
+        ) : serviceHasWork(service.id) ? (
           <Link
             to="/gallery"
             search={{ service: service.id }}
@@ -95,7 +110,7 @@ function ServiceCard({
 function ServicesPage() {
   return (
     <div>
-      <PageIntro eyebrow="Services" title="What we do">
+      <PageIntro eyebrow="Services" title="Remodeling & Home Repair Services in San Antonio">
         <p>{PROJECT_FIT}</p>
         <p className="mt-3">
           Photos are on the{" "}

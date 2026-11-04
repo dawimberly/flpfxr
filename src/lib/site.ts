@@ -43,6 +43,15 @@ export const NAV = [
   { to: "/contact", label: "Contact" },
 ] as const;
 
+/**
+ * Insurance and area pages. Kept off the desktop bar so the existing header
+ * still fits. They are in the mobile menu, the footer, and in-page links.
+ */
+export const EXTRA_NAV = [
+  { to: "/insurance-claims", label: "Insurance" },
+  { to: "/areas", label: "Areas" },
+] as const;
+
 export const SERVICE_AREAS = [
   "Alamo Heights",
   "Terrell Hills",

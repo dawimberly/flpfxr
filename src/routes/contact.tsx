@@ -190,6 +190,13 @@ function ContactPage() {
     <div>
       <PageIntro eyebrow={copy.eyebrow} title={copy.title}>
         <p>{copy.intro}</p>
+        {serviceFromUrl === "insurance-claims" ? (
+          <p className="mt-3">
+            <Link to="/insurance-claims" className="font-medium text-primary">
+              Insurance claim rebuilds
+            </Link>
+          </p>
+        ) : null}
         {specific ? null : <p className="mt-3 text-fg">{PROJECT_FIT}</p>}
         <CallTextActions className="mt-6 hidden justify-center sm:flex" />
       </PageIntro>

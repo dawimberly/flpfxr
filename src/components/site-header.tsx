@@ -12,14 +12,14 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import { NAV, SITE } from "@/lib/site";
+import { EXTRA_NAV, NAV, SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 function LogoMark({ className }: { className?: string }) {
   return (
     <img
       src="/logo.svg"
-      alt=""
+      alt="The Flip Fixer"
       className={cn("h-10 w-10 shrink-0", className)}
     />
   );
@@ -96,7 +96,7 @@ export function SiteHeader() {
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <nav className="mt-8 flex flex-col gap-1">
-                {NAV.map((item) => (
+                {[...NAV, ...EXTRA_NAV].map((item) => (
                   <SheetClose asChild key={item.to}>
                     <Link
                       to={item.to}
