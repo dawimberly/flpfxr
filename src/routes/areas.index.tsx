@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { OwnerTodo } from "@/components/owner-todo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import { AREA_PAGES, areasWithoutPages } from "@/lib/areas";
-import { SITE, TESTIMONIALS } from "@/lib/site";
+import { SERVICE_AREAS, SITE, TESTIMONIALS } from "@/lib/site";
 
 export const Route = createFileRoute("/areas/")({
   component: AreasIndex,
@@ -24,7 +24,7 @@ function AreasIndex() {
     <div>
       <PageIntro eyebrow="Service areas" title="Service areas around San Antonio">
         <p>
-          Twelve places are on the list. Five have their own pages: the ones named in the short
+          {SERVICE_AREAS.length} places are on the list. Five have their own pages: the ones named in the short
           area line, plus Stone Oak, where a published review names a kitchen and a covered patio
           with green turf is a real job.
         </p>
@@ -75,7 +75,7 @@ function AreasIndex() {
         ) : null}
         <OwnerTodo
           items={[
-            "Add a page for Hollywood Park, Terrell Hills, Olmos Park, Shavano Park, Fair Oaks Ranch, or Helotes only when you have something specific to say about that place. Do not copy one city's page and swap the name.",
+            "Add a page for Hollywood Park, Terrell Hills, Olmos Park, Shavano Park, Fair Oaks Ranch, Helotes, New Braunfels, or Fredericksburg only when you have something specific to say about that place. Do not copy one city's page and swap the name.",
           ]}
         />
         <p className="mt-6">

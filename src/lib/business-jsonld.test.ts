@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { BUSINESS_GEO, GOOGLE_BUSINESS_URL, GOOGLE_MAPS_CID, businessJsonLd } from "./business-jsonld.ts";
+import { GOOGLE_BUSINESS_URL, GOOGLE_MAPS_CID, businessJsonLd } from "./business-jsonld.ts";
 import { SERVICE_AREAS } from "./site.ts";
 
 describe("businessJsonLd", () => {
-  it("publishes San Antonio locality without a street, hours, or reviews", () => {
+  it("publishes San Antonio locality, verified hours, and no storefront pin", () => {
     const data = businessJsonLd();
     const address = data.address as {
       addressLocality: string;
@@ -15,26 +15,44 @@ describe("businessJsonLd", () => {
     assert.equal(address.addressLocality, "San Antonio");
     assert.equal(address.addressRegion, "TX");
     assert.equal("streetAddress" in address, false);
+    assert.equal("geo" in data, false);
     assert.equal("openingHours" in data, false);
-    assert.equal("openingHoursSpecification" in data, false);
     assert.equal("aggregateRating" in data, false);
     assert.equal("review" in data, false);
-    assert.equal(BigInt(`0xe62dc3c84e756249`).toString(), GOOGLE_MAPS_CID);
-    assert.notEqual(GOOGLE_MAPS_CID, "16586208226577359433");
+    assert.equal(BigInt("0x1238d1d38ea1b563").toString(), GOOGLE_MAPS_CID);
+    assert.equal(GOOGLE_MAPS_CID, "1313029997939766627");
+    assert.notEqual(GOOGLE_MAPS_CID, "16586128267752596041");
     assert.deepEqual(data.sameAs, [GOOGLE_BUSINESS_URL]);
-    const geo = data.geo as { "@type": string; latitude: number; longitude: number };
-    assert.equal(geo["@type"], "GeoCoordinates");
-    assert.equal(geo.latitude, BUSINESS_GEO.latitude);
-    assert.equal(geo.longitude, BUSINESS_GEO.longitude);
-    assert.equal(geo.latitude, 29.4581826);
-    assert.equal(geo.longitude, -98.518079);
+    assert.deepEqual(data.openingHoursSpecification, [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "09:00",
+        closes: "18:00",
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: "Saturday",
+        opens: "10:00",
+        closes: "16:00",
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: "Sunday",
+        opens: "00:00",
+        closes: "00:00",
+      },
+    ]);
     const areas = data.areaServed as Array<{ name: string; address: { addressRegion: string } }>;
     assert.deepEqual(
       areas.map((area) => area.name),
       [...SERVICE_AREAS],
     );
+    assert.equal(areas.some((area) => area.name === "New Braunfels"), true);
+    assert.equal(areas.some((area) => area.name === "Fredericksburg"), true);
     assert.equal(areas.every((area) => area.address.addressRegion === "TX"), true);
     const serialized = JSON.stringify(data);
-    assert.doesNotMatch(serialized, /streetAddress|openingHours|aggregateRating|reviewCount|insured/i);
+    assert.doesNotMatch(serialized, /streetAddress|"geo"|aggregateRating|reviewCount|insured/i);
+    assert.doesNotMatch(serialized, /29\.4581826|-98\.518079/);
   });
 });

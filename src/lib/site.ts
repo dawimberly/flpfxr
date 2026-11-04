@@ -65,6 +65,8 @@ export const SERVICE_AREAS = [
   "Boerne",
   "Kerrville",
   "San Antonio",
+  "New Braunfels",
+  "Fredericksburg",
 ] as const;
 
 export const AREA_LINE =

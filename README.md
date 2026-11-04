@@ -158,7 +158,7 @@ This one project serves marketing **and** `/estimator`. Do not attach `theflipfi
 **Call:** (210) 436-9117  
 **Email:** Jon@TheFlipFixer.com
 
-Service areas: Alamo Heights, Terrell Hills, Olmos Park, The Dominion, Shavano Park, Fair Oaks Ranch, Hollywood Park, Stone Oak, Helotes, Boerne, Kerrville, San Antonio.
+Service areas: Alamo Heights, Terrell Hills, Olmos Park, The Dominion, Shavano Park, Fair Oaks Ranch, Hollywood Park, Stone Oak, Helotes, Boerne, Kerrville, San Antonio, New Braunfels, Fredericksburg.
 
 ## Remodeling resources
 
@@ -166,6 +166,6 @@ Public guides live at `/blog` and `/blog/<slug>`. Edit `src/lib/blog.ts` to add 
 
 ## Search engine foundations
 
-`npm run seo:sitemap` generates `public/sitemap.xml` from the public page allowlist in `src/lib/seo-config.ts` and all blog slugs. Both build scripts regenerate it automatically. Employee/login/API routes are excluded. Employee pages emit `noindex`; this supplements authentication, not a replacement for it. Public marketing pages have canonical URLs; campaign query parameters remain available to analytics. The homepage JSON-LD is a GeneralContractor with a San Antonio, TX locality and region (no street), the Google Maps pin, `areaServed` for the published service list, `sameAs` for the Google Business Profile, and no opening hours or review markup. `www.theflipfixer.com` 301s to `https://theflipfixer.com` from `vercel.json`. Vercel still answers plain HTTP with its own 308 to HTTPS on the same host before those rules run.
+`npm run seo:sitemap` generates `public/sitemap.xml` from the public page allowlist in `src/lib/seo-config.ts` and all blog slugs. Both build scripts regenerate it automatically. Employee/login/API routes are excluded. Employee pages emit `noindex`; this supplements authentication, not a replacement for it. Public marketing pages have canonical URLs; campaign query parameters remain available to analytics. The homepage JSON-LD is a GeneralContractor with a San Antonio, TX locality and region (no street and no map pin; the Google profile is a service-area business), `areaServed` for the published service list, `sameAs` and opening hours from that profile, and no review markup. `www.theflipfixer.com` 301s to `https://theflipfixer.com` from `vercel.json`. Vercel still answers plain HTTP with its own 308 to HTTPS on the same host before those rules run.
 
 Next account steps: verify the domain in Google Search Console, submit `https://theflipfixer.com/sitemap.xml`, and inspect indexing for the home, service, and blog pages. Google Business Profile and Search Console are separate account tasks; deploying metadata does not complete either setup.
