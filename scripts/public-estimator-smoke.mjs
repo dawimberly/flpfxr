@@ -44,6 +44,38 @@ try {
   assert.equal(auth.status,"ok",auth.message);
   browser=await chromium.launch({headless:true});
 
+  for(const width of [1280,390]) for(const mode of ["abort","500"]) {
+    const page=await browser.newPage({viewport:{width,height:900}});
+    activePage=page;
+    await page.goto(base+"/estimate?gclid=keep&utm_source=qa&utm_campaign=recovery",{waitUntil:"networkidle"});
+    await page.getByRole("button",{name:"Small",exact:true}).click();
+    await page.waitForURL(url=>url.searchParams.get("size")==="small");
+    await page.getByTestId("estimate-total").waitFor();
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await page.waitForURL(url=>url.searchParams.get("size")==="medium");
+    await page.getByTestId("estimate-total").waitFor();
+    let blocked=0;
+    await page.route("**/_serverFn/**",route=>{
+      blocked++;
+      return mode==="abort"?route.abort():route.fulfill({status:500,contentType:"application/json",body:JSON.stringify({error:"temporary-estimate-failure"})});
+    });
+    const size=mode==="abort"?"Large":"Small";
+    await page.getByRole("button",{name:size,exact:true}).click();
+    await page.getByRole("status").getByText(/Unable to load your estimate/).waitFor();
+    assert.ok(blocked>0,"A real estimate RPC must fail");
+    assert.ok(await page.getByRole("heading",{name:/^Plan your (?:next project|kitchen remodel)\.$/}).isVisible(),"Planner remains mounted instead of router error page");
+    assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
+    assert.equal(new URL(page.url()).searchParams.get("utm_campaign"),"recovery");
+    await page.unroute("**/_serverFn/**");
+    await page.getByRole("button",{name:"Retry estimate",exact:true}).click();
+    await page.getByTestId("estimate-total").waitFor();
+    assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
+    await page.screenshot({path:join(artifacts,"public-estimator-smoke-recovery-"+width+"-"+mode+".png"),fullPage:true});
+    await page.close();
+    console.log("PASS loader/component recovery",width,mode,"retains attribution and retries the same selection");
+  }
+
+
   {
     const page=await browser.newPage({viewport:{width:390,height:844}});
     activePage=page;

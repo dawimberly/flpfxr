@@ -6,6 +6,7 @@ import { resolve, extname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { provisionEmployee } from "./employee-admin.mjs";
 import { chromium } from "playwright";
+import { toJSONAsync } from "seroval";
 process.env.DATABASE_URL = "";
 process.env.VITE_AUTH_ENABLED = "true";
 process.env.BETTER_AUTH_SECRET = "isolated-fixture-secret-not-used-in-production";
@@ -27,18 +28,24 @@ const signup=await post("/api/auth/sign-up/email",{email:"selfsignup@example.tes
 assert.equal(signup.status,400);
 assert.match(await signup.text(),/SIGN_UP_DISABLED|sign.up.*disabled/i);
 assert.equal((await db.query('SELECT id FROM "user" WHERE email = $1',["selfsignup@example.test"])).rows.length,0);
+const cookieByEmail = new Map();
 async function token(email) {
   const response=await post("/api/auth/sign-in/email",{email,password});
   assert.equal(response.status,200,await response.clone().text());
+  cookieByEmail.set(email, response.headers.getSetCookie().map(value=>value.split(";")[0]).join("; "));
   return (await response.json()).token;
 }
 const employeeToken=await token("crew@example.test"), outsiderToken=await token("outsider@example.test");
 const names=JSON.parse(await readFile(functionRoot+"/employee-assets/manifest.json","utf8"));
 for (const [session,status] of [[null,401],[outsiderToken,403],[employeeToken,200]]) {
-  for(const path of ["/estimator",...names.map(name=>"/api/employee-assets/"+name)]) {
+  for(const path of ["/estimator","/Estimator","/ESTIMATOR/roof","/eStimator/Roof",...names.map(name=>"/api/employee-assets/"+name)]) {
     const response=await app.fetch(new Request(base+path,{headers:session?{authorization:"Bearer "+session}:{}}));
     assert.equal(response.status,status,path+" employee policy");
-    if(status!==200) assert.doesNotMatch(await response.text(),/Northville MSRP|install each|laborPerUnit/);
+    if(status!==200) {
+      const body = await response.text();
+      assert.doesNotMatch(body,/Northville MSRP|install each|laborPerUnit|One house. Every room/);
+      if(status===401 && /estimator/i.test(path) && !path.includes("employee-assets")) assert.match(body,/href="\/login"/);
+    }
   }
 }
 for(const path of ["/Flip-Fixer-vs-Cabinet-Bazaar.docx","/Flip-Fixer-marketplace-ad-mock.pdf",...names.map(name=>"/assets/"+name)]) assert.equal((await app.fetch(new Request(base+path))).status,404,path);
@@ -73,7 +80,23 @@ try {
   assert.ok(await page.locator('script[type="module"]').count());
   const styleCount=await page.evaluate(()=>document.styleSheets.length);
   assert.ok(styleCount>0,"Employee styles loaded");
-  console.log("PASS production employee HTML/chunks/imports/styles; outsider 403; anonymous 401; signup rejected; public documents/static chunks 404.");
+  const source = await readFile(functionRoot+"/index.mjs","utf8");
+  const cookie = cookieByEmail.get("crew@example.test");
+  assert.match(cookie,/session_data/ , "Test must exercise a populated signed session cache");
+  const ids = ["pullCloudJobs","pullCloudDraft"].map(name=>{
+    const line=source.split("\n").find(line=>line.includes(name+" = createServerFn") && line.includes("createSsrRpc"));
+    const id=line?.match(/createSsrRpc\("([^"]+)"\)/)?.[1];
+    assert.ok(id,"Find generated RPC for "+name);return {name,id};
+  });
+  const body=JSON.stringify(await toJSONAsync({data:undefined,context:{}}));
+  const rpc = id => app.fetch(new Request(base+"/_serverFn/"+id,{method:"POST",headers:{cookie,origin:base,"sec-fetch-site":"same-origin","content-type":"application/json","x-tsr-serverFn":"true"},body}));
+  for(const {name,id} of ids)assert.equal((await rpc(id)).status,200,name+" accepts crew before reset");
+  await provisionEmployee(client,{email:"crew@example.test",password:password+"-reset",reset:true});
+  for(const {name,id} of ids) {
+    const revoked=await rpc(id);
+    assert.equal(revoked.status,401,name+" must immediately reject old cached cookies: "+await revoked.text());
+  }
+  console.log("PASS production employee HTML/chunks/imports/styles; mixed-case paths; outsider 403; anonymous 401/login link; signup rejected; removed static URLs 404; cached cookie revoked immediately for both crew RPCs.");
 } finally {
   if(browser)await browser.close();
   await new Promise(r=>server.close(r));

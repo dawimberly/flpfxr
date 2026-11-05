@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import { deflateRawSync, gzipSync } from "node:zlib";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { scanPublicPricing } from "./scan-public-pricing.mjs";
-function docx(text) {
-  const name = Buffer.from("word/document.xml"), raw = Buffer.from('<w:p><w:r><w:t>'+text+'</w:t></w:r></w:p>'), data = deflateRawSync(raw);
+function docx(text, entryName = "word/document.xml", rawContent = null) {
+  const name = Buffer.from(entryName), raw = rawContent ?? Buffer.from('<w:p><w:r><w:t>'+text+'</w:t></w:r></w:p>'), data = deflateRawSync(raw);
   const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50); local.writeUInt16LE(8,8); local.writeUInt32LE(data.length,18); local.writeUInt32LE(raw.length,22); local.writeUInt16LE(name.length,26);
   const central = Buffer.alloc(46); central.writeUInt32LE(0x02014b50); central.writeUInt16LE(8,10); central.writeUInt32LE(data.length,20); central.writeUInt32LE(raw.length,24); central.writeUInt16LE(name.length,28);
   const start = local.length+name.length+data.length, end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50); end.writeUInt16LE(1,8); end.writeUInt16LE(1,10); end.writeUInt32LE(central.length+name.length,12); end.writeUInt32LE(start,16);

@@ -14,3 +14,12 @@ Base: main at 9f14c5abc9ad52f5f7c30ada05f4b27f71980eda. Separate from PR #67. No
 - Application tests, document scanner regressions, lint, typecheck and production build run in CI. Existing lint exceptions are documented without runtime changes. Final CI/screenshot evidence is linked from the PR.
 
 Deployment is disabled for this branch. Existing live files remain live until a reviewed deployment removes them; no production takedown was performed in this task.
+
+## Follow-up review fixes
+- Crew server-function session checks bypass the five-minute signed cookie cache. Integration signs in, confirms both pullCloudJobs/pullCloudDraft accept the cached cookie, resets the password using the admin helper, then requires immediate HTTP 401 from both RPCs using the unchanged old cookie.
+- Crew URL protection is case-insensitive, with 401/403/200 checks for /Estimator, /ESTIMATOR/roof and /eStimator/Roof. Signed-out responses contain only a minimal login link and no crew markup.
+- Public estimate loader failures return null so the planner stays mounted. A null initial result now starts a recoverable request; an explicit retry control retries the same selections. Browser tests cover aborted and HTTP 500 RPCs after Large/Small clicks at 1280px and 390px, preserving gclid and campaign parameters.
+- Public extensions use an explicit allow-list. ZIP/gzip/zlib signatures are inspected independently of filenames. Only auditable DOCX ZIPs are supported; other/renamed ZIP archives and unsupported ODT/DOCM/RTF files are rejected. Compressed DOCX and nested gzip/zlib wrappers are scanned under bounded depth/size limits.
+- Text inspection decodes the HTML5 named-entity table and numeric HTML/XML references, removes invisible/soft-hyphen characters, applies NFKC, and examines UTF-16LE/BE. PNG tEXt, zTXt and iTXt metadata are inspected regardless of text length, including inflated metadata. New financial-language patterns and safe/sensitive fixtures cover each bypass family.
+- Images of price sheets in PNG/JPG pixels cannot be detected by this text scanner. They require human review before being put in public/. The same limitation applies to other raster image formats and embedded raster images.
+- Inquiry wording uses “an inquiry.”

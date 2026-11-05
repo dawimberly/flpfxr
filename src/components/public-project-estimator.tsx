@@ -91,11 +91,12 @@ export function PublicProjectEstimator({
   const valid = !areaError;
   const current: ProjectInputs | null = valid ? { ...inputs, ...areaPayload } : null;
   const requestKey = JSON.stringify(current);
-  const [priced, setPriced] = useState({ key: requestKey, value: initialEstimate });
-  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [priced, setPriced] = useState({ key: initialEstimate ? requestKey : "", value: initialEstimate });
+  const [failedKey, setFailedKey] = useState<string | null>(initialEstimate ? null : requestKey);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const estimate = priced.key === requestKey ? priced.value : null;
   useEffect(() => {
-    if (requestKey === "null" || priced.key === requestKey) return;
+    if (requestKey === "null" || (priced.key === requestKey && priced.value !== null)) return;
     setFailedKey(null);
     let cancelled = false;
     const timer = setTimeout(() => {
@@ -104,7 +105,7 @@ export function PublicProjectEstimator({
         .catch(() => { if (!cancelled) setFailedKey(requestKey); });
     }, 180);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [requestKey, priced.key]);
+  }, [requestKey, priced.key, priced.value, retryAttempt]);
   const ready = valid && (!scope || Boolean(estimate));
   const summaryRef = useRef<HTMLDivElement>(null);
   const hasScope = Boolean(scope);
@@ -200,7 +201,7 @@ export function PublicProjectEstimator({
             {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
             {scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary" style={{ minHeight: "7rem" }} aria-busy={valid && !estimate && failedKey !== requestKey}>
               <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
-              <div className="flow-root min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatPublicEstimate(estimate.total)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Change a selection to retry or call Jon." : "Updating…"}</p>}</div>
+              <div className="flow-root min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatPublicEstimate(estimate.total)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Try again or call Jon." : "Updating…"}{valid && failedKey === requestKey ? <button type="button" className="ml-2 min-h-11 underline" onClick={() => setRetryAttempt(value => value + 1)}>Retry estimate</button> : null}</p>}</div>
               <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
             </div> : null}
           </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}

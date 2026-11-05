@@ -144,7 +144,7 @@ export function EstimateNextStep({
           <div className={step === 0 ? "space-y-3 text-sm leading-relaxed text-muted" : "hidden"}>
             {paidEstimateOn ? (
               <>
-                <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate for the whole job, on that same range. Or send a free inquiry and we call you back.</p>
+                <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate for the whole job, on that same range. Or send an inquiry and we call you back.</p>
                 <ul className="list-disc space-y-1 pl-5 text-fg">
                   <li>{LABOR_ONLY_NOTE}</li>
                   <li>Other sizes and an on-site timeline are in the PDF.</li>
@@ -228,7 +228,7 @@ export function EstimateNextStep({
               ) : (
                 <p className="text-sm text-fg">For a project outside the planner, the PDF explains the walkthrough. The designer measures it and writes the job estimate. No guessed total.</p>
               )}
-              {blockedReason ? <p className="text-sm text-fg">{blockedReason} You can still send a free inquiry.</p> : null}
+              {blockedReason ? <p className="text-sm text-fg">{blockedReason} You can still send an inquiry.</p> : null}
               {paidEstimateOn ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
@@ -247,7 +247,7 @@ export function EstimateNextStep({
                     disabled={submitting !== null}
                     className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/70 px-4 py-3 text-center font-semibold text-primary disabled:opacity-60"
                   >
-                    {submitting === "inquiry" ? "Sending…" : "Send a free inquiry"}
+                    {submitting === "inquiry" ? "Sending…" : "Send an inquiry"}
                   </button>
                 </div>
               ) : (

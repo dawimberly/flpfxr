@@ -10,7 +10,10 @@ import { SITE } from "@/lib/site";
 export const Route = createFileRoute("/estimate")({
   component: EstimatePage,
   loaderDeps: ({ search }) => ({ search }),
-  loader: ({ deps }) => loadPublicEstimate({ data: inputsFromLanding(estimateLandingFromSearch(deps.search)) }),
+  loader: async ({ deps }) => {
+    try { return await loadPublicEstimate({ data: inputsFromLanding(estimateLandingFromSearch(deps.search)) }); }
+    catch { return null; } // Keep the planner mounted so its retry UI can recover.
+  },
   validateSearch: (search: Record<string, unknown>) => estimateRouteSearch(search),
   head: ({ match }) => {
     const landing = estimateLandingFromSearch(match?.search ?? {});
