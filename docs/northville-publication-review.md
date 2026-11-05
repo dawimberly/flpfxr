@@ -18,7 +18,7 @@ No Northville artwork or purported Northville project photography is included. E
 - Artwork requires official files AND written permission separately; turning on certification does not add artwork.
 - PUBLICATION_FLAGS.financingApproved stays false. /financing throws a router notFound before rendering, with noindex metadata; no navigation or sitemap entry exists. Only the approved sentence is prepared.
 - Jon must confirm the seven installation options and approve the installation process and homepage trust language.
-- Complete desktop/mobile browser review before publication approval.
+- Desktop/mobile browser review is complete; Jon still needs to approve publication.
 - Vercel automatic deployment is disabled for this branch.
 
 ## Scope and estimator behavior
@@ -29,7 +29,8 @@ No Northville artwork or purported Northville project photography is included. E
 - Fixed two pre-existing lint errors: document the JWT fallback catch and explain the PDF ASCII regex exception.
 
 ## Verification
-- npm test: 226 pass (including three publication/response-boundary tests).
+- npm run test:app: 226 pass (including three publication/response-boundary tests).
+- A clean Ubuntu npm test run exposed 17 existing template-tooling failures (180 tooling tests passed): missing .grok template skill fixtures, template auth-off defaults, OG template identity assumptions, and an obsolete auth schema layout assertion. The affected tooling tests are unchanged by this PR. The application suite is now separately runnable and CI runs all 226 application tests. The full repository test command must not be described as clean.
 - Estimator/landing tests: 29 pass, one pre-existing calibration TODO skipped pending real jobs from Jon.
 - npm run lint: zero errors, 16 pre-existing warnings.
 - npm run typecheck: passed after the generated route tree was refreshed.
@@ -38,4 +39,9 @@ No Northville artwork or purported Northville project photography is included. E
 - Local HTTP checks: /, /northville, /estimate, /estimate?service=bathroom, /kitchen, /bathroom, /about, /services, /contact, /areas return 200. /financing and the retired /insurance-claims return 404.
 - Rendered HTTP content checks found no restricted claims or certification wording on those pages. Marketing pages have no dollar amounts; kitchen and bathroom estimator pages each show one combined price.
 - Sitemap includes /northville and excludes /financing and /insurance-claims.
-- Updated existing browser smoke assertions for the single-price presentation; browser smoke and visual layout verification were NOT completed. The extension failed, the in-app browser could not reach this host, and Windows Computer Use stopped because it could not confidently identify the current URL. Do not treat source review as desktop/mobile visual approval.
+- GitHub browser checks passed: homepage and Northville at 390 and 1600 pixels; estimator and contact handoff at 390 and 1280 pixels, with mocked lead delivery only. Navigation, telephone href, financing 404 (including trailing slash), estimator link, attribution, custom inputs, validation, and no horizontal overflow are checked. Screenshots were downloaded and visually reviewed.
+- Screenshot review found the desktop More label overlapping the call button. The header container was widened and a bounding-box overlap assertion was added.
+- Browser evidence: https://github.com/dawimberly/flpfxr/actions/runs/41939374582 — passed on code commit 3bec51696839c8544418a7f0332a409b6b2d45e8, including the header-overlap assertion, full application suite, lint, typecheck, and production build.
+- Screenshots: https://github.com/dawimberly/flpfxr/actions/runs/41939374582/artifacts/13376360603. The final report-only commit changes no application code.
+- Current postpublication HTTP verification was also run against the local server and passed, without touching production.
+- The local browser connection was unavailable, so browser verification ran in the existing GitHub Actions test environment. Test assertions use the canonical disclaimer to avoid punctuation mismatches.
