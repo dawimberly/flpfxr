@@ -30,7 +30,7 @@ export function normalizePricingText(value) {
 }
 function textViews(buffer) {
   const even = buffer.subarray(0, buffer.length - buffer.length % 2);
-  return [buffer.toString("utf8"), even.toString("utf16le"), Buffer.from(even).swap16().toString("utf16le")];
+  return [buffer.toString("utf8"), buffer.toString("latin1"), even.toString("utf16le"), Buffer.from(even).swap16().toString("utf16le")];
 }
 function signature(buffer) {
   if (buffer.length >= 4 && [0x04034b50,0x06054b50,0x08074b50].includes(buffer.readUInt32LE(0))) return "zip";

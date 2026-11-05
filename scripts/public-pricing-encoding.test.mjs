@@ -56,8 +56,8 @@ for(const [kind,compress] of [["gzip",gzipSync],["zlib",deflateSync]])test(kind+
   await fixture("broken.txt",compress("Welcome home").subarray(0,5),true);
 });
 for(const type of ["tEXt","zTXt","iTXt","iTXt-plain"])test("PNG "+type+" scans even short metadata",async()=>{
-  for(const text of ["Hi","MSRP","$75"]){
-    const bytes=Buffer.from(text);let data;
+  for(const text of ["Hi","MSRP","$75","Our\u00a0cost"]){
+    const bytes=Buffer.from(text,type==="tEXt"||type==="zTXt"?"latin1":"utf8");let data;
     if(type==="tEXt")data=Buffer.concat([Buffer.from("k\0"),bytes]);
     else if(type==="zTXt")data=Buffer.concat([Buffer.from("k\0\0"),deflateSync(bytes)]);
     else data=Buffer.concat([Buffer.from([107,0,type==="iTXt"?1:0,0,0,0]),type==="iTXt"?deflateSync(bytes):bytes]);
