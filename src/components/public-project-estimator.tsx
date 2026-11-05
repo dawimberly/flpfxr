@@ -146,6 +146,7 @@ export function PublicProjectEstimator({
       estimate: {
         estimate_service: inputs.service,
         estimate_size: inputs.size,
+        estimate_materials: scope ? materialText(inputs, scope) : undefined,
         estimate_range: estimate ? formatPublicEstimate(estimate.total) : undefined,
       },
     });

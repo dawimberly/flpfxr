@@ -17,7 +17,8 @@ describe("private secondary planner tracking", () => {
     for (const key of ["window", "document", "sessionStorage"]) previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
     Object.assign(globalThis, {
       window: {
-        location: { hostname: "theflipfixer.com", pathname: "/estimate", search: "?utm_source=facebook&gclid=example", href: "https://theflipfixer.com/estimate?email=private@example.com#private" },
+        location: { hostname: "theflipfixer.com", pathname: "/estimate", search: "?utm_source=facebook&gclid=example&utm_term=remodel&utm_content=variant", href: "https://theflipfixer.com/estimate?email=private@example.com#private" },
+        navigator: { userAgent: "Mozilla/5.0 (iPhone) Mobile" },
         gtag: (...args: unknown[]) => calls.push(args),
       },
       document: { referrer: "https://example.com/?phone=1234567890" },
@@ -95,7 +96,22 @@ describe("private secondary planner tracking", () => {
     const next = captureAdClickIds();
     assert.equal(next.first_landing_path, "/estimate");
     assert.equal(next.landing_path, "/contact?origin=estimate");
+    assert.equal(next.landing_page, "/estimate");
+    assert.equal(next.submitting_page, "/contact");
+    assert.equal(next.utm_term, "remodel");
+    assert.equal(next.utm_content, "variant");
+    assert.equal(next.referrer, "https://example.com/");
+    assert.equal(next.device, "mobile");
     assert.equal(next.gclid, first.gclid); assert.equal(next.utm_source, first.utm_source);
     captureAdClickIds(); assert.equal(storage.get("ff-first-landing-path"), "/estimate");
+  });
+  it("uses an existing click cookie only when URL and session lack a gclid", () => {
+    window.location.search = "?wbraid=web-braid";
+    Object.assign(document, { cookie: "_gcl_aw=GCL.1790000000.cookie-id; other=1" });
+    assert.equal(captureAdClickIds().gclid, "cookie-id");
+    window.location.search = "?gclid=url-id";
+    assert.equal(captureAdClickIds().gclid, "url-id");
+    window.location.search = "";
+    assert.equal(captureAdClickIds().gclid, "url-id");
   });
 });
