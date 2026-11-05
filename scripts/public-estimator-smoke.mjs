@@ -65,7 +65,7 @@ try {
     await page.getByRole("status").getByText(/Unable to load your estimate/).waitFor();
     // Drain the router loader and component request before restoring the network.
     await page.waitForLoadState("networkidle");
-    assert.ok(await page.getByRole("button",{name:"Retry estimate",exact:true}).isVisible());
+    await page.getByRole("button",{name:"Retry estimate",exact:true}).waitFor({state:"visible"});
     assert.ok(blocked>0,"A real estimate RPC must fail");
     assert.ok(await page.getByRole("heading",{name:/^Plan your (?:next project|kitchen remodel)\.$/}).isVisible(),"Planner remains mounted instead of router error page");
     assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
