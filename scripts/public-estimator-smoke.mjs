@@ -1,6 +1,7 @@
 /** Local-only browser smoke. All lead requests are intercepted; no real delivery or Google hits. */
 import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
+import { PRELIMINARY_ESTIMATE_WORDING } from "../src/lib/public-estimate-display.ts";
 import { setTimeout as delay } from "node:timers/promises";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -93,7 +94,7 @@ try {
     assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
     await page.getByTestId("estimate-total").getByText("$9,300",{exact:true}).waitFor();
-    assert.equal(await page.getByText("Preliminary estimate only - not a quote. Final price is confirmed after an on-site review.",{exact:true}).count(),1);
+    assert.equal(await page.getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).count(),1);
     await page.evaluate(()=>document.fonts?.ready);
     const fold=await page.locator("#estimate-fold").boundingBox();
     assert.ok(fold,"Fold block is missing");
@@ -139,7 +140,7 @@ try {
     });
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
-    await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only - not a quote. Final price is confirmed after an on-site review.",{exact:true}).waitFor();
+    await page.getByTestId("estimate-disclaimer").getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).waitFor();
     await page.getByTestId("estimate-total").getByText("$12,800",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
@@ -213,7 +214,7 @@ try {
     const message=await page.locator('textarea[name="message"]').inputValue();
     assert.match(message,/\$9,300/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
-    assert.match(message,/Preliminary estimate only - not a quote\. Final price is confirmed after an on-site review\./);
+    assert.ok(message.includes(PRELIMINARY_ESTIMATE_WORDING));
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
     assert.equal(await page.locator('input[name="Source"]').inputValue(),"estimate");
     assert.equal(await page.evaluate(()=>sessionStorage.getItem("ff-first-landing-path")),"/estimate");
@@ -256,4 +257,3 @@ try {
   if(browser) await browser.close();
   stopServer();
 }
-
