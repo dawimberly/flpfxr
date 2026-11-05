@@ -35,6 +35,7 @@ function ascii(value: string) {
   return value
     .replace(/[\u2013\u2014\u2212]/g, "-")
     .replace(/[\u00B7\u2022]/g, "-")
+    // eslint-disable-next-line no-control-regex -- PDF ASCII text permits tab, CR and LF.
     .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "")
     .replace(/\s+/g, " ")
     .trim();

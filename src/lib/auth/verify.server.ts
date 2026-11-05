@@ -1,5 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { gateIdentityEnabled } from "./gate-identity.server";
+import { requireApprovedEmployee } from "../employee-policy.server";
 import { auth, authConfigured } from "./server";
 
 /**
@@ -93,5 +94,5 @@ export async function requireUserId(bearerToken?: string): Promise<string> {
   }
   const user = await getSessionUser(bearerToken);
   if (!user) throw new UnauthorizedError();
-  return user.id;
+  return requireApprovedEmployee(user);
 }

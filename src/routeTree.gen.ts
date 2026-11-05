@@ -36,6 +36,7 @@ import { Route as EstimatePaidRouteImport } from './routes/estimate.paid'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiEmployeeAssetsSplatRouteImport } from './routes/api/employee-assets/$'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -173,6 +174,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEmployeeAssetsSplatRoute = ApiEmployeeAssetsSplatRouteImport.update({
+  id: '/api/employee-assets/$',
+  path: '/api/employee-assets/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
+    | '/api/employee-assets/$'
     | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/estimator'
     | '/api/auth/$'
+    | '/api/employee-assets/$'
     | '/api/stripe/webhook'
   id:
     | '__root__'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
+    | '/api/employee-assets/$'
     | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -386,6 +398,7 @@ export interface RootRouteChildren {
   AreasIndexRoute: typeof AreasIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiEmployeeAssetsSplatRoute: typeof ApiEmployeeAssetsSplatRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
@@ -580,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/employee-assets/$': {
+      id: '/api/employee-assets/$'
+      path: '/api/employee-assets/$'
+      fullPath: '/api/employee-assets/$'
+      preLoaderRoute: typeof ApiEmployeeAssetsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
@@ -641,6 +661,7 @@ const rootRouteChildren: RootRouteChildren = {
   AreasIndexRoute: AreasIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiEmployeeAssetsSplatRoute: ApiEmployeeAssetsSplatRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

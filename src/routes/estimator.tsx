@@ -1,8 +1,10 @@
 import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { loadEmployeeAccess } from "@/lib/employee-access";
 import { authEnabled } from "@/lib/auth/client";
 
 export const Route = createFileRoute("/estimator")({
+  beforeLoad: async () => { await loadEmployeeAccess(); },
   component: EstimatorLayout,
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
 });
