@@ -7,6 +7,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
+import { toJSONAsync } from "seroval";
 import { compareAuthInvariant, probeDevAuthEnabled, buildAuthEnabled } from "./check-auth-invariant.mjs";
 import { mergeAppEnv, readAppEnv } from "./with-app-env.mjs";
 
@@ -43,7 +44,7 @@ try {
   assert.equal(auth.status,"ok",auth.message);
   browser=await chromium.launch({headless:true});
 
-  for (const width of [390, 1600]) {
+  for (const width of [390, 1280, 1366, 1440, 1600]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     activePage = page;
     const pageErrors = [];
@@ -57,13 +58,13 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2), "Homepage overflow");
     await page.locator("img[loading=lazy]").evaluateAll(images => images.forEach(image => { image.loading = "eager"; }));
     await page.evaluate(() => Promise.all([...document.images].map(image => image.decode().catch(() => {}))));
-    if (width >= 1536) {
+    if (width >= 1280) {
       const navBox = await page.locator("header > div > nav").boundingBox();
       const callBox = await page.locator("header a[href^=\"tel:\"]").first().boundingBox();
       assert.ok(navBox && callBox && navBox.x + navBox.width <= callBox.x, "Header navigation overlaps call button");
     }
     await page.screenshot({ path: join(artifacts, "public-estimator-smoke-home-" + width + ".png"), fullPage: true });
-    if (width < 1536) {
+    if (width < 1280) {
       await page.getByRole("button", { name: "Open menu" }).click();
       await page.getByRole("dialog").getByRole("link", { name: "Northville Installation" }).click();
     } else {
@@ -133,6 +134,50 @@ try {
     assert.equal(synced.searchParams.get("size"),"large");
     await page.close();
   }
+
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
+    activePage = page;
+    await page.goto(base + "/estimate", { waitUntil: "networkidle" });
+    const originalBox = await page.getByTestId("estimate-summary").boundingBox();
+    let intercepted = 0;
+    let rpcUrl;
+    await page.route("**/*", async route => {
+      const request = route.request();
+      if (request.method() !== "POST" || !request.headers()["x-tsr-serverfn"]) return route.continue();
+      rpcUrl = request.url();
+      intercepted++;
+      if (intercepted === 1) return route.abort();
+      if (intercepted === 2) await delay(700);
+      return route.continue();
+    });
+    await page.getByLabel("Countertop type").selectOption("laminate");
+    await page.getByRole("status").getByText(/Unable to load your estimate/).waitFor();
+    // Leave the failed key, then return while its retry is in flight.
+    await page.getByLabel("Countertop type").selectOption("quartz");
+    await page.getByTestId("estimate-total").waitFor();
+    await page.getByLabel("Countertop type").selectOption("laminate");
+    await page.getByRole("status").getByText(/Updating/).waitFor();
+    assert.doesNotMatch(await page.getByTestId("estimate-summary").innerText(), /Unable to load/);
+    const loadingBox = await page.getByTestId("estimate-summary").boundingBox();
+    assert.equal(Math.round(loadingBox.height), Math.round(originalBox.height), "Price box must reserve its loading space");
+    await page.getByTestId("estimate-total").waitFor();
+    await page.unroute("**/*");
+    assert.ok(rpcUrl, "Estimate RPC was observed");
+    const badPayload = await toJSONAsync({ data: { service: "not-a-service" } });
+    const invalid = await page.request.post(rpcUrl, {
+      headers: { "content-type": "application/json", "x-tsr-serverFn": "true" },
+      data: JSON.stringify(badPayload),
+    });
+    assert.equal(invalid.status(), 400, "Invalid estimator input must return HTTP 400");
+    assert.match(await invalid.text(), /invalid_estimate_input/);
+    const asset = await page.request.get(base + "/api/employee-assets/estimator.index-test.js");
+    assert.equal(asset.status(), 401, "Employee assets require a real authenticated session");
+    assert.match(asset.headers()["cache-control"], /private, no-store/);
+    await page.close();
+    console.log("PASS retry state, reserved loading space, strict HTTP 400 input validation, and anonymous asset denial");
+  }
+
   const widths=process.env.ESTIMATOR_SMOKE_WIDTH ? [Number(process.env.ESTIMATOR_SMOKE_WIDTH)] : [390,1280];
   for(const width of widths) {
     const page=await browser.newPage({viewport:{width,height:844}});
@@ -242,7 +287,7 @@ try {
     assert.equal(leadRequests[0].Source,"estimate");
     assert.equal(leadRequests[0].estimate_service,"bathroom");
     assert.equal(leadRequests[0].estimate_size,"Medium");
-    assert.equal(leadRequests[0].estimate_range,"$9,300");
+    assert.equal(leadRequests[0].estimate_price,"$9,300");
     assert.equal(leadRequests[0].first_landing_path,"/estimate");
     assert.match(leadRequests[0].landing_path,/^\/contact/);
     assert.doesNotMatch(leadRequests[0].message,/\$/);

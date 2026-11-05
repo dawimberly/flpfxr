@@ -101,7 +101,7 @@ function Home() {
         </div>
       </section>
 
-      <section className="bg-surface px-4 py-12 md:py-16">
+      {FEATURED_REVIEW ? <section className="bg-surface px-4 py-12 md:py-16">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
             Reviews
@@ -126,7 +126,7 @@ function Home() {
           </figure>
 
         </div>
-      </section>
+      </section> : null}
 
       <section
         id="send-job"

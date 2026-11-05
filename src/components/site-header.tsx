@@ -43,7 +43,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden min-w-0 items-center gap-0.5 2xl:flex">
+        <nav className="hidden min-w-0 items-center gap-0 xl:flex">
           {NAV.map((item) => {
             const active =
               item.to === "/"
@@ -54,7 +54,7 @@ export function SiteHeader() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "rounded-md px-2 py-2 text-sm font-medium uppercase tracking-wide transition-[color,background-color] duration-150",
+                  "rounded-md px-1.5 py-2 text-xs font-medium uppercase tracking-wide 2xl:px-2 2xl:text-sm transition-[color,background-color] duration-150",
                   active
                     ? "text-primary"
                     : "text-muted hover:bg-surface-2 hover:text-fg",
@@ -73,13 +73,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild className="hidden sm:inline-flex">
-            <CallLink>
+          <Button asChild className="hidden sm:inline-flex xl:px-3 2xl:px-4">
+            <CallLink aria-label="Call The Flip Fixer">
               <Phone className="size-4" />
-              <CallNumber />
+              <span className="xl:hidden 2xl:inline"><CallNumber /></span>
             </CallLink>
           </Button>
-          <Button asChild variant="outline" className="hidden sm:inline-flex">
+          <Button asChild variant="outline" className="hidden sm:inline-flex xl:hidden 2xl:inline-flex">
             <TextLink>
               <MessageSquare className="size-4" />
               Text
@@ -91,7 +91,7 @@ export function SiteHeader() {
               <Button
                 variant="secondary"
                 size="icon"
-                className="2xl:hidden"
+                className="xl:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="size-5" />

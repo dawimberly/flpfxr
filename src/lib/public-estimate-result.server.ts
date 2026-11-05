@@ -5,8 +5,9 @@ import { formatPublicEstimate, PRELIMINARY_ESTIMATE_WORDING } from "./public-est
 export function publicEstimateResult(input: ProjectInputs) {
   const estimate = projectPlanningEstimate(input);
   if (!estimate) return null;
+  const price = Math.round(estimate.total / 100) * 100;
   return {
-    total: estimate.low,
-    leadMessage: `${projectEstimateLeadMessage(input).split("Preliminary estimate:")[0]}Preliminary estimate: ${formatPublicEstimate(estimate.low)}. ${PRELIMINARY_ESTIMATE_WORDING}`,
+    total: price,
+    leadMessage: `${projectEstimateLeadMessage(input).split("Preliminary estimate:")[0]}Preliminary estimate: ${formatPublicEstimate(price)}. ${PRELIMINARY_ESTIMATE_WORDING}`,
   };
 }

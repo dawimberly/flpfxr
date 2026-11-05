@@ -96,10 +96,11 @@ export function PublicProjectEstimator({
   const estimate = priced.key === requestKey ? priced.value : null;
   useEffect(() => {
     if (requestKey === "null" || priced.key === requestKey) return;
+    setFailedKey(null);
     let cancelled = false;
     const timer = setTimeout(() => {
       loadPublicEstimate({ data: JSON.parse(requestKey) as ProjectInputs })
-        .then(value => { if (!cancelled) setPriced({ key: requestKey, value }); })
+        .then(value => { if (!cancelled) { setFailedKey(null); setPriced({ key: requestKey, value }); } })
         .catch(() => { if (!cancelled) setFailedKey(requestKey); });
     }, 180);
     return () => { cancelled = true; clearTimeout(timer); };
@@ -144,7 +145,7 @@ export function PublicProjectEstimator({
       estimate: {
         estimate_service: inputs.service,
         estimate_size: inputs.size,
-        estimate_range: estimate ? formatPublicEstimate(estimate.total) : undefined,
+        estimate_price: estimate ? formatPublicEstimate(estimate.total) : undefined,
       },
     });
   };
@@ -197,13 +198,12 @@ export function PublicProjectEstimator({
               </div>
             </fieldset>
             {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
-            {estimate && scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary">
+            {scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary" style={{ minHeight: "7rem" }} aria-busy={valid && !estimate && failedKey !== requestKey}>
               <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
-              <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total" aria-live="polite" aria-atomic="true">{formatPublicEstimate(estimate.total)}</p>
+              <div className="min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatPublicEstimate(estimate.total)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Change a selection to retry or call Jon." : "Updating…"}</p>}</div>
               <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
             </div> : null}
           </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
-          {valid && scope && !estimate ? <p role="status" className="mt-3 text-sm text-muted">{failedKey === requestKey ? "Unable to load your estimate. Try changing a selection or call Jon." : "Updating your estimate…"}</p> : null}
           <Link to="/contact" search={handoff}
             onClick={handOff} aria-disabled={!ready}
             className={`mt-2 inline-flex min-h-11 w-full scroll-mb-28 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg md:mt-6 md:py-3 ${ready ? "" : "opacity-60"}`}>Request an on-site estimate</Link>

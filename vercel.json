@@ -8,6 +8,16 @@
   },
   "redirects": [
     {
+      "source": "/insurance-claims",
+      "destination": "/services",
+      "statusCode": 301
+    },
+    {
+      "source": "/insurance-claims/",
+      "destination": "/services",
+      "statusCode": 301
+    },
+    {
       "source": "/",
       "has": [
         {

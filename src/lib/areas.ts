@@ -10,7 +10,6 @@ export type AreaLink =
         | "/gallery"
         | "/about"
         | "/testimonials"
-        | "/insurance-claims"
         | "/estimate"
         | "/blog"
         | "/areas";
@@ -18,7 +17,7 @@ export type AreaLink =
   | {
       label: string;
       to: "/contact";
-      service?: "insurance-claims" | "make-ready" | "outdoor" | "kitchen" | "bathroom";
+      service?: "make-ready" | "outdoor" | "kitchen" | "bathroom";
     }
   | { label: string; to: "/blog/$slug"; slug: string }
   | { label: string; to: "/areas/$slug"; slug: string };
@@ -162,7 +161,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     links: [
       { label: "About the crew", to: "/about" },
       { label: "Kitchen remodeling", to: "/kitchen" },
-      { label: "Contact", to: "/contact", service: "make-ready" },
+      { label: "Contact", to: "/contact", service: "kitchen" },
     ],
     todos: [
       "Add a Kerrville project or scheduling note if one should be public. Do not add storm counts, license numbers, or claim stories that are not already written on the site.",

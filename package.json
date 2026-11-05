@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/with-app-env.mjs vite build && node scripts/check-server-output.mjs && npm run db:migrate",
+    "build": "node scripts/with-app-env.mjs vite build && node scripts/protect-employee-assets.mjs && node scripts/check-server-output.mjs && npm run db:migrate",
     "db:migrate": "node scripts/migrate.mjs",
-    "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
+    "build:dev": "node scripts/with-app-env.mjs vite build --mode development && node scripts/protect-employee-assets.mjs",
     "preview": "node scripts/with-app-env.mjs vite preview",
     "preview:restart": "node scripts/preview.mjs restart",
     "preview:stop": "node scripts/preview.mjs stop",
@@ -25,7 +25,7 @@
     "seo:sitemap": "node --experimental-strip-types scripts/generate-sitemap.ts",
     "prebuild": "npm run seo:sitemap",
     "prebuild:dev": "npm run seo:sitemap",
-    "test:app": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/eagleview-parse.test.ts src/lib/formsubmit.test.ts src/lib/google-ads.test.ts src/lib/estimate-tracking.test.ts src/lib/lead-conversion.test.ts src/lib/lead-delivery.test.ts src/lib/lead-draft.test.ts src/lib/lead-mail.test.ts src/lib/lead-submit.server.test.ts src/lib/home-depot-roof.test.ts src/lib/line-act.test.ts src/lib/op.test.ts src/lib/photo-view.test.ts src/lib/roof-3d.test.ts src/lib/roof-auto.test.ts src/lib/roof-basemap.test.ts src/lib/roof-code.test.ts src/lib/roof-geocode.test.ts src/lib/roof-math.test.ts src/lib/roof-outline.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-trace.test.ts src/lib/utils.test.ts src/lib/xactimate-roof.test.ts src/lib/paid-estimate.test.ts src/lib/canonical-host.test.ts src/lib/business-jsonld.test.ts src/lib/publication.test.ts"
+    "test:app": "node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/eagleview-parse.test.ts src/lib/formsubmit.test.ts src/lib/google-ads.test.ts src/lib/estimate-tracking.test.ts src/lib/lead-conversion.test.ts src/lib/lead-delivery.test.ts src/lib/lead-draft.test.ts src/lib/lead-mail.test.ts src/lib/lead-submit.server.test.ts src/lib/home-depot-roof.test.ts src/lib/line-act.test.ts src/lib/op.test.ts src/lib/photo-view.test.ts src/lib/roof-3d.test.ts src/lib/roof-auto.test.ts src/lib/roof-basemap.test.ts src/lib/roof-code.test.ts src/lib/roof-geocode.test.ts src/lib/roof-math.test.ts src/lib/roof-outline.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-trace.test.ts src/lib/utils.test.ts src/lib/xactimate-roof.test.ts src/lib/paid-estimate.test.ts src/lib/canonical-host.test.ts src/lib/business-jsonld.test.ts src/lib/publication.test.ts src/lib/review-regressions.test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

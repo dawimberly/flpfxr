@@ -82,7 +82,6 @@ export type ServiceId =
   | "outdoor"
   | "make-ready"
   | "roofing"
-  | "insurance-claims"
   | "consulting";
 
 export const SERVICES: Array<{
@@ -291,12 +290,8 @@ export const DISCOUNT_ACCEPTED = "Eligibility is confirmed when we accept the jo
 export const PROJECT_FIT =
   "We focus on indoor, full-room kitchen and bathroom remodels. Tell us about the room and what you want to change.";
 
-export const FEATURED_REVIEW = {
-  name: "Elieen Doctor",
-  source: "Nextdoor · Repeat customer",
-  excerpt: "Honest, reliable, clean, professional, and informative.",
-  quote: "Hello neighbors,\n\nI just want to take a moment to share our appreciation for Jon and Dan of The Flip Fixer. We have been through several contractors over the years but they have been my “go-to guys” for the last 3, and we couldn’t be happier with their service. Honest, reliable, clean, professional, and informative. They have helped us with everything from a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements… They’re practically family now so when they asked for an honest review, I was happy to oblige. If you have any home repairs, remodeling projects, indoor/outdoor, or basic handyman services, I highly recommend The Flip Fixer home services. Give them a call, you won’t regret it. Thank you Jon & Dan!",
-} as const;
+/** Awaiting a complete, source-confirmed replacement review from Dan. */
+export const FEATURED_REVIEW: { name: string; source: string; excerpt: string; quote: string } | null = null;
 
 export const TESTIMONIALS = [
   {

@@ -9,7 +9,7 @@ export const CATALOG_BROWSE_NOTE =
   "The cabinet catalog is for browsing. It has a Request a designer call button. Material purchases are not self-serve.";
 
 export const LABOR_ONLY_NOTE =
-  "The paid estimate is the whole job, on the same planning range as this page.";
+  "Your preliminary estimate covers the whole project.";
 
 export const FEE_CREDIT_NOTE = "The fee is credited toward the job if you book.";
 

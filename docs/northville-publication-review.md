@@ -45,3 +45,15 @@ No Northville artwork or purported Northville project photography is included. E
 - Screenshots: https://github.com/dawimberly/flpfxr/actions/runs/41939374582/artifacts/13376360603. The final report-only commit changes no application code.
 - Current postpublication HTTP verification was also run against the local server and passed, without touching production.
 - The local browser connection was unavailable, so browser verification ran in the existing GitHub Actions test environment. Test assertions use the canonical disclaimer to avoid punctuation mismatches.
+
+## PR #67 review corrections
+- Both /insurance-claims URL variants have explicit permanent 301 redirects to /services in vercel.json. Old service/type options are removed. Provider redirect rules are checked from configuration without deploying.
+- Inline navigation starts at xl (1280px). Between xl and 2xl the call control is icon-only with an accessible label, the text action is hidden, and navigation spacing is tighter. Checks cover 1280, 1366, 1440, and 1600px, plus mobile.
+- Failed estimator requests clear their error state when retried. Loading and price content share reserved space. Strict validation rejects malformed, extra, nonfinite, and out-of-bounds input with a JSON HTTP 400 response.
+- Kerrville contact links now preselect kitchen remodeling. Unrelated make-ready links are preserved.
+- Next-step copy refers to your preliminary estimate without promotional prices, free-estimate/inquiry or range wording. Roof copy invites a specialist inspection without discount/free claims.
+- The edited featured review is withheld. Dan selected the option to provide a verified replacement, but no complete review text/source has yet been supplied. No replacement wording is invented. Other existing reviews are unchanged. This item remains pending.
+- New handoffs use estimate_price. Legacy estimate_range drafts and incoming payloads remain readable; email prefers estimate_price.
+- The single displayed price is the computed project total rounded to the nearest $100: Math.round(total / 100) * 100. The former high value was the computed total plus a 25% cushion, rounded to $100; that cushion is no longer displayed. It was not a calibrated confidence bound.
+- Confidential crew chunks are identified from build-module provenance, rewritten to authenticated /api/employee-assets URLs, and removed from Vercel static output. The endpoint verifies a real session and sends private/no-store responses; it does not accept the development fallback identity. Public output is scanned for MSRP, labor-rate, and pricing-internal markers, with the build failing on a match. Production-output HTTP checks verify former static URLs return 404 and anonymous private URLs return 401. Handler tests also exercise verified-session delivery.
+- Certification and financing remain off; no Northville artwork is added.

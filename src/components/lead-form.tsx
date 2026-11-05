@@ -155,10 +155,12 @@ export function LeadForm({
     data.set("Affiliation", affiliation || "n/a");
     data.set("Source", leadSource);
     if (leadSource === "estimate" && estimateMetadata) {
-      for (const key of ["estimate_service", "estimate_size", "estimate_range"] as const) {
-        if (estimateMetadata[key]) data.set(key, estimateMetadata[key]);
+      for (const key of ["estimate_service", "estimate_size", "estimate_price"] as const) {
+        const value = key === "estimate_price" ? estimateMetadata.estimate_price ?? (/^\$[\d,]+$/.test(estimateMetadata.estimate_range ?? "") ? estimateMetadata.estimate_range : undefined) : estimateMetadata[key];
+        if (value) data.set(key, value);
       }
     }
+    if (leadSource === "estimate" && !estimateMetadata?.estimate_price && estimateMetadata?.estimate_range?.startsWith("between ")) data.set("estimate_range", estimateMetadata.estimate_range);
     data.set("Phone_digits", digits);
     for (const [key, value] of Object.entries(adIds)) {
       if (value) data.set(key, value);

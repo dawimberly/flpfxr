@@ -54,9 +54,11 @@ export function readEstimateMetadata(form: FormData): LeadEstimateMetadata {
   const service = clean("estimate_service");
   const size = clean("estimate_size");
   const range = clean("estimate_range");
+  const price = clean("estimate_price") || (/^\$[\d,]+$/.test(range) ? range : "");
   return {
     ...(PROJECT_SERVICES.some(row => row.id === service) ? { estimate_service: service } : {}),
     ...(PROJECT_SIZES.some(value => value === size) ? { estimate_size: size } : {}),
+    ...(price.length <= 100 && /^\$[\d,]+$/.test(price) ? { estimate_price: price } : {}),
     ...(range.length <= 100 && /^between \$[\d,]+ and \$[\d,]+$/.test(range) ? { estimate_range: range } : {}),
   };
 }
