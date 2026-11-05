@@ -55,6 +55,13 @@ try {
     assert.equal(await page.getByRole("link", { name: "Financing", exact: true }).count(), 0);
     assert.doesNotMatch(await page.locator("main").innerText(), /certified|insurance claims?|licensed and insured|guaranteed|starting at|free quote|\$\d/i);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2), "Homepage overflow");
+    await page.locator("img[loading=lazy]").evaluateAll(images => images.forEach(image => { image.loading = "eager"; }));
+    await page.evaluate(() => Promise.all([...document.images].map(image => image.decode().catch(() => {}))));
+    if (width >= 1536) {
+      const navBox = await page.locator("header > div > nav").boundingBox();
+      const callBox = await page.locator("header a[href^=\"tel:\"]").first().boundingBox();
+      assert.ok(navBox && callBox && navBox.x + navBox.width <= callBox.x, "Header navigation overlaps call button");
+    }
     await page.screenshot({ path: join(artifacts, "public-estimator-smoke-home-" + width + ".png"), fullPage: true });
     if (width < 1536) {
       await page.getByRole("button", { name: "Open menu" }).click();

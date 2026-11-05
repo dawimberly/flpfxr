@@ -18,7 +18,7 @@ export const Route = createFileRoute("/estimate")({
     return {
       meta: [
         { title: `${headline} | ${SITE.name}` },
-        { name: "description", content: "Explore preliminary planning ranges for kitchen, bathroom, flooring, painting and other remodeling projects in San Antonio." },
+        { name: "description", content: "Explore a preliminary estimate for your kitchen, bathroom, flooring, painting or other remodeling project in San Antonio." },
       ],
     };
   },
