@@ -27,16 +27,21 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --experimental-strip-types --test src/components/public-project-estimator.test.ts src/lib/estimate-landing.test.ts
-      - run: npm run build:dev
+      - run: npm run test:app
+      - run: npm run lint
+      - run: npm run build
       - run: npm run typecheck
       - run: node --experimental-strip-types --test src/lib/estimate-tracking.test.ts src/lib/google-ads.test.ts src/lib/lead-delivery.test.ts src/lib/lead-draft.test.ts src/lib/lead-conversion.test.ts src/lib/lead-submit.server.test.ts src/lib/auth/gate-identity.test.ts src/lib/roof-public-quote.test.ts src/lib/roof-3d.test.ts
       - run: npx playwright install --with-deps chromium
+      - run: node scripts/employee-access-smoke.mjs
       - run: node scripts/public-estimator-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: public-estimator-browser-shots
-          path: public-estimator-smoke-*.png
+          path: |
+            public-estimator-smoke-*.png
+            employee-access-smoke.png
           if-no-files-found: ignore
 
   verify-production:

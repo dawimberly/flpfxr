@@ -1,9 +1,9 @@
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
   SHOWER_MATERIALS, projectScope, scopeAreaError, selectedVanity, getVanity,
-  priceOffList, CUSTOMER_LIST_DISCOUNT, FILLER_STRIPS, INCLUDED_FILLER_SKU,
   type ProjectInputs, type ScopeAreas,
 } from "./public-estimate-options.ts";
+import { priceOffList, CUSTOMER_LIST_DISCOUNT, FILLER_STRIPS, INCLUDED_FILLER_SKU, VANITY_LIST_PRICES } from "./public-estimate-costs.server.ts";
 
 export const CREW_DAY_RATE = 650;
 export const ALLOWANCE_CAP = 50000;
@@ -225,7 +225,7 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
   }
   if (input.service === "bathroom") {
     const vanity = selectedVanity(input.size, input.vanity);
-    add("vanity", 1, priceOffList(vanity.list, CUSTOMER_LIST_DISCOUNT), TRADE_HOURS.cabinetBox);
+    add("vanity", 1, priceOffList(VANITY_LIST_PRICES[vanity.id], CUSTOMER_LIST_DISCOUNT), TRADE_HOURS.cabinetBox);
     if (input.counter === "quartz" || input.counter === "granite") {
       add("counter", scope.counters, stoneRate(input.counter, false), 0);
     } else {

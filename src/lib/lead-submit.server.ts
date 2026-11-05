@@ -57,7 +57,7 @@ export function readEstimateMetadata(form: FormData): LeadEstimateMetadata {
   return {
     ...(PROJECT_SERVICES.some(row => row.id === service) ? { estimate_service: service } : {}),
     ...(PROJECT_SIZES.some(value => value === size) ? { estimate_size: size } : {}),
-    ...(range.length <= 100 && /^between \$[\d,]+ and \$[\d,]+$/.test(range) ? { estimate_range: range } : {}),
+    ...(range.length <= 100 && /^(?:between \$[\d,]+ and )?\$[\d,]+$/.test(range) ? { estimate_range: range } : {}),
   };
 }
 

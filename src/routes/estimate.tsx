@@ -3,10 +3,17 @@ import { PublicProjectEstimator } from "@/components/public-project-estimator";
 import {
   DEFAULT_ESTIMATE_HEADLINE, estimateLandingFromSearch, estimateRouteSearch, headlineFor,
 } from "@/lib/estimate-landing";
+import { loadPublicEstimate } from "@/lib/public-estimate";
+import { inputsFromLanding } from "@/lib/estimate-landing";
 import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/estimate")({
   component: EstimatePage,
+  loaderDeps: ({ search }) => ({ search }),
+  loader: async ({ deps }) => {
+    try { return await loadPublicEstimate({ data: inputsFromLanding(estimateLandingFromSearch(deps.search)) }); }
+    catch { return null; } // Keep the planner mounted so its retry UI can recover.
+  },
   validateSearch: (search: Record<string, unknown>) => estimateRouteSearch(search),
   head: ({ match }) => {
     const landing = estimateLandingFromSearch(match?.search ?? {});
@@ -14,7 +21,7 @@ export const Route = createFileRoute("/estimate")({
     return {
       meta: [
         { title: `${headline} | ${SITE.name}` },
-        { name: "description", content: "Explore preliminary planning ranges for kitchen, bathroom, flooring, painting and other remodeling projects in San Antonio." },
+        { name: "description", content: "Explore a preliminary estimate for your kitchen, bathroom, flooring, painting or other remodeling project in San Antonio." },
       ],
     };
   },
@@ -23,5 +30,6 @@ export const Route = createFileRoute("/estimate")({
 function EstimatePage() {
   const search = Route.useSearch();
   const landing = estimateLandingFromSearch(search);
-  return <PublicProjectEstimator landing={landing} search={search} />;
+  const initialEstimate = Route.useLoaderData();
+  return <PublicProjectEstimator key={JSON.stringify(landing)} landing={landing} search={search} initialEstimate={initialEstimate} />;
 }

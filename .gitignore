@@ -18,3 +18,5 @@ public/blue-quail-local/
 # Private lead exports must never enter source control
 private/
 lead-exports/
+
+.private-employee-assets.json

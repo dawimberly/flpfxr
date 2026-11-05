@@ -1,5 +1,6 @@
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequest, setResponseStatus } from "@tanstack/react-start/server";
 import { gateIdentityEnabled } from "./gate-identity.server";
+import { requireApprovedEmployee } from "../employee-policy.server";
 import { auth, authConfigured } from "./server";
 
 /**
@@ -65,7 +66,7 @@ export async function getSessionUser(
     headers = new Headers(request.headers);
     headers.set("Authorization", `Bearer ${bearerToken}`);
   }
-  const session = await auth.api.getSession({ headers });
+  const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } });
   if (!session?.user) return null;
   return { id: session.user.id, email: session.user.email ?? null };
 }
@@ -92,6 +93,9 @@ export async function requireUserId(bearerToken?: string): Promise<string> {
     return DEV_USER_ID;
   }
   const user = await getSessionUser(bearerToken);
-  if (!user) throw new UnauthorizedError();
-  return user.id;
+  if (!user) {
+    setResponseStatus(401);
+    throw new UnauthorizedError();
+  }
+  return requireApprovedEmployee(user);
 }
