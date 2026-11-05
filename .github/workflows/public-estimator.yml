@@ -27,7 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node --experimental-strip-types --test src/components/public-project-estimator.test.ts src/lib/estimate-landing.test.ts
-      - run: npm test
+      - run: npm run test:app
       - run: npm run lint
       - run: npm run build
       - run: npm run typecheck
