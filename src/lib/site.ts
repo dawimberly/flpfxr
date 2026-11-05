@@ -1,8 +1,10 @@
+import { PUBLICATION_FLAGS } from "./publication-flags.ts";
+
 export const SITE = {
   name: "The Flip Fixer",
   legalName: "The Flip Fixer",
   tagline:
-    "Kitchen and bath remodels, flooring, paint, make-ready, and insurance claim rebuilds.",
+    "Kitchen and bath remodels, flooring, paint, make-ready.",
   phone: "2104369117",
   phoneDisplay: "(210) 436-9117",
   email: "Jon@TheFlipFixer.com",
@@ -21,10 +23,10 @@ export const CREW = [
   },
   {
     name: "Dan Wimberly",
-    role: "Estimating, coordination, and insurance claims",
+    role: "Estimating & Project Coordination",
     src: "/images/crew-dan-v3.webp",
-    line: "15 years as a contractor. A decade handling insurance claims.",
-    bio: "Dan has 15 years as a contractor and a decade handling insurance claims. He writes the scope, sets the price, and works the job with us. On insurance rebuilds he catches what the carrier left out. He meets adjusters on site and has written and negotiated hundreds of insurance claims. His biggest increase was 40%, a $130k increase on a fire claim. He typically gets a 10-20% increase in approved scope, which often lets us upgrade the homeowner at no extra cost.",
+    line: "15 years as a contractor. He writes the scope and works the job.",
+    bio: "Dan has 15 years as a contractor. He writes the scope, sets the price, and works the job with Jon.",
   },
 ] as const;
 
@@ -43,13 +45,11 @@ export const NAV = [
   { to: "/contact", label: "Contact" },
 ] as const;
 
-/**
- * Insurance and area pages. Kept off the desktop bar so the existing header
- * still fits. They are in the mobile menu, the footer, and in-page links.
- */
+/** Additional pages in the desktop dropdown, mobile menu, and footer. */
 export const EXTRA_NAV = [
-  { to: "/insurance-claims", label: "Insurance" },
+  { to: "/northville", label: "Northville Installation" },
   { to: "/areas", label: "Areas" },
+  ...(PUBLICATION_FLAGS.financingApproved ? [{ to: "/financing" as const, label: "Financing" }] : []),
 ] as const;
 
 export const SERVICE_AREAS = [
@@ -82,7 +82,6 @@ export type ServiceId =
   | "outdoor"
   | "make-ready"
   | "roofing"
-  | "insurance-claims"
   | "consulting";
 
 export const SERVICES: Array<{
@@ -147,14 +146,6 @@ export const SERVICES: Array<{
     short: "Schedule an inspection with our roofing specialist.",
     body: "Leaks, storm damage, or an aging roof? Schedule an inspection with our roofing specialist.",
     image: "/images/gallery-22-d.webp",
-    group: "Specialty",
-  },
-  {
-    id: "insurance-claims",
-    title: "Insurance claims",
-    short: "Insurance claim rebuild specialists.",
-    body: "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.",
-    image: "/images/gallery-22-f.webp",
     group: "Specialty",
   },
   {
@@ -299,12 +290,8 @@ export const DISCOUNT_ACCEPTED = "Eligibility is confirmed when we accept the jo
 export const PROJECT_FIT =
   "We focus on indoor, full-room kitchen and bathroom remodels. Tell us about the room and what you want to change.";
 
-export const FEATURED_REVIEW = {
-  name: "Elieen Doctor",
-  source: "Nextdoor · Repeat customer",
-  excerpt: "Honest, reliable, clean, professional, and informative.",
-  quote: "Hello neighbors,\n\nI just want to take a moment to share our appreciation for Jon and Dan of The Flip Fixer. We have been through several contractors over the years but they have been my “go-to guys” for the last 3, and we couldn’t be happier with their service. Honest, reliable, clean, professional, and informative. They have helped us with everything from a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements and even recently helping us avoid a costly insurance claim by discovering the problems, working with us on a limited budget, and went to work immediately to repair them. They’re practically family now so when they asked for an honest review, I was happy to oblige. If you have any home repairs, remodeling projects, indoor/outdoor, or basic handyman services, I highly recommend The Flip Fixer home services. Give them a call, you won’t regret it. Thank you Jon & Dan!",
-} as const;
+/** Awaiting a complete, source-confirmed replacement review from Dan. */
+export const FEATURED_REVIEW: { name: string; source: string; excerpt: string; quote: string } | null = null;
 
 export const TESTIMONIALS = [
   {

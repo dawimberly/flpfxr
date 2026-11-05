@@ -1,3 +1,4 @@
+import { PUBLICATION_FLAGS } from "@/lib/publication-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink, CallNumber } from "@/components/call-link";
@@ -50,6 +51,12 @@ function Home() {
             Full-room remodels with in-house design, one crew from start to finish,
             and clear communication throughout the job.
           </p>
+          <ul className="mt-5 flex max-w-xl flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-fg">
+            <li>30+ years experience</li>
+            <li>Owner on every job</li>
+            <li>No high-pressure sales</li>
+            {PUBLICATION_FLAGS.northvilleCertificationVerified ? <li>Certified Northville installer</li> : null}
+          </ul>
           <p className="mt-2 text-fg/75">{AREA_LINE}</p>
           <CallTextActions className="mt-8 hidden sm:flex" />
           <ProjectTellButton className="mt-4 w-full sm:w-auto" />
@@ -60,10 +67,10 @@ function Home() {
       <section className="border-b border-border bg-surface px-4 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-fg">How much might your project cost?</h2>
-            <p className="mt-2 text-muted">Select kitchen, bathroom, paint, flooring or another service and a project size.</p>
+            <h2 className="font-display text-2xl font-semibold text-fg">See your estimate online, no sales visit needed</h2>
+            <p className="mt-2 text-muted">Choose your project and materials for a preliminary estimate. Jon confirms the final scope and price after seeing the space.</p>
           </div>
-          <Link to="/estimate" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-6 py-3 font-semibold text-primary-fg hover:opacity-90">Get a ballpark estimate</Link>
+          <Link to="/estimate" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-6 py-3 font-semibold text-primary-fg hover:opacity-90">See your estimate</Link>
         </div>
       </section>
 
@@ -89,13 +96,12 @@ function Home() {
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
           <Link to="/kitchen" className="font-medium text-primary hover:underline">Kitchen remodeling</Link>
           <Link to="/bathroom" className="font-medium text-primary hover:underline">Bathroom remodeling</Link>
-          <Link to="/insurance-claims" className="font-medium text-primary hover:underline">Insurance claim rebuilds</Link>
           <Link to="/areas" className="font-medium text-primary hover:underline">Service areas</Link>
           <Link to="/services" className="font-medium text-primary hover:underline">Other services</Link>
         </div>
       </section>
 
-      <section className="bg-surface px-4 py-12 md:py-16">
+      {FEATURED_REVIEW ? <section className="bg-surface px-4 py-12 md:py-16">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-display text-3xl font-semibold text-fg md:text-4xl">
             Reviews
@@ -120,7 +126,7 @@ function Home() {
           </figure>
 
         </div>
-      </section>
+      </section> : null}
 
       <section
         id="send-job"

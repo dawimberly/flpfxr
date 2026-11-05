@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Menu, MessageSquare, Phone } from "lucide-react";
+import { ChevronDown, Menu, MessageSquare, Phone } from "lucide-react";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { TextLink } from "@/components/text-link";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-3 px-4">
+      <div className="mx-auto flex h-[4.5rem] max-w-[100rem] items-center justify-between gap-3 px-4">
         <Link
           to="/"
           className="flex shrink-0 items-center gap-3 text-fg"
@@ -43,7 +43,7 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="hidden min-w-0 items-center gap-0.5 xl:flex">
+        <nav className="hidden min-w-0 items-center gap-0 xl:flex">
           {NAV.map((item) => {
             const active =
               item.to === "/"
@@ -54,7 +54,7 @@ export function SiteHeader() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "rounded-md px-2 py-2 text-sm font-medium uppercase tracking-wide transition-[color,background-color] duration-150",
+                  "rounded-md px-1.5 py-2 text-xs font-medium uppercase tracking-wide 2xl:px-2 2xl:text-sm transition-[color,background-color] duration-150",
                   active
                     ? "text-primary"
                     : "text-muted hover:bg-surface-2 hover:text-fg",
@@ -64,16 +64,22 @@ export function SiteHeader() {
               </Link>
             );
           })}
+          <details className="group relative">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-md px-2 py-2 text-sm font-medium uppercase tracking-wide text-muted hover:bg-surface-2 hover:text-fg">More <ChevronDown className="size-4" /></summary>
+            <nav aria-label="More pages" className="absolute right-0 top-full mt-2 min-w-60 rounded-xl border border-border bg-bg p-2 shadow-lg">
+              {EXTRA_NAV.map(item => <Link key={item.to} to={item.to} className="block rounded-lg px-3 py-3 text-sm font-medium text-fg hover:bg-surface-2" onClick={event => event.currentTarget.closest("details")?.removeAttribute("open")}>{item.label}</Link>)}
+            </nav>
+          </details>
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild className="hidden sm:inline-flex">
-            <CallLink>
+          <Button asChild className="hidden sm:inline-flex xl:px-3 2xl:px-4">
+            <CallLink aria-label="Call The Flip Fixer">
               <Phone className="size-4" />
-              <CallNumber />
+              <span className="xl:hidden 2xl:inline"><CallNumber /></span>
             </CallLink>
           </Button>
-          <Button asChild variant="outline" className="hidden sm:inline-flex">
+          <Button asChild variant="outline" className="hidden sm:inline-flex xl:hidden 2xl:inline-flex">
             <TextLink>
               <MessageSquare className="size-4" />
               Text
@@ -91,7 +97,7 @@ export function SiteHeader() {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="bg-bg">
+            <SheetContent side="right" className="overflow-y-auto bg-bg">
               <SheetHeader>
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>

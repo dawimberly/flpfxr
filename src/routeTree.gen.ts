@@ -16,10 +16,12 @@ import { Route as CommunityRouteImport } from './routes/community'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EstimateRouteImport } from './routes/estimate'
 import { Route as EstimatorRouteImport } from './routes/estimator'
+import { Route as FinancingRouteImport } from './routes/financing'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as InsuranceClaimsRouteImport } from './routes/insurance-claims'
 import { Route as KitchenRouteImport } from './routes/kitchen'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as NorthvilleRouteImport } from './routes/northville'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RoofRouteImport } from './routes/roof'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -36,6 +38,7 @@ import { Route as EstimatePaidRouteImport } from './routes/estimate.paid'
 import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiEmployeeAssetsSplatRouteImport } from './routes/api/employee-assets/$'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -73,6 +76,11 @@ const EstimatorRoute = EstimatorRouteImport.update({
   path: '/estimator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinancingRoute = FinancingRouteImport.update({
+  id: '/financing',
+  path: '/financing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
@@ -91,6 +99,11 @@ const KitchenRoute = KitchenRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NorthvilleRoute = NorthvilleRouteImport.update({
+  id: '/northville',
+  path: '/northville',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -173,6 +186,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEmployeeAssetsSplatRoute = ApiEmployeeAssetsSplatRouteImport.update({
+  id: '/api/employee-assets/$',
+  path: '/api/employee-assets/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
@@ -187,10 +205,12 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
+  '/financing': typeof FinancingRoute
   '/gallery': typeof GalleryRoute
   '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/northville': typeof NorthvilleRoute
   '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -207,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -216,10 +237,12 @@ export interface FileRoutesByTo {
   '/community': typeof CommunityRoute
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
+  '/financing': typeof FinancingRoute
   '/gallery': typeof GalleryRoute
   '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/northville': typeof NorthvilleRoute
   '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -236,6 +259,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
@@ -247,10 +271,12 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/estimate': typeof EstimateRouteWithChildren
   '/estimator': typeof EstimatorRouteWithChildren
+  '/financing': typeof FinancingRoute
   '/gallery': typeof GalleryRoute
   '/insurance-claims': typeof InsuranceClaimsRoute
   '/kitchen': typeof KitchenRoute
   '/login': typeof LoginRoute
+  '/northville': typeof NorthvilleRoute
   '/privacy': typeof PrivacyRoute
   '/roof': typeof RoofRoute
   '/services': typeof ServicesRoute
@@ -267,6 +293,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
@@ -279,10 +306,12 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimate'
     | '/estimator'
+    | '/financing'
     | '/gallery'
     | '/insurance-claims'
     | '/kitchen'
     | '/login'
+    | '/northville'
     | '/privacy'
     | '/roof'
     | '/services'
@@ -299,6 +328,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
+    | '/api/employee-assets/$'
     | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -308,10 +338,12 @@ export interface FileRouteTypes {
     | '/community'
     | '/contact'
     | '/estimate'
+    | '/financing'
     | '/gallery'
     | '/insurance-claims'
     | '/kitchen'
     | '/login'
+    | '/northville'
     | '/privacy'
     | '/roof'
     | '/services'
@@ -328,6 +360,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/estimator'
     | '/api/auth/$'
+    | '/api/employee-assets/$'
     | '/api/stripe/webhook'
   id:
     | '__root__'
@@ -338,10 +371,12 @@ export interface FileRouteTypes {
     | '/contact'
     | '/estimate'
     | '/estimator'
+    | '/financing'
     | '/gallery'
     | '/insurance-claims'
     | '/kitchen'
     | '/login'
+    | '/northville'
     | '/privacy'
     | '/roof'
     | '/services'
@@ -358,6 +393,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/estimator/'
     | '/api/auth/$'
+    | '/api/employee-assets/$'
     | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -369,10 +405,12 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EstimateRoute: typeof EstimateRouteWithChildren
   EstimatorRoute: typeof EstimatorRouteWithChildren
+  FinancingRoute: typeof FinancingRoute
   GalleryRoute: typeof GalleryRoute
   InsuranceClaimsRoute: typeof InsuranceClaimsRoute
   KitchenRoute: typeof KitchenRoute
   LoginRoute: typeof LoginRoute
+  NorthvilleRoute: typeof NorthvilleRoute
   PrivacyRoute: typeof PrivacyRoute
   RoofRoute: typeof RoofRoute
   ServicesRoute: typeof ServicesRoute
@@ -386,6 +424,7 @@ export interface RootRouteChildren {
   AreasIndexRoute: typeof AreasIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiEmployeeAssetsSplatRoute: typeof ApiEmployeeAssetsSplatRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
@@ -440,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EstimatorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financing': {
+      id: '/financing'
+      path: '/financing'
+      fullPath: '/financing'
+      preLoaderRoute: typeof FinancingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery': {
       id: '/gallery'
       path: '/gallery'
@@ -466,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/northville': {
+      id: '/northville'
+      path: '/northville'
+      fullPath: '/northville'
+      preLoaderRoute: typeof NorthvilleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -580,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/employee-assets/$': {
+      id: '/api/employee-assets/$'
+      path: '/api/employee-assets/$'
+      fullPath: '/api/employee-assets/$'
+      preLoaderRoute: typeof ApiEmployeeAssetsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
@@ -624,10 +684,12 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EstimateRoute: EstimateRouteWithChildren,
   EstimatorRoute: EstimatorRouteWithChildren,
+  FinancingRoute: FinancingRoute,
   GalleryRoute: GalleryRoute,
   InsuranceClaimsRoute: InsuranceClaimsRoute,
   KitchenRoute: KitchenRoute,
   LoginRoute: LoginRoute,
+  NorthvilleRoute: NorthvilleRoute,
   PrivacyRoute: PrivacyRoute,
   RoofRoute: RoofRoute,
   ServicesRoute: ServicesRoute,
@@ -641,6 +703,7 @@ const rootRouteChildren: RootRouteChildren = {
   AreasIndexRoute: AreasIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiEmployeeAssetsSplatRoute: ApiEmployeeAssetsSplatRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

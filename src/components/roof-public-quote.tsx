@@ -326,11 +326,11 @@ export function RoofPublicQuote({
           </p>
           <p className="mt-1 text-xs text-subtle">
             About 2 squares either way on this outline. Cut-up roofs can land
-            about 10-15% off. We'll walk it free.
+            a different scope. Schedule an inspection with our roofing specialist.
           </p>
           {hideCta ? null : (
             <Button type="button" size="lg" className="mt-6 w-full" onClick={goToContact}>
-              Send this range
+              Discuss your preliminary estimate
               <ArrowRight className="size-4" />
             </Button>
           )}

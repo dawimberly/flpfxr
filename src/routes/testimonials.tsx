@@ -22,7 +22,7 @@ function TestimonialsPage() {
     <div>
       <PageIntro eyebrow="Reviews" title="What people said." />
 
-      <section aria-labelledby="featured-review-title" className="mx-auto max-w-6xl px-4 pb-10">
+      {FEATURED_REVIEW ? <section aria-labelledby="featured-review-title" className="mx-auto max-w-6xl px-4 pb-10">
         <figure className="rounded-2xl border border-primary/25 bg-surface p-7 md:p-10">
           <h2 id="featured-review-title" className="font-display text-2xl font-semibold text-fg md:text-3xl">
             Three years of projects. A relationship built on trust.
@@ -35,7 +35,7 @@ function TestimonialsPage() {
             <p className="text-sm text-subtle">{FEATURED_REVIEW.source}</p>
           </figcaption>
         </figure>
-      </section>
+      </section> : null}
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 md:grid-cols-2 lg:grid-cols-3">
         {TESTIMONIALS.map((t) => (

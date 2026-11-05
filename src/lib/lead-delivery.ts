@@ -26,6 +26,8 @@ export type LeadAdIds = {
 export type LeadEstimateMetadata = {
   estimate_service?: string;
   estimate_size?: string;
+  estimate_price?: string;
+  /** Legacy inbound payloads only. */
   estimate_range?: string;
 };
 
@@ -148,7 +150,7 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     ...(payload.source === "estimate" ? [
       `Estimate service: ${payload.estimate_service || "n/a"}`,
       `Estimate size: ${payload.estimate_size || "n/a"}`,
-      `Estimate shown to visitor: ${payload.estimate_range || "n/a"}`,
+      `Estimate shown to visitor: ${payload.estimate_price || payload.estimate_range || "n/a"}`,
     ] : []),
     `Affiliation: ${payload.affiliation || "n/a"}`,
     `Submission: ${payload.submissionId}`,
