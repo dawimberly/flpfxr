@@ -166,7 +166,7 @@ try {
     assert.ok(rpcUrl, "Estimate RPC was observed");
     const badPayload = await toJSONAsync({ data: { service: "not-a-service" } });
     const invalid = await page.request.post(rpcUrl, {
-      headers: { "content-type": "application/json", "x-tsr-serverFn": "true" },
+      headers: { "content-type": "application/json", "x-tsr-serverFn": "true", origin: base, "sec-fetch-site": "same-origin" },
       data: JSON.stringify(badPayload),
     });
     assert.equal(invalid.status(), 400, "Invalid estimator input must return HTTP 400");
