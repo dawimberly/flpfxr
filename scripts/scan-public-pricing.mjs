@@ -8,7 +8,8 @@ import { pathToFileURL } from "node:url";
 const entities = JSON.parse(readFileSync(new URL("./html-entities.json", import.meta.url), "utf8"));
 const allowed = new Set([".js", ".mjs", ".css", ".html", ".htm", ".json", ".map", ".txt", ".xml", ".rels", ".svg", ".csv", ".md", ".webmanifest", ".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm", ".gz", ".br"]);
 const binary = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm"]);
-const markers = /\bMSRP\b|\bour\s+cost\b|\blabo[u]?r\s+(?:rates?|costs?|per|@)\b|\binstall\s+each\b|\$\s*(?:75|125)(?:\.00)?(?![\d.])|\bO\s*&\s*P\b|\boverhead\s+and\s+profit\b|\bmarkup\b|\boff\s+list\b|\bdealer\s+price\b|\b(?:profit|gross|net)\s+margins?\b|\blabo[u]?r\b[^\r\n]{0,32}\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b|\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b[^\r\n]{0,32}\blabo[u]?r\b|laborPerUnit|laborPerOversized|personHours|adjustedDays|CREW_DAY_RATE|materialsAtCost|laborRate/i;
+const markers = /\bMSRP\b|\bour\s+cost\b|\blabo[u]?r\s+(?:rates?|costs?|per|@)\b|\binstall\s+each\b|\$\s*(?:75|125)(?:\.00)?(?![\d.])|\bO\s*&\s*P\b|\boverhead\s+and\s+profit\b|\boff\s+list\b|\bdealer\s+price\b|\b(?:profit|gross|net)\s+margins?\b|\blabo[u]?r\b[^\r\n]{0,32}\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b|\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b[^\r\n]{0,32}\blabo[u]?r\b|laborPerUnit|laborPerOversized|personHours|adjustedDays|CREW_DAY_RATE|materialsAtCost|laborRate/i;
+const financialMarkup = /\bmarkup\b\s*[:=]?\s*["']?\s*(?:\$\s*)?\d|\d[\d.]*\s*%\s+markup\b|\b(?:cost|price|profit)\s+markup\b/i;
 const prose = /\.(?:docx|pdf|txt|json|csv|md|xml|rels|html?|svg|webmanifest)$/i;
 const maxExpanded = 32 * 1024 * 1024;
 const entityPattern = /&(?:#[xX][0-9a-fA-F]+;?|#[0-9]+;?|[a-zA-Z][a-zA-Z0-9]+;?)/g;
@@ -92,7 +93,9 @@ async function pdfText(buffer) {
   const task = getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false });
   const doc = await task.promise;
   try {
-    const pages = [];
+    if (await doc.getAttachments()) throw new Error("Public PDF attachments are not allowed");
+    const {info,metadata}=await doc.getMetadata();
+    const pages = [JSON.stringify(info),JSON.stringify(metadata?.getAll() ?? {})];
     for (let n = 1; n <= doc.numPages; n++) {
       const page = await doc.getPage(n), content = await page.getTextContent();
       const text = content.items.map(item => item.str ?? "").join(" ");
@@ -109,7 +112,7 @@ export async function scanPublicPricing(roots) {
     const value=normalizePricingText(text);
     if(/^\s*\{\s*\\rtf/i.test(value))throw new Error("RTF is not allowed in public output: "+file);
     const variants=isProse?[value,normalizePricingText(value.replace(/<[^>]*>/g,""))]:[value];
-    if(variants.some(s=>markers.test(s)||(isProse&&/\bmargins?\b/i.test(s))))throw new Error("Confidential pricing marker in public file: "+file);
+    if(variants.some(s=>markers.test(s)||financialMarkup.test(s)||(isProse&&/\b(?:margins?|markup)\b/i.test(s))))throw new Error("Confidential pricing marker in public file: "+file);
   }
   async function inspect(buffer,file,depth=0) {
     if(depth>6)throw new Error("Nested archive depth exceeded: "+file);
