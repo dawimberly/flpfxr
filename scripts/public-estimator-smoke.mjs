@@ -62,16 +62,18 @@ try {
     });
     const size=mode==="abort"?"Large":"Small";
     await page.getByRole("button",{name:size,exact:true}).click();
+    const retry = page.getByRole("button",{name:"Retry estimate",exact:true});
     await page.getByRole("status").getByText(/Unable to load your estimate/).waitFor();
-    // Drain the router loader and component request before restoring the network.
+    // Drain the loader that remounts the planner. Retry must still be showing
+    // after that settles — a one-frame failure flash is not recovery.
     await page.waitForLoadState("networkidle");
-    assert.ok(await page.getByRole("button",{name:"Retry estimate",exact:true}).isVisible());
+    await retry.waitFor();
     assert.ok(blocked>0,"A real estimate RPC must fail");
     assert.ok(await page.getByRole("heading",{name:/^Plan your (?:next project|kitchen remodel)\.$/}).isVisible(),"Planner remains mounted instead of router error page");
     assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
     assert.equal(new URL(page.url()).searchParams.get("utm_campaign"),"recovery");
     await page.unroute("**/_serverFn/**");
-    await page.getByRole("button",{name:"Retry estimate",exact:true}).click();
+    await retry.click();
     await page.getByTestId("estimate-total").waitFor();
     assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
     await page.screenshot({path:join(artifacts,"public-estimator-smoke-recovery-"+width+"-"+mode+".png"),fullPage:true});
