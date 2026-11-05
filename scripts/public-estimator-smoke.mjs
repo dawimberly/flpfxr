@@ -52,6 +52,16 @@ try {
     const ad="gclid=G123&gbraid=B123&wbraid=W123&utm_source=google&utm_medium=cpc&utm_campaign=bath&utm_term=remodel&utm_content=ad";
     await page.goto(base+"/estimate?service=bathroom&size=medium&"+ad,{waitUntil:"domcontentloaded"});
     await page.getByRole("heading",{name:"Plan your bathroom remodel.",exact:true}).waitFor();
+    // SSR price is visible before hydration; establish real interactivity first.
+    let hydrated = false;
+    for (let i = 0; i < 30; i++) {
+      await page.getByRole("button",{name:"Large",exact:true}).click();
+      if (new URL(page.url()).searchParams.get("size") === "large") { hydrated = true; break; }
+      await delay(100);
+    }
+    assert.ok(hydrated,"Planner must hydrate before handoff verification");
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await page.waitForURL(url=>url.searchParams.get("size")==="medium");
     assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
     await page.getByTestId("estimate-total").getByText("$9,300",{exact:true}).waitFor();
@@ -63,7 +73,7 @@ try {
     await page.screenshot({path:join(artifacts,"public-estimator-smoke-before-handoff.png"),fullPage:true});
     console.log("HANDOFF STATE", await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("aria-disabled"));
     await page.getByRole("link",{name:"Request an on-site estimate"}).click();
-    await page.waitForURL(/\/contact/);
+    try { await page.waitForURL(/\/contact/); } catch(error) { console.error("NAV DEBUG", await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("href"), await page.evaluate(()=>sessionStorage.getItem("flipfixer-lead-draft")), logs); throw error; }
     const contact=new URL(page.url());
     for(const [key,value] of [["gclid","G123"],["gbraid","B123"],["wbraid","W123"],["utm_source","google"],["utm_medium","cpc"],["utm_campaign","bath"],["utm_term","remodel"],["utm_content","ad"]]) {
       assert.equal(contact.searchParams.get(key),value,key+" missing on /contact");
