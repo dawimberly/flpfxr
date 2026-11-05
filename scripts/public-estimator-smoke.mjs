@@ -41,6 +41,47 @@ try {
   const auth=compareAuthInvariant({devAuthEnabled:await probeDevAuthEnabled(base),buildAuthEnabled:buildAuthEnabled()});
   assert.equal(auth.status,"ok",auth.message);
   browser=await chromium.launch({headless:true});
+
+  for (const width of [390, 1600]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    activePage = page;
+    const pageErrors = [];
+    page.on("pageerror", error => pageErrors.push(error.message));
+    await page.goto(base + "/", { waitUntil: "networkidle" });
+    for (const trust of ["30+ years experience", "Owner on every job", "No high-pressure sales"]) {
+      assert.ok(await page.getByText(trust, { exact: true }).isVisible(), trust);
+    }
+    assert.equal(await page.getByRole("link", { name: "Financing", exact: true }).count(), 0);
+    assert.doesNotMatch(await page.locator("main").innerText(), /certified|insurance claims?|licensed and insured|guaranteed|starting at|free quote|\$\d/i);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2), "Homepage overflow");
+    await page.screenshot({ path: join(artifacts, "public-estimator-smoke-home-" + width + ".png"), fullPage: true });
+    if (width < 1536) {
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await page.getByRole("dialog").getByRole("link", { name: "Northville Installation" }).click();
+    } else {
+      await page.locator("header summary").click();
+      await page.locator("header").getByRole("link", { name: "Northville Installation" }).click();
+    }
+    await page.waitForURL(/\/northville$/);
+    await page.getByRole("heading", { name: "Northville cabinet installation in San Antonio", exact: true }).waitFor();
+    assert.ok(await page.locator("main").getByRole("link", { name: "See your estimate online" }).isVisible());
+    assert.equal(await page.locator("main").getByRole("link", { name: /Call/ }).getAttribute("href"), "tel:+12104369117");
+    assert.equal(await page.locator("main ol li").count(), 5);
+    assert.equal(await page.locator("main img").count(), 0, "No unverified Northville imagery");
+    assert.doesNotMatch(await page.locator("main").innerText(), /certified|insurance claims?|licensed and insured|guaranteed|starting at|free quote|\$\d/i);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2), "Northville overflow");
+    await page.screenshot({ path: join(artifacts, "public-estimator-smoke-northville-" + width + ".png"), fullPage: true });
+    assert.equal((await page.request.get(base + "/financing")).status(), 404);
+    assert.equal((await page.request.get(base + "/financing/")).status(), 404);
+    assert.equal(await page.getByRole("link", { name: "Financing", exact: true }).count(), 0);
+    assert.deepEqual(pageErrors, [], "Public page browser errors");
+    await page.locator("main").getByRole("link", { name: "See your estimate online" }).click();
+    await page.waitForURL(/\/estimate$/);
+    await page.getByTestId("estimate-total").waitFor();
+    await page.close();
+    console.log("PASS public pages", width, "px: navigation, trust, phone, estimate link, financing 404, no overflow");
+  }
+
   {
     const page=await browser.newPage({viewport:{width:390,height:844}});
     activePage=page;
