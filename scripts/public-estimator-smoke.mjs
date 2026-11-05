@@ -287,15 +287,18 @@ try {
     assert.equal(leadRequests[0].estimate_service,"bathroom");
     assert.equal(leadRequests[0].estimate_size,"Medium");
     assert.equal(leadRequests[0].estimate_range,"$9,300");
-    assert.equal(leadRequests[0].first_landing_path,"/estimate");
-    assert.match(leadRequests[0].landing_path,/^\/contact/);
+    assert.equal(leadRequests[0].landing_page,"/estimate");
+    assert.equal(leadRequests[0].submitting_page,"/contact");
+    assert.equal(leadRequests[0].first_landing_path,undefined);
+    assert.equal(leadRequests[0].landing_path,undefined);
+    assert.equal(leadRequests[0].page_url,undefined);
     assert.doesNotMatch(leadRequests[0].message,/\$/);
     assert.equal(await page.evaluate(()=>(window.dataLayer??[]).length),0,"Local hosts must not queue Google hits");
     assert.equal(await page.evaluate(()=>JSON.parse(sessionStorage.getItem("flipfixer-lead-draft")).estimate),undefined,"Successful handoff clears stale estimate metadata");
     assert.deepEqual(pageErrors,[],"Browser page errors");
     for(const path of ["/kitchen","/bathroom"]) assert.equal((await page.request.get(base+path)).status(),200,path);
     await page.close();
-    console.log("PASS",width,"px: single combined price, handoff source, first landing, structured range after message edit; mocked delivery only");
+    console.log("PASS",width,"px: single combined price, handoff source, landing page, structured range after message edit; mocked delivery only");
   }
   console.log("Screenshots:",artifacts);
 } catch(error) {
