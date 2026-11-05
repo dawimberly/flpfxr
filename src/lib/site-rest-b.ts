@@ -23,6 +23,8 @@ export function serviceHasWork(_id: string): boolean {
 
 export type GalleryPhoto = {
   src: string;
+  fallbackSrc?: string;
+  phase?: "before" | "after";
   alt: string;
   title: string;
   caption: string;
@@ -63,11 +65,8 @@ export function galleryJobs(service?: string): GalleryJob[] {
 
 /** Jobs that have before/after (or process) captions. */
 export function isBeforeAfterJob(job: GalleryJob): boolean {
-  const labels = job.photos.map((p) => (p.caption || "").toLowerCase());
-  return (
-    labels.some((c) => c.includes("before")) &&
-    labels.some((c) => c.includes("after"))
-  );
+  const labels = job.photos.map((p) => p.phase ?? p.caption.toLowerCase());
+  return labels.some((c) => c.includes("before")) && labels.some((c) => c.includes("after"));
 }
 
 export const GALLERY_FILTERS: Array<{
