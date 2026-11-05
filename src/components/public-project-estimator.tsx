@@ -94,9 +94,13 @@ export function PublicProjectEstimator({
   const [priced, setPriced] = useState({ key: initialEstimate ? requestKey : "", value: initialEstimate });
   const [failedKey, setFailedKey] = useState<string | null>(initialEstimate ? null : requestKey);
   const [retryAttempt, setRetryAttempt] = useState(0);
+  // Loader failure already paints Retry. A mount refetch would clear that button
+  // for the debounce, while no request is in flight.
+  const seededFailureKey = useRef(initialEstimate ? null : requestKey);
   const estimate = priced.key === requestKey ? priced.value : null;
   useEffect(() => {
     if (requestKey === "null" || (priced.key === requestKey && priced.value !== null)) return;
+    if (seededFailureKey.current === requestKey && retryAttempt === 0) return;
     setFailedKey(null);
     let cancelled = false;
     const timer = setTimeout(() => {
@@ -146,6 +150,7 @@ export function PublicProjectEstimator({
       estimate: {
         estimate_service: inputs.service,
         estimate_size: inputs.size,
+        estimate_materials: scope ? materialText(inputs, scope) : undefined,
         estimate_range: estimate ? formatPublicEstimate(estimate.total) : undefined,
       },
     });

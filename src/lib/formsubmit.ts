@@ -74,11 +74,24 @@ export function formSubmitAjaxInit(body: BodyInit): RequestInit {
   };
 }
 
+/** Keep the referrer host and path. Queries, credentials and fragments can carry private data. */
+export function safeLeadReferrer(value: string): string {
+  try {
+    const url = new URL(value);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return (url.origin + url.pathname).slice(0, 300);
+    }
+  } catch {
+    // Empty or malformed referrer.
+  }
+  return "";
+}
+
 export function captureAdClickIds(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const params = new URLSearchParams(window.location.search);
   const read = (key: string) => {
-    const fromUrl = params.get(key)?.trim() ?? "";
+    const fromUrl = params.get(key)?.trim().slice(0, 500) ?? "";
     if (fromUrl) {
       try {
         sessionStorage.setItem(`ff-${key}`, fromUrl);
@@ -94,9 +107,42 @@ export function captureAdClickIds(): Record<string, string> {
     }
   };
   const ids: Record<string, string> = {};
-  for (const key of ["gclid", "gbraid", "wbraid", "utm_source", "utm_campaign", "utm_medium"]) {
+  for (const key of ["gclid", "gbraid", "wbraid", "utm_source", "utm_campaign", "utm_medium", "utm_term", "utm_content"]) {
     const value = read(key);
     if (value) ids[key] = value;
+  }
+  if (!ids.gclid && typeof document !== "undefined") {
+    // Read an existing Google click cookie only. Never create or extend it.
+    const clickCookie = /(?:^|;\s*)_gcl_aw=GCL\.\d+\.([\w-]{1,500})(?:;|$)/.exec(document.cookie);
+    if (clickCookie) {
+      ids.gclid = clickCookie[1];
+      try {
+        sessionStorage.setItem("ff-gclid", ids.gclid);
+      } catch {
+        // The existing cookie can still supply this submission.
+      }
+    }
+  }
+
+  ids.landing_page = captureFirstLandingPath();
+  ids.submitting_page = window.location.pathname;
+  if (typeof document !== "undefined") {
+    try {
+      let referrer = sessionStorage.getItem("ff-lead-referrer");
+      if (referrer === null) {
+        referrer = safeLeadReferrer(document.referrer);
+        sessionStorage.setItem("ff-lead-referrer", referrer);
+      }
+      if (referrer) ids.referrer = referrer;
+    } catch {
+      const referrer = safeLeadReferrer(document.referrer);
+      if (referrer) ids.referrer = referrer;
+    }
+  }
+  if (window.navigator?.userAgent) {
+    ids.device = /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent)
+      ? "mobile"
+      : "desktop";
   }
   ids.landing_path = `${window.location.pathname}${window.location.search}`;
   ids.first_landing_path = captureFirstLandingPath();

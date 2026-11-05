@@ -79,7 +79,7 @@ describe("lead submit server", () => {
     const res = await handleLeadFormData(
       form({
         submissionId,
-        name: "TRACKING TEST — NOT A CUSTOMER LEAD",
+        name: "TEST — fixture",
         phone: "2104369117",
         email: "Jon@TheFlipFixer.com",
         message: "Server delivery unit test — discard.",
@@ -99,17 +99,27 @@ describe("lead submit server", () => {
     assert.equal(mailCalls.length, 1);
     const sent = mailCalls[0] as { init?: { body?: string } };
     assert.match(String(sent.init?.body), /unit-gclid/);
+    assert.match(JSON.parse(sent.init?.body ?? "{}").subject, /^\[TEST\]/);
     const requestHeaders = new Headers((sent.init as RequestInit)?.headers);
     assert.equal(requestHeaders.get("Idempotency-Key"), `contact-lead/${submissionId}`);
   });
 
-  it("emails structured planner context even when the visitor replaces the message", async () => {
+  it("emails and persists attribution even when the visitor replaces the planner message", async () => {
+    let persisted: import("./lead-delivery.ts").LeadPayload | undefined;
     const res = await handleLeadFormData(form({
-      submissionId, name: "Planner visitor", phone: "2104369117",
+      submissionId, name: "TEST — Planner fixture", phone: "2104369117",
       message: "Please call me tomorrow.", Source: "estimate", Job: "bathroom",
       estimate_service: "bathroom", estimate_size: "Medium", estimate_range: "between $9,000 and $11,200",
-      landing_path: "/contact?origin=estimate", first_landing_path: "/estimate",
-    }), new Request("https://theflipfixer.com/api/leads", { method: "POST" }));
+      landing_page: "/estimate?email=redacted@example.test", submitting_page: "/contact#private",
+      gclid: "redacted-click-id", gbraid: "redacted-app-braid", wbraid: "redacted-web-braid",
+      utm_source: "google", utm_medium: "cpc", utm_campaign: "Remodel search",
+      utm_term: "bath remodel", utm_content: "variant-a",
+      referrer: "https://www.google.com/search?q=private#private", device: "mobile",
+      estimate_materials: "Tile, Quartz, Porcelain tile",
+    }), new Request("http://localhost/api/leads", { method: "POST" }), {
+      now: Date.UTC(2026, 10, 5, 16, 30),
+      persistLead: async ({ payload }) => { persisted = payload; },
+    });
     assert.equal(res.status, 200);
     const sent = mailCalls[0] as { init: { body: string } };
     const email = JSON.parse(sent.init.body);
@@ -118,7 +128,14 @@ describe("lead submit server", () => {
     assert.match(email.text, /Estimate service: bathroom/);
     assert.match(email.text, /Estimate size: Medium/);
     assert.match(email.text, /Estimate shown to visitor: between \$9,000 and \$11,200/);
-    assert.match(email.text, /first_landing_path: \/estimate/);
+    assert.match(email.text, /Attribution\nSource: google\nMedium: cpc\nCampaign: Remodel search\nKeyword\/term: bath remodel\nContent: variant-a/);
+    assert.match(email.text, /Landing: \/estimate\nSubmitting page: \/contact\nReferrer: https:\/\/www\.google\.com\/search\nDevice: mobile/);
+    assert.match(email.text, /Submitted \(America\/Chicago\): Nov 5, 2026, 10:30:00 AM CST/);
+    assert.match(email.text, /Origin: estimate\nEstimate: bathroom \| Medium \| Tile, Quartz, Porcelain tile \| between \$9,000 and \$11,200/);
+    assert.doesNotMatch(email.text, /private|redacted@example/);
+    assert.equal(persisted?.adIds.utm_content, "variant-a");
+    assert.equal(persisted?.adIds.origin, "estimate");
+    assert.equal(persisted?.estimate_materials, "Tile, Quartz, Porcelain tile");
     assert.match(email.text, /Please call me tomorrow\./);
   });
 

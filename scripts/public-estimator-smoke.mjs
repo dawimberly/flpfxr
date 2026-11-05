@@ -62,16 +62,18 @@ try {
     });
     const size=mode==="abort"?"Large":"Small";
     await page.getByRole("button",{name:size,exact:true}).click();
+    const retry = page.getByRole("button",{name:"Retry estimate",exact:true});
     await page.getByRole("status").getByText(/Unable to load your estimate/).waitFor();
-    // Drain the router loader and component request before restoring the network.
+    // Drain the loader that remounts the planner. Retry must still be showing
+    // after that settles — a one-frame failure flash is not recovery.
     await page.waitForLoadState("networkidle");
-    assert.ok(await page.getByRole("button",{name:"Retry estimate",exact:true}).isVisible());
+    await retry.waitFor();
     assert.ok(blocked>0,"A real estimate RPC must fail");
     assert.ok(await page.getByRole("heading",{name:/^Plan your (?:next project|kitchen remodel)\.$/}).isVisible(),"Planner remains mounted instead of router error page");
     assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
     assert.equal(new URL(page.url()).searchParams.get("utm_campaign"),"recovery");
     await page.unroute("**/_serverFn/**");
-    await page.getByRole("button",{name:"Retry estimate",exact:true}).click();
+    await retry.click();
     await page.getByTestId("estimate-total").waitFor();
     assert.equal(new URL(page.url()).searchParams.get("gclid"),"keep");
     await page.screenshot({path:join(artifacts,"public-estimator-smoke-recovery-"+width+"-"+mode+".png"),fullPage:true});
@@ -287,15 +289,18 @@ try {
     assert.equal(leadRequests[0].estimate_service,"bathroom");
     assert.equal(leadRequests[0].estimate_size,"Medium");
     assert.equal(leadRequests[0].estimate_range,"$9,300");
-    assert.equal(leadRequests[0].first_landing_path,"/estimate");
-    assert.match(leadRequests[0].landing_path,/^\/contact/);
+    assert.equal(leadRequests[0].landing_page,"/estimate");
+    assert.equal(leadRequests[0].submitting_page,"/contact");
+    assert.equal(leadRequests[0].first_landing_path,undefined);
+    assert.equal(leadRequests[0].landing_path,undefined);
+    assert.equal(leadRequests[0].page_url,undefined);
     assert.doesNotMatch(leadRequests[0].message,/\$/);
     assert.equal(await page.evaluate(()=>(window.dataLayer??[]).length),0,"Local hosts must not queue Google hits");
     assert.equal(await page.evaluate(()=>JSON.parse(sessionStorage.getItem("flipfixer-lead-draft")).estimate),undefined,"Successful handoff clears stale estimate metadata");
     assert.deepEqual(pageErrors,[],"Browser page errors");
     for(const path of ["/kitchen","/bathroom"]) assert.equal((await page.request.get(base+path)).status(),200,path);
     await page.close();
-    console.log("PASS",width,"px: single combined price, handoff source, first landing, structured range after message edit; mocked delivery only");
+    console.log("PASS",width,"px: single combined price, handoff source, landing page, structured range after message edit; mocked delivery only");
   }
   console.log("Screenshots:",artifacts);
 } catch(error) {

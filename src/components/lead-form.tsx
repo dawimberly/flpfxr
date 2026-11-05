@@ -62,7 +62,7 @@ export function LeadForm({
 }) {
   const [selectedService, setSelectedService] = useState(initialService);
   const [estimateMetadata, setEstimateMetadata] = useState<LeadEstimateMetadata | null>(null);
-  const leadSource = estimateHandoff && estimateMetadata ? "estimate" : source;
+  const leadSource = estimateHandoff ? "estimate" : source;
   const showJobType = source === "contact" || source === "homepage";
   const service = showJobType ? selectedService : initialService;
 
@@ -81,7 +81,6 @@ export function LeadForm({
   const [phoneError, setPhoneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [adIds, setAdIds] = useState<Record<string, string>>({});
   const sending = useRef(false);
   const trackedThisSubmit = useRef(false);
   const submissionIdRef = useRef<string | null>(null);
@@ -97,7 +96,6 @@ export function LeadForm({
     if (draft.submissionId && isValidSubmissionId(draft.submissionId)) {
       submissionIdRef.current = draft.submissionId;
     }
-    setAdIds(captureAdClickIds());
   }, [nextPath, estimateHandoff]);
 
   // ?sent=1 restores the thank-you UI after a reload. It is not a new lead.
@@ -155,13 +153,13 @@ export function LeadForm({
     data.set("Affiliation", affiliation || "n/a");
     data.set("Source", leadSource);
     if (leadSource === "estimate" && estimateMetadata) {
-      for (const key of ["estimate_service", "estimate_size", "estimate_range"] as const) {
+      for (const key of ["estimate_service", "estimate_size", "estimate_range", "estimate_materials"] as const) {
         if (estimateMetadata[key]) data.set(key, estimateMetadata[key]);
       }
     }
     data.set("Phone_digits", digits);
-    for (const [key, value] of Object.entries(adIds)) {
-      if (value) data.set(key, value);
+    for (const [key, value] of Object.entries(captureAdClickIds())) {
+      if (value && key !== "page_url" && key !== "landing_path" && key !== "first_landing_path") data.set(key, value);
     }
 
     try {

@@ -12,8 +12,9 @@ import {
   type LeadPayload,
   type LeadEstimateMetadata,
 } from "./lead-delivery.ts";
+import { safeLeadReferrer } from "./formsubmit.ts";
 import { leadMailConfigFromEnv, sendLeadEmail } from "./lead-mail.ts";
-import { PROJECT_SERVICES, PROJECT_SIZES } from "./public-estimate-options.ts";
+import { FLOOR_MATERIALS, COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, PROJECT_SERVICES, PROJECT_SIZES } from "./public-estimate-options.ts";
 
 const recentByIp = new Map<string, number[]>();
 
@@ -48,15 +49,22 @@ function str(form: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+const estimateMaterialLabels = new Set([
+  ...[...FLOOR_MATERIALS, ...COUNTER_MATERIALS, ...SHOWER_MATERIALS, ...VANITY_SIZES].map(item => item.label),
+  "New toilet", "Existing toilet", "Primer and paint", "Paint only", "1 coat", "2 coats",
+]);
+
 /** Visitor-supplied planner context is single-line, allowlisted display data. */
 export function readEstimateMetadata(form: FormData): LeadEstimateMetadata {
   const clean = (key: string) => str(form, key).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "").trim();
   const service = clean("estimate_service");
   const size = clean("estimate_size");
   const range = clean("estimate_range");
+  const materials = clean("estimate_materials");
   return {
     ...(PROJECT_SERVICES.some(row => row.id === service) ? { estimate_service: service } : {}),
     ...(PROJECT_SIZES.some(value => value === size) ? { estimate_size: size } : {}),
+    ...(materials.length <= 250 && materials.split(", ").every(label => estimateMaterialLabels.has(label)) ? { estimate_materials: materials } : {}),
     ...(range.length <= 100 && /^(?:between \$[\d,]+ and )?\$[\d,]+$/.test(range) ? { estimate_range: range } : {}),
   };
 }
@@ -69,15 +77,23 @@ function readAdIds(form: FormData): LeadAdIds {
     "utm_source",
     "utm_campaign",
     "utm_medium",
-    "landing_path",
-    "first_landing_path",
-    "page_url",
+    "utm_term",
+    "utm_content",
   ] as const;
   const adIds: LeadAdIds = {};
   for (const key of keys) {
-    const value = str(form, key).trim();
+    const value = str(form, key).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, " ").trim();
     if (value) adIds[key] = value.slice(0, 500);
   }
+  for (const key of ["landing_page", "submitting_page"] as const) {
+    const legacy = key === "landing_page" ? "first_landing_path" : "landing_path";
+    const path = (str(form, key) || str(form, legacy)).split(/[?#]/, 1)[0];
+    if (/^\/(?!\/)[^\s\\\p{Cc}\p{Cf}]*$/u.test(path)) adIds[key] = path.slice(0, 300);
+  }
+  const referrer = safeLeadReferrer(str(form, "referrer"));
+  if (referrer) adIds.referrer = referrer;
+  const device = str(form, "device");
+  if (device === "mobile" || device === "desktop") adIds.device = device;
   return adIds;
 }
 
@@ -97,6 +113,11 @@ async function findExistingLead(submissionId: string) {
     submissionId,
   ]);
   return rows[0] ?? null;
+}
+
+function estimateFields(payload: LeadPayload): LeadEstimateMetadata {
+  const { estimate_service, estimate_size, estimate_materials, estimate_range } = payload;
+  return { estimate_service, estimate_size, estimate_materials, estimate_range };
 }
 
 async function persistLead(args: {
@@ -126,7 +147,7 @@ async function persistLead(args: {
       args.payload.service || null,
       args.payload.source || null,
       args.payload.affiliation || null,
-      JSON.stringify(args.payload.adIds),
+      JSON.stringify({ ...args.payload.adIds, ...estimateFields(args.payload) }),
       args.hasPhoto,
       args.deliveredEmail,
       args.clientIp || null,
@@ -171,6 +192,7 @@ export async function handleLeadFormData(
     } satisfies LeadDeliveryResult);
   }
 
+  const source = str(form, "Source") || str(form, "source");
   const payload: LeadPayload = {
     submissionId,
     name: str(form, "name"),
@@ -178,11 +200,15 @@ export async function handleLeadFormData(
     phone: str(form, "phone"),
     message: str(form, "message"),
     service: str(form, "Job") || str(form, "service"),
-    source: str(form, "Source") || str(form, "source"),
-    ...readEstimateMetadata(form),
+    source,
+    ...(source === "estimate" ? readEstimateMetadata(form) : {}),
     affiliation: str(form, "Affiliation") || str(form, "affiliation"),
     honey,
-    adIds: readAdIds(form),
+    adIds: {
+      ...readAdIds(form),
+      ...(source === "estimate" ? { origin: "estimate" } : {}),
+      submitted_at: new Date(deps.now ?? Date.now()).toISOString(),
+    },
   };
 
   const fields = validateLeadFields(payload);
@@ -258,7 +284,7 @@ export async function handleLeadFormData(
       submissionId,
       from: mailCfg.from,
       replyTo: payload.email.trim() || undefined,
-      subject: buildLeadSubject(payload.service, payload.source),
+      subject: buildLeadSubject(payload.service, payload.source, payload.name),
       text: buildLeadEmailText({ ...payload, phoneDigits: fields.phoneDigits }),
       attachments: attachment ? [attachment] : undefined,
     },

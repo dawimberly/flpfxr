@@ -18,6 +18,14 @@ export type LeadAdIds = {
   utm_source?: string;
   utm_campaign?: string;
   utm_medium?: string;
+  utm_term?: string;
+  utm_content?: string;
+  landing_page?: string;
+  submitting_page?: string;
+  referrer?: string;
+  device?: string;
+  submitted_at?: string;
+  origin?: string;
   landing_path?: string;
   first_landing_path?: string;
   page_url?: string;
@@ -27,6 +35,7 @@ export type LeadEstimateMetadata = {
   estimate_service?: string;
   estimate_size?: string;
   estimate_range?: string;
+  estimate_materials?: string;
 };
 
 export type LeadPayload = LeadEstimateMetadata & {
@@ -156,22 +165,41 @@ export function buildLeadEmailText(payload: LeadPayload & { phoneDigits: string 
     "Message:",
     payload.message.trim(),
     "",
-    "Ad / landing:",
-    `gclid: ${payload.adIds.gclid || ""}`,
-    `gbraid: ${payload.adIds.gbraid || ""}`,
-    `wbraid: ${payload.adIds.wbraid || ""}`,
-    `utm_source: ${payload.adIds.utm_source || ""}`,
-    `utm_campaign: ${payload.adIds.utm_campaign || ""}`,
-    `utm_medium: ${payload.adIds.utm_medium || ""}`,
-    `landing_path: ${payload.adIds.landing_path || ""}`,
-    `first_landing_path: ${payload.adIds.first_landing_path || ""}`,
-    `page_url: ${payload.adIds.page_url || ""}`,
+    "Attribution",
+    ...attributionLines(payload),
   ];
   return lines.join("\n");
 }
 
-export function buildLeadSubject(service: string, source: string): string {
-  return `The Flip Fixer — ${service || "job"} (${source || "contact"})`;
+function attributionLines(payload: LeadPayload): string[] {
+  const ids = payload.adIds;
+  const rows: [string, string | undefined][] = [
+    ["Source", ids.utm_source || (ids.gclid || ids.gbraid || ids.wbraid ? "Google Ads" : undefined)],
+    ["Medium", ids.utm_medium],
+    ["Campaign", ids.utm_campaign],
+    ["Keyword/term", ids.utm_term],
+    ["Content", ids.utm_content],
+    ["gclid", ids.gclid],
+    ["gbraid", ids.gbraid],
+    ["wbraid", ids.wbraid],
+    ["Landing", ids.landing_page || ids.first_landing_path],
+    ["Submitting page", ids.submitting_page],
+    ["Referrer", ids.referrer],
+    ["Device", ids.device],
+    ["Submitted (America/Chicago)", ids.submitted_at && new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago", dateStyle: "medium", timeStyle: "long",
+    }).format(new Date(ids.submitted_at))],
+    ["Origin", ids.origin],
+    ["Estimate", payload.source === "estimate" ? [
+      payload.estimate_service, payload.estimate_size, payload.estimate_materials, payload.estimate_range,
+    ].filter(Boolean).join(" | ") : undefined],
+  ];
+  return rows.flatMap(([label, value]) => value ? [`${label}: ${value}`] : []);
+}
+
+export function buildLeadSubject(service: string, source: string, name = ""): string {
+  const prefix = /^TEST\b/i.test(name.trim()) ? "[TEST] " : "";
+  return `${prefix}The Flip Fixer — ${service || "job"} (${source || "contact"})`;
 }
 
 /** Client parsing of /api/leads JSON. */
