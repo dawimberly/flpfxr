@@ -23,28 +23,19 @@ No Northville artwork or purported Northville project photography is included. E
 
 ## Scope and estimator behavior
 - Desktop More dropdown, scrollable mobile menu, and footer expose Northville Installation and preserve the other active destinations.
-- Existing insurance-claim page now returns 404. Related shared copy, service option, navigation, area references, metadata, and homepage/about links were removed to comply with this brief. The customer review uses an ellipsis for its omitted claim-related passage.
-- The public estimator shows one rounded combined preliminary price (the existing rounded lower estimate), retaining its quote disclaimer. Pricing arithmetic and list prices are server-side; the browser receives total and safe lead text only. Internal pricing calculations are unchanged. The legacy estimate_range payload key is retained for compatibility and now carries one price.
+- The retired /insurance-claims URL and trailing-slash variant permanently redirect to /services through Vercel configuration. Related service/type references and public copy are removed. The edited featured review is withheld pending an authentic replacement.
+- The public estimator shows the computed combined total rounded to the nearest $100, retaining its quote disclaimer. It receives only that total and safe lead text. New handoffs use estimate_price; legacy estimate_range remains readable. Crew pricing chunks are served only after real session verification.
 - Custom projects keep their inquiry handoff without an invented numeric estimate.
 - Fixed two pre-existing lint errors: document the JWT fallback catch and explain the PDF ASCII regex exception.
 
 ## Verification
-- npm run test:app: 226 pass (including three publication/response-boundary tests).
-- A clean Ubuntu npm test run exposed 17 existing template-tooling failures (180 tooling tests passed): missing .grok template skill fixtures, template auth-off defaults, OG template identity assumptions, and an obsolete auth schema layout assertion. The affected tooling tests are unchanged by this PR. The application suite is now separately runnable and CI runs all 226 application tests. The full repository test command must not be described as clean.
-- Estimator/landing tests: 29 pass, one pre-existing calibration TODO skipped pending real jobs from Jon.
-- npm run lint: zero errors, 16 pre-existing warnings.
-- npm run typecheck: passed after the generated route tree was refreshed.
-- Production Vite build and generated server syntax check passed; DB migration command skipped because no DATABASE_URL is configured.
-- On Windows the existing npm build wrapper cannot spawn the Vite command shim (ENOENT). Equivalent production pipeline used: node scripts/with-app-env.mjs node node_modules/vite/bin/vite.js build, node scripts/check-server-output.mjs, npm run db:migrate. No remote database was touched.
-- Local HTTP checks: /, /northville, /estimate, /estimate?service=bathroom, /kitchen, /bathroom, /about, /services, /contact, /areas return 200. /financing and the retired /insurance-claims return 404.
-- Rendered HTTP content checks found no restricted claims or certification wording on those pages. Marketing pages have no dollar amounts; kitchen and bathroom estimator pages each show one combined price.
-- Sitemap includes /northville and excludes /financing and /insurance-claims.
-- GitHub browser checks passed: homepage and Northville at 390 and 1600 pixels; estimator and contact handoff at 390 and 1280 pixels, with mocked lead delivery only. Navigation, telephone href, financing 404 (including trailing slash), estimator link, attribution, custom inputs, validation, and no horizontal overflow are checked. Screenshots were downloaded and visually reviewed.
-- Screenshot review found the desktop More label overlapping the call button. The header container was widened and a bounding-box overlap assertion was added.
-- Browser evidence: https://github.com/dawimberly/flpfxr/actions/runs/41939374582 — passed on code commit 3bec51696839c8544418a7f0332a409b6b2d45e8, including the header-overlap assertion, full application suite, lint, typecheck, and production build.
-- Screenshots: https://github.com/dawimberly/flpfxr/actions/runs/41939374582/artifacts/13376360603. The final report-only commit changes no application code.
-- Current postpublication HTTP verification was also run against the local server and passed, without touching production.
-- The local browser connection was unavailable, so browser verification ran in the existing GitHub Actions test environment. Test assertions use the canonical disclaimer to avoid punctuation mismatches.
+- npm run test:app: 231 pass, including strict input, authenticated asset delivery, legacy metadata and redirect regressions.
+- npm run lint: zero errors, 16 existing warnings. npm run typecheck: passed.
+- Production build, private-asset extraction/public-output scan and generated server syntax check passed in GitHub Actions. DB migrations skip without DATABASE_URL; no remote database was touched.
+- Packaged production HTTP checks: three confidential chunks are absent from static URLs (404), anonymous authenticated-asset URLs return 401 with private/no-store, /estimator redirects anonymous visitors to /login, and /financing returns 404. Verified-session asset delivery is unit tested; the complete signed-in crew workflow has not been exercised with real credentials.
+- Browser checks cover homepage/Northville navigation, phone and estimator links at 390, 1280, 1366, 1440 and 1600 pixels. Laptop header screenshots were visually inspected with no overlap. Estimator retry checks reserve the same height while loading and clear stale errors. Lead delivery is mocked; no real leads or conversions are submitted.
+- Full repository npm test previously exposed 17 existing template-tooling failures (180 tooling tests passed): missing .grok fixtures, auth-off assumptions, OG template identity assumptions and obsolete auth schema layout. Those tooling tests are unchanged; do not describe the full repository suite as clean.
+- Final CI run and screenshot evidence are recorded in PR #67. Vercel branch automatic deployment remains disabled.
 
 ## PR #67 review corrections
 - Both /insurance-claims URL variants have explicit permanent 301 redirects to /services in vercel.json. Old service/type options are removed. Provider redirect rules are checked from configuration without deploying.
