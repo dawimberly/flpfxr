@@ -24,6 +24,9 @@ try {
     await delay(500);
   }
   assert.ok(ready, "Production preview did not start: " + logs);
+  const crewPage = await fetch(base + "/estimator", { redirect: "manual" });
+  assert.ok([302, 303, 307, 308].includes(crewPage.status), "Crew HTML must require a real session too");
+  assert.match(crewPage.headers.get("location"), /\/login/);
   for (const name of names) {
     const publicResponse = await fetch(base + "/assets/" + name);
     assert.equal(publicResponse.status, 404, "Private chunk must not remain at its static URL: " + name);
