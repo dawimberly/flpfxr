@@ -1,11 +1,11 @@
 /** Anonymous production-output checks. No lead submissions or external service calls. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { readFileSync, copyFileSync } from "node:fs";
+import { readFileSync, copyFileSync, readdirSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 
 const functionRoot = ".vercel/output/functions/__server.func";
-for (const name of ["pglite.data", "pglite.wasm"]) {
+for (const name of readdirSync("node_modules/@electric-sql/pglite/dist").filter(name => /\.(?:wasm|data)$/.test(name))) {
   copyFileSync("node_modules/@electric-sql/pglite/dist/" + name, functionRoot + "/" + name);
 }
 const names = JSON.parse(readFileSync(functionRoot + "/employee-assets/manifest.json", "utf8"));
