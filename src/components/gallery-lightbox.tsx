@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { galleryJobs, isBeforeAfterJob, type GalleryJob, type ServiceId } from "@/lib/site";
+import { galleryJobs, isBeforeAfterJob, type ServiceId } from "@/lib/site";
 import { BeforeAfterSlider } from "@/components/before-after-slider";
 import { Photo } from "@/components/photo";
 import { cn } from "@/lib/utils";
