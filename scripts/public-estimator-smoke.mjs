@@ -29,6 +29,7 @@ function stopServer() {
   server.unref();
 }
 let browser;
+let activePage;
 try {
   let ready=false;
   for(let i=0;i<60;i++) {
@@ -42,17 +43,22 @@ try {
   browser=await chromium.launch({headless:true});
   {
     const page=await browser.newPage({viewport:{width:390,height:844}});
+    activePage=page;
+    page.on("pageerror", e => console.error("BROWSER ERROR", e.message));
+    page.on("console", m => { if(m.type()==="error") console.error("BROWSER CONSOLE",m.text()); });
     const ad="gclid=G123&gbraid=B123&wbraid=W123&utm_source=google&utm_medium=cpc&utm_campaign=bath&utm_term=remodel&utm_content=ad";
     await page.goto(base+"/estimate?service=bathroom&size=medium&"+ad,{waitUntil:"domcontentloaded"});
     await page.getByRole("heading",{name:"Plan your bathroom remodel.",exact:true}).waitFor();
     assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
     await page.getByTestId("estimate-total").getByText("$9,300",{exact:true}).waitFor();
-    assert.equal(await page.getByText("Preliminary estimate only — not a quote. Final price is confirmed after an on-site review.",{exact:true}).count(),1);
+    assert.equal(await page.getByText("Preliminary estimate only - not a quote. Final price is confirmed after an on-site review.",{exact:true}).count(),1);
     await page.evaluate(()=>document.fonts?.ready);
     const fold=await page.locator("#estimate-fold").boundingBox();
     assert.ok(fold,"Fold block is missing");
     assert.ok(fold.y+fold.height<=844-88,`Phone fold extends under the call bar: ${Math.round(fold.y+fold.height)}`);
+    await page.screenshot({path:join(artifacts,"public-estimator-smoke-before-handoff.png"),fullPage:true});
+    console.log("HANDOFF STATE", await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("aria-disabled"));
     await page.getByRole("link",{name:"Request an on-site estimate"}).click();
     await page.waitForURL(/\/contact/);
     const contact=new URL(page.url());
@@ -92,7 +98,7 @@ try {
     });
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
-    await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only — not a quote. Final price is confirmed after an on-site review.",{exact:true}).waitFor();
+    await page.getByTestId("estimate-disclaimer").getByText("Preliminary estimate only - not a quote. Final price is confirmed after an on-site review.",{exact:true}).waitFor();
     await page.getByTestId("estimate-total").getByText("$12,800",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
@@ -166,7 +172,7 @@ try {
     const message=await page.locator('textarea[name="message"]').inputValue();
     assert.match(message,/\$9,300/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
-    assert.match(message,/Preliminary estimate only — not a quote\. Final price is confirmed after an on-site review\./);
+    assert.match(message,/Preliminary estimate only - not a quote\. Final price is confirmed after an on-site review\./);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
     assert.equal(await page.locator('input[name="Source"]').inputValue(),"estimate");
     assert.equal(await page.evaluate(()=>sessionStorage.getItem("ff-first-landing-path")),"/estimate");
@@ -199,7 +205,14 @@ try {
     console.log("PASS",width,"px: single combined price, handoff source, first landing, structured range after message edit; mocked delivery only");
   }
   console.log("Screenshots:",artifacts);
+} catch(error) {
+  if(activePage && !activePage.isClosed()) {
+    await activePage.screenshot({path:join(artifacts,"public-estimator-smoke-failure.png"),fullPage:true});
+    console.error("FAILURE PAGE", await activePage.locator("body").innerText());
+  }
+  throw error;
 } finally {
   if(browser) await browser.close();
   stopServer();
 }
+
