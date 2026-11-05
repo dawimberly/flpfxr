@@ -48,12 +48,13 @@ try {
     const page=await browser.newPage({viewport:{width,height:900}});
     activePage=page;
     await page.goto(base+"/estimate?gclid=keep&utm_source=qa&utm_campaign=recovery",{waitUntil:"networkidle"});
-    await page.getByRole("button",{name:"Small",exact:true}).click();
-    await page.waitForURL(url=>url.searchParams.get("size")==="small");
+    const primeSize=mode==="abort"?"Small":"Large";
+    await page.getByRole("button",{name:primeSize,exact:true}).click();
+    await page.waitForURL(url=>url.searchParams.get("size")===primeSize.toLowerCase());
     await page.getByTestId("estimate-total").waitFor();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.waitForURL(url=>url.searchParams.get("size")==="medium");
-    await page.getByTestId("estimate-total").waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,800",{exact:true}).waitFor();
     let blocked=0;
     await page.route("**/_serverFn/**",route=>{
       blocked++;
