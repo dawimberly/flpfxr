@@ -1,5 +1,8 @@
 import { GALLERY } from "./site-rest-a.ts";
 
+export const PROJECT_FIT =
+  "We handle residential remodeling and construction around San Antonio — kitchens, baths, floors, paint, outdoor work, make-ready, and the repairs in between. Tell us about the house and what you want to change.";
+
 export function galleryJobId(src: string): string {
   const numbered = src.match(/gallery-(\d+)/);
   if (numbered) return numbered[1];
@@ -86,7 +89,7 @@ export const GALLERY_FILTERS: Array<{
 export const FAQS = [
   {
     q: "What kind of jobs do you take?",
-    a: "We focus on indoor, full-room kitchen and bathroom remodels. We also do flooring, paint, handyman work, outdoor projects, and make-ready. Tell us about the room and what you want to change. Alamo Heights, The Dominion, Kerrville, Boerne, San Antonio, and nearby.",
+    a: PROJECT_FIT,
   },
   {
     q: "How do I get a price?",

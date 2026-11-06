@@ -109,7 +109,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     description: `Boerne remodeling, repair, and make-ready. Call ${phone} to schedule a walkthrough. Boerne is on The Flip Fixer's service list.`,
     paragraphs: [
       `Boerne is named in the short area line: ${AREA_LINE} No review on this site is placed in Boerne.`,
-      "The work we publish for every listed area is indoor full-room kitchen and bathroom remodels, plus flooring, paint, handyman work, outdoor projects, and make-ready.",
+      "In Boerne and across our service area, we handle residential remodeling and construction, including kitchens, baths, flooring, painting, outdoor projects, make-ready, and home repairs.",
       `A job starts the way we describe it everywhere: we walk the house, then give one clear price. The steps we publish are below. Fair Oaks Ranch is also on the service list and does not have its own page. Call or text ${phone} and say Boerne, the room, and what you want to change.`,
       "If you want a planning range before that visit, use the estimate page. The number there is a planning range. The price we stand behind comes after we walk the house.",
     ],
@@ -136,7 +136,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     paragraphs: [
       `The Dominion is named in the short area line: ${AREA_LINE} No review on this site is placed in The Dominion.`,
       "A Nextdoor review from Elieen Doctor describes a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements. Those words are hers, from the review on the reviews page. The review does not name a neighborhood. It is not a Dominion project on this page.",
-      "What we do publish for The Dominion, same as the rest of the list: kitchen and bathroom remodels with design in-house, and outdoor work — fences, decks, patios, and lighting.",
+      "In The Dominion, we handle residential remodeling and construction, including kitchens and baths with in-house design, flooring, painting, repairs, and outdoor work such as fences, decks, patios, and lighting.",
     ],
     links: [
       { label: "Read the Nextdoor review", to: "/testimonials" },
@@ -153,10 +153,10 @@ export const AREA_PAGES: readonly AreaPage[] = [
     slug: "kerrville",
     name: "Kerrville",
     title: "Remodeling in Kerrville",
-    description: `Kitchen and bathroom remodeling in Kerrville. Call ${phone}. Kerrville is on the service list. No Kerrville review is published.`,
+    description: `Residential remodeling, construction, and home repairs in Kerrville. Call ${phone}. Kerrville is on the service list. No Kerrville review is published.`,
     paragraphs: [
       `Kerrville is on the service-area list and in the short line on the site: ${AREA_LINE} No review on this site is placed in Kerrville.`,
-      `Kitchen and bathroom remodels are our main work. Call or text ${phone} and say Kerrville and what you want done.`,
+      `We handle home remodeling and construction in Kerrville, including kitchens, baths, flooring, painting, outdoor projects, make-ready, and repairs. Call or text ${phone} and tell us what you want to change.`,
     ],
     links: [
       { label: "About the crew", to: "/about" },

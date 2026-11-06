@@ -2,7 +2,7 @@ export const SITE = {
   name: "The Flip Fixer",
   legalName: "The Flip Fixer",
   tagline:
-    "Kitchen and bath remodels, flooring, paint, and make-ready.",
+    "Full-home residential remodeling and construction around San Antonio.",
   phone: "2104369117",
   phoneDisplay: "(210) 436-9117",
   email: "Jon@TheFlipFixer.com",
@@ -286,9 +286,6 @@ export const JOB_DISCOUNT =
 export const DISCOUNT_ACCEPTED = "Eligibility is confirmed when we accept the job.";
 
 /** Preferred work, described by scope. No price and no budget question. */
-export const PROJECT_FIT =
-  "We focus on indoor, full-room kitchen and bathroom remodels. Tell us about the room and what you want to change.";
-
 export const FEATURED_REVIEW = {
   name: "Elieen Doctor",
   source: "Nextdoor · Repeat customer",
