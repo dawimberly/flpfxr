@@ -66,22 +66,23 @@ const RR_NOTE = "This preliminary total is install only. Removing the existing f
 const DETACH_NOTE = "Detach and reattach of fixtures or trim is extra and is confirmed on site.";
 
 /**
- * Good / Better / Best are the public planner's flooring materials, not catalog SKUs.
- * Engineered hardwood stays a named floor (`wood`) because it is not one of these three.
+ * Good / Better / Best are quality grades of one flooring material.
+ * The public planner has one price per material, so every grade uses that price.
  */
-export const FLOOR_TIERS = {
-  good: { floor: "carpet" as const, label: "Good" },
-  better: { floor: "lvp" as const, label: "Better" },
-  best: { floor: "tile" as const, label: "Best" },
-};
+export const FLOOR_GRADES = {
+  good: "Good",
+  better: "Better",
+  best: "Best",
+} as const;
 
-export type FloorTier = keyof typeof FLOOR_TIERS;
+export type FloorTier = keyof typeof FLOOR_GRADES;
 /** Visitor act. `rr` and install-only use the catalog act names; detach is not a priced catalog act. */
 export type PublicFloorAct = "rr" | "detach" | "install-only";
 
 export type PublicEstimateContext = {
   act: PublicFloorAct | null;
   existing: string | null;
+  tier: FloorTier | null;
 };
 
 const TIER_ALIASES: Record<string, FloorTier> = {
@@ -95,11 +96,9 @@ function normalizeTier(value: unknown): FloorTier | null {
   return TIER_ALIASES[text(value)] ?? null;
 }
 
-function tierForFloor(floor: ProjectInputs["floor"]): FloorTier | null {
-  if (floor === "carpet") return "good";
-  if (floor === "lvp") return "better";
-  if (floor === "tile") return "best";
-  return null;
+function gradeTitle(tier: FloorTier, floor: ProjectInputs["floor"]): string {
+  const material = FLOOR_MATERIALS.find(row => row.id === floor)?.label ?? floor;
+  return `${FLOOR_GRADES[tier]} ${material.toLowerCase()}`;
 }
 
 function normalizeAct(value: unknown): PublicFloorAct | null {
@@ -137,11 +136,12 @@ export function actForExistingFloor(existing: string | null): PublicFloorAct | n
 }
 
 export function readPublicEstimateContext(data: unknown): PublicEstimateContext {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return { act: null, existing: null };
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { act: null, existing: null, tier: null };
   const record = data as Record<string, unknown>;
   const existing = classifyExistingFloor(field(record, "existing", "existingFloor", "existing_floor"));
   const explicit = normalizeAct(field(record, "act"));
-  return { act: explicit ?? actForExistingFloor(existing), existing };
+  const tier = normalizeTier(field(record, "tier"));
+  return { act: explicit ?? actForExistingFloor(existing), existing, tier };
 }
 
 function invalidEstimate(): Response {
@@ -269,10 +269,7 @@ export function normalizePublicEstimateBody(data: unknown): unknown {
   const floorSqft = normalizeArea(field(record, "floorSqft", "floor_sqft"));
   const showerSqft = normalizeArea(field(record, "showerSqft", "shower_sqft"));
   const counterSqft = normalizeArea(field(record, "counterSqft", "counter_sqft"));
-  const tier = normalizeTier(field(record, "tier")) ?? normalizeTier(field(record, "floor"));
-  const floorFallback = service === "flooring" && tier
-    ? FLOOR_TIERS[tier].floor
-    : service === "bathroom" ? "tile" : DEFAULT_PROJECT_INPUTS.floor;
+  const floorFallback = service === "bathroom" ? "tile" : DEFAULT_PROJECT_INPUTS.floor;
   const rawFloor = field(record, "floor");
   const floorIsTier = normalizeTier(rawFloor) != null;
   const body: Record<string, unknown> = {
@@ -308,12 +305,12 @@ function flooringNotes(act: PublicFloorAct | null) {
   return { removalNote: REMOVAL_NOTE, detachNote: null as string | null };
 }
 
-export function visitorPublicEstimate(input: ProjectInputs, context: PublicEstimateContext = { act: null, existing: null }) {
+export function visitorPublicEstimate(input: ProjectInputs, context: PublicEstimateContext = { act: null, existing: null, tier: null }) {
   const priced = publicEstimateResult(input);
   const built = projectPlanningEstimate(input);
   const plannerUrl = new URL(publicPlannerPath(input), CANONICAL_ORIGIN).toString();
   const flooring = input.service === "flooring";
-  const tier = flooring ? tierForFloor(input.floor) : null;
+  const tier = flooring ? context.tier : null;
   const act = flooring ? context.act : null;
   const notes = flooring ? flooringNotes(act) : { removalNote: null as string | null, detachNote: null as string | null };
   // Catalog actUnitCost can add a remove rate, but public flooring has no remove
@@ -334,7 +331,7 @@ export function visitorPublicEstimate(input: ProjectInputs, context: PublicEstim
       nextStep: NEXT_STEP,
       plannerUrl,
       tier,
-      tierLabel: tier ? FLOOR_TIERS[tier].label : null,
+      tierLabel: tier ? gradeTitle(tier, input.floor) : null,
       act,
       actLabel: act === "detach" ? "Detach & reattach" : act === "rr" ? actLabel("rr") : act === "install-only" ? actLabel("plus") : null,
       pricedAct,
@@ -357,7 +354,7 @@ export function visitorPublicEstimate(input: ProjectInputs, context: PublicEstim
     nextStep: NEXT_STEP,
     plannerUrl,
     tier,
-    tierLabel: tier ? FLOOR_TIERS[tier].label : null,
+    tierLabel: tier ? gradeTitle(tier, input.floor) : null,
     act,
     actLabel: act === "detach" ? "Detach & reattach" : act === "rr" ? actLabel("rr") : act === "install-only" ? actLabel("plus") : null,
     pricedAct,

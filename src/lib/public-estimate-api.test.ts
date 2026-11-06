@@ -56,8 +56,8 @@ describe("public estimate API", () => {
     assert.match(body.removalNote, /on site/);
     assert.match(body.nextStep, /^We can schedule a free walkthrough with Jon/);
     assert.equal(body.plannerUrl, "https://theflipfixer.com/estimate?service=flooring&size=medium&floor=lvp&roomSqft=400");
-    assert.equal(body.tier, "better");
-    assert.equal(body.tierLabel, "Better");
+    assert.equal(body.tier, null);
+    assert.equal(body.tierLabel, null);
     assert.equal(body.pricedAct, "install-only");
     assert.equal(body.removalPriced, false);
     assert.equal(body.detachPriced, false);
@@ -124,13 +124,15 @@ describe("public estimate API", () => {
   });
 
   it("prices flooring tiers as install only and does not add removal dollars", async () => {
-    const tiers = [
-      ["good", "carpet", 3100],
-      ["better", "lvp", 3600],
-      ["best", "tile", 9300],
+    const materials = [
+      ["carpet", "Good carpet", 3100],
+      ["lvp", "Best luxury vinyl plank", 3600],
+      ["tile", "Best tile", 9300],
+      ["wood", "Best engineered hardwood", 4700],
     ] as const;
-    for (const [tier, floor, total] of tiers) {
-      const body = await (await post({ service: "flooring", tier, roomSqft: 400 })).json();
+    for (const [floor, label, total] of materials) {
+      const grade = floor === "carpet" ? "good" : "best";
+      const body = await (await post({ service: "flooring", floor, tier: grade, roomSqft: 400 })).json();
       const built = projectPlanningEstimate({
         ...DEFAULT_PROJECT_INPUTS,
         service: "flooring",
@@ -139,15 +141,26 @@ describe("public estimate API", () => {
         roomSqft: 400,
         vanity: undefined,
       })!;
-      assert.equal(body.total, Math.round(built.total / 100) * 100, tier);
-      assert.equal(body.total, total, tier);
-      assert.equal(body.tier, tier);
+      assert.equal(body.total, Math.round(built.total / 100) * 100, floor);
+      assert.equal(body.total, total, floor);
+      assert.equal(body.tier, grade);
+      assert.equal(body.tierLabel, label);
       assert.equal(body.pricedAct, "install-only");
-      assert.equal(body.plannerUrl.includes(`floor=${floor}`), true, tier);
+      assert.equal(body.plannerUrl.includes(`floor=${floor}`), true, floor);
     }
+    for (const tier of ["good", "better", "best"] as const) {
+      const body = await (await post({ service: "flooring", floor: "tile", tier, roomSqft: 400 })).json();
+      assert.equal(body.total, 9300, tier);
+      assert.equal(body.tier, tier);
+      assert.match(body.tierLabel, /tile$/);
+      assert.equal(body.plannerUrl.includes("floor=tile"), true);
+    }
+    const gradeDoesNotSwap = await (await post({ service: "flooring", tier: "best", roomSqft: 400 })).json();
+    assert.equal(gradeDoesNotSwap.total, 3600);
+    assert.equal(gradeDoesNotSwap.tierLabel, "Best luxury vinyl plank");
     const named = await (await post({
       service: "flooring",
-      tier: "good",
+      tier: "best",
       floor: "tile",
       roomSqft: "400",
       existing: "old snap-together flooring",
@@ -163,6 +176,7 @@ describe("public estimate API", () => {
     assert.equal(named.total, 9300);
     assert.equal(installOnly.total, named.total);
     assert.equal(named.tier, "best");
+    assert.equal(named.tierLabel, "Best tile");
     assert.equal(named.act, "rr");
     assert.equal(named.actLabel, "Remove & replace");
     assert.equal(named.existing, "snap-together");
@@ -188,9 +202,13 @@ describe("public estimate API", () => {
     assert.equal(detach.detachPriced, false);
     assert.match(detach.detachNote, /extra/);
     assert.match(detach.detachNote, /on site/);
-    const wood = await (await post({ service: "flooring", floor: "engineered hardwood", roomSqft: 400 })).json();
+    const wood = await (await post({ service: "flooring", floor: "engineered hardwood", tier: "good", roomSqft: 400 })).json();
     assert.equal(wood.total, 4700);
-    assert.equal(wood.tier, null);
+    assert.equal(wood.tier, "good");
+    assert.equal(wood.tierLabel, "Good engineered hardwood");
+    const mismatched = await (await post({ service: "flooring", floor: "tile", tier: "good", roomSqft: 400 })).json();
+    assert.equal(mismatched.total, 9300);
+    assert.equal(mismatched.tierLabel, "Good tile");
     const raw = JSON.stringify(named);
     assert.doesNotMatch(raw, /7\.85|1\.28|3\.85|remove_cost|cost_per_unit|insured/i);
   });
@@ -208,7 +226,8 @@ describe("public estimate API", () => {
     assert.match(doc, /How much is 400 sq ft of LVP\?/);
     assert.match(doc, /How much is a kitchen or bath\?/);
     assert.match(doc, /How much is tile floor\?/);
-    assert.match(doc, /Good is carpet, Better is luxury vinyl plank, and Best is tile/);
+    assert.match(doc, /Good, Better, and Best grades of that material/);
+    assert.doesNotMatch(doc, /Good is carpet/);
     assert.match(doc, /\/api\/public-estimate/);
     assert.match(doc, /never invent|Never invent/);
     assert.match(doc, /snap-together/);
