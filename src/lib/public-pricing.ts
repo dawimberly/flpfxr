@@ -1,3 +1,5 @@
+import { planningCabinetPrices } from "./cabinet-pricing.server.ts";
+import { CABINET_FINISHES } from "./cabinets.ts";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
   SHOWER_MATERIALS, projectScope, scopeAreaError, selectedVanity, getVanity,
@@ -11,17 +13,10 @@ export const JOB_MINIMUM = 1500;
 const PERSON_HOURS_PER_CREW_DAY = 16;
 const PROJECT_SUPPORT = { Small: 250, Medium: 450, Large: 750 } as const;
 
-/**
- * Northville install labor is $75 for a cabinet box and $125 for an oversized box
- * (pantries, refrigerator panels, tall towers). The public planner keeps 1.5
- * person-hours on a standard box and scales the XL fridge box by that ratio.
- */
-export const XL_FRIDGE_LABOR_RATIO = 125 / 75;
 /** Owner-specified person-hours, not crew-hours. Primer consumes half a pass. */
 export const TRADE_HOURS = {
   tileFloor: 0.35, surroundTile: 0.5, lvp: 0.06,
   interiorPaintPerCoat: 0.03, exteriorPaint: 0.04, cabinetBox: 1.5,
-  xlFridgeBox: 1.5 * (125 / 75),
   // TODO Jon: confirm these retained/provisional non-specified productivity assumptions.
   woodFloor: 0.08, carpetFloor: 0.08, trim: 0.15, countertop: 0.08,
   backsplashTile: 0.5, fixture: 1.5,
@@ -39,10 +34,7 @@ const SHOWER_MATERIAL_COST = { ceramic: 5.50, porcelain: 6.25 };
 const REFERENCE_COST = {
   trim: 2.85, interiorPaint: 0.45, exteriorPaint: 0.55,
   interiorPrimer: 0.22, exteriorPrimer: 0.28,
-  /** Northville face-frame average, December 2023, Grey Shaker and Elegant White. */
-  baseCabinet: 234.08, wallCabinet: 153.87, backsplash: 8.75,
-  /** Tall pantry average from that same list. */
-  xlFridgeBox: 585.16,
+  backsplash: 8.75,
 };
 
 /**
@@ -180,7 +172,8 @@ function validate(input: ProjectInputs) {
   if (!input || !PROJECT_SERVICES.some(s => s.id === input.service) ||
       !PROJECT_SIZES.includes(input.size) ||
       !Object.hasOwn(FLOOR_COST, input.floor) || !validCounter(input.counter) ||
-      !validShower(input.shower) || (input.vanity != null && !getVanity(input.vanity)) ||
+      !validShower(input.shower) ||
+      (input.cabinetFinish !== undefined && !CABINET_FINISHES.some(finish => finish.id === input.cabinetFinish)) || (input.vanity != null && !getVanity(input.vanity)) ||
       typeof input.newToilet !== "boolean" || typeof input.prime !== "boolean" ||
       (input.exteriorCoats !== 1 && input.exteriorCoats !== 2) ||
       ![input.delivery, input.specialist].every(n => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= ALLOWANCE_CAP)) {
@@ -208,10 +201,11 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
   }
   let remnantStone = false;
   if (input.service === "kitchen") {
-    add("base-cabinets", scope.base, REFERENCE_COST.baseCabinet, TRADE_HOURS.cabinetBox);
-    add("wall-cabinets", scope.wallUnits, REFERENCE_COST.wallCabinet, TRADE_HOURS.cabinetBox);
+    const cabinets = planningCabinetPrices(input.cabinetFinish ?? "ew");
+    add("base-cabinets", scope.base, cabinets.base, 0);
+    add("wall-cabinets", scope.wallUnits, cabinets.wall, 0);
     if (scope.xlFridgeBoxes > 0) {
-      add("xl-fridge", scope.xlFridgeBoxes, REFERENCE_COST.xlFridgeBox, TRADE_HOURS.xlFridgeBox);
+      add("xl-fridge", scope.xlFridgeBoxes, cabinets.oversized, 0);
     }
     if (input.counter === "quartz" || input.counter === "granite") {
       const coverage = stoneCoverage(scope.counters, scope.counters > SMALL_PIECE_SQFT);
@@ -321,6 +315,7 @@ export function projectEstimateLeadMessage(input: ProjectInputs): string {
     input.service === "kitchen" || input.service === "bathroom"
       ? COUNTER_MATERIALS.find(m => m.id === input.counter)!.label + " counters" : "",
     input.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === input.shower)!.label + " shower wall" : "",
+    input.service === "kitchen" ? CABINET_FINISHES.find(finish => finish.id === (input.cabinetFinish ?? "ew"))?.name ?? "" : "",
     input.service === "bathroom" ? selectedVanity(input.size, input.vanity).label : "",
     input.service === "bathroom" ? (input.newToilet ? "New toilet" : "Existing toilet") : "",
     result?.scope.wall ? (input.prime ? "Primer and paint" : "Paint only") : "",

@@ -1,3 +1,5 @@
+import type { CabinetFinishId } from "./cabinets.ts";
+
 /** Public scope examples, not measured takeoffs or fixed bids. */
 export const PROJECT_SIZES = ["Small", "Medium", "Large"] as const;
 export type ProjectSize = typeof PROJECT_SIZES[number];
@@ -50,6 +52,7 @@ export type ProjectInputs = {
   newToilet: boolean;
   /** Kitchen cabinet boxes. Unset uses the size example. */
   cabinetBoxes?: number | null;
+  cabinetFinish?: CabinetFinishId;
   /** Kitchen XL boxes around a refrigerator. Unset means none. */
   xlFridgeBoxes?: number | null;
 };

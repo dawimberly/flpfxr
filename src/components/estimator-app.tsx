@@ -42,8 +42,8 @@ import { useActiveRoom, useEstimatorStore } from "@/lib/estimator-store";
 import { CabinetPicker } from "@/components/cabinet-picker";
 import { EstimateLogButton, SaveEstimateButton } from "@/components/estimate-log";
 import { FinishCard } from "@/components/finish-card";
-import { isCabinetCategory } from "@/lib/cabinets";
-import { lineTakesOp } from "@/lib/op";
+import { isCabinetCategory, resolveCabinetFinish } from "@/lib/cabinets";
+import { loadCabinetCatalog, loadCabinetQuotes } from "@/lib/cabinet-quote";
 import { cn, money, qtyLabel } from "@/lib/utils";
 
 function Section({
@@ -207,7 +207,7 @@ function OpeningList({
   );
 }
 
-function RoomStrip({ job }: { job: JobEstimate }) {
+function RoomStrip({ job }: { job: JobEstimate | null }) {
   const rooms = useEstimatorStore((s) => s.rooms);
   const activeRoomId = useEstimatorStore((s) => s.activeRoomId);
   const selectRoom = useEstimatorStore((s) => s.selectRoom);
@@ -216,7 +216,7 @@ function RoomStrip({ job }: { job: JobEstimate }) {
   const removeRoom = useEstimatorStore((s) => s.removeRoom);
   const renameRoom = useEstimatorStore((s) => s.renameRoom);
   const [addKey, setAddKey] = useState(0);
-  const totals = new Map(job.rooms.map((entry) => [entry.room.id, entry.estimate.grandTotal]));
+  const totals = new Map(job?.rooms.map((entry) => [entry.room.id, entry.estimate.grandTotal]));
 
   return (
     <div className="space-y-3">
@@ -235,7 +235,7 @@ function RoomStrip({ job }: { job: JobEstimate }) {
             >
               <span className="max-w-[10rem] truncate text-sm font-medium">{room.label}</span>
               <span className={cn("font-mono text-xs tabular-nums", active ? "text-ink-foreground/70" : "text-muted")}>
-                {money(totals.get(room.id) ?? 0)}
+                {job ? money(totals.get(room.id) ?? 0) : "—"}
               </span>
             </button>
           );
@@ -353,7 +353,7 @@ function EstimateRail({ job, activeRoomId }: { job: JobEstimate; activeRoomId: s
   const selectRoom = useEstimatorStore((s) => s.selectRoom);
   const [listMode, setListMode] = useState<"room" | "complete">("complete");
   const active = job.rooms.find((entry) => entry.room.id === activeRoomId) ?? job.rooms[0];
-  const roofingOnJob = job.completeLineItems.some((line) => !lineTakesOp(line.category));
+  const roofingOnJob = job.completeLineItems.some((line) => line.category === "roofing");
   const shownItems =
     listMode === "complete"
       ? job.completeLineItems
@@ -422,7 +422,7 @@ function EstimateRail({ job, activeRoomId }: { job: JobEstimate; activeRoomId: s
           <p className="text-[11px] text-ink-foreground/55">Roofing stays installed-only. No O&P on those lines.</p>
         </div>
         <div className="mt-5 flex flex-col gap-3">
-          <SaveEstimateButton />
+          <SaveEstimateButton grandTotal={job.grandTotal} />
           <DownloadPdfButtons job={job} />
         </div>
       </div>
@@ -462,7 +462,7 @@ function EstimateRail({ job, activeRoomId }: { job: JobEstimate; activeRoomId: s
                   <p className="truncate text-sm text-fg">{line.description}</p>
                   <p className="font-mono text-xs tabular-nums text-muted">
                     {listMode === "complete" ? `${line.roomLabel} · ` : ""}
-                    {qtyLabel(line.quantity, line.unit)} · {money(line.unitCost)}
+                    {line.category === "cabinet-package" ? null : <>{qtyLabel(line.quantity, line.unit)} · {money(line.unitCost)}</>}
                   </p>
                 </div>
                 <p className="shrink-0 font-mono text-sm tabular-nums text-fg">{money(line.lineTotal)}</p>
@@ -496,8 +496,44 @@ export function EstimatorApp() {
   const client = useEstimatorStore((s) => s.client);
   const setClient = useEstimatorStore((s) => s.setClient);
   const laborRate = useEstimatorStore((s) => s.laborRate);
+  const opEnabled = useEstimatorStore((s) => s.opEnabled);
   const room = useActiveRoom();
-  const job = useMemo(() => estimateJob(rooms, laborRate), [rooms, laborRate]);
+  const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadCabinetCatalog>> | null>(null);
+  const [catalogFailed, setCatalogFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const selections = rooms.filter(room => room.cabinets?.length).map(room => ({
+    roomId: room.id,
+    finish: resolveCabinetFinish(room.cabinetFinishId, room.roomTypeId),
+    picks: room.cabinets.map(({ sku, quantity }) => ({ sku, quantity })),
+  }));
+  const selectionKey = JSON.stringify(selections);
+  const [priced, setPriced] = useState<{
+    key: string;
+    quotes: Awaited<ReturnType<typeof loadCabinetQuotes>> | null;
+  } | null>(null);
+  const quotes = priced?.key === selectionKey ? priced.quotes : null;
+  const quoteFailed = priced?.key === selectionKey && !quotes;
+  const unavailable = quotes && Object.values(quotes).some(quote => quote.total === null);
+  const ready = selectionKey === "[]" || Boolean(quotes && !unavailable);
+  const job = useMemo(() => estimateJob(rooms, opEnabled ? laborRate : 0, quotes ?? {}), [rooms, laborRate, opEnabled, quotes]);
+
+  useEffect(() => {
+    let active = true;
+    loadCabinetCatalog().then(value => { if (active) { setCatalog(value); setCatalogFailed(false); } })
+      .catch(() => { if (active) setCatalogFailed(true); });
+    return () => { active = false; };
+  }, [attempt]);
+
+  useEffect(() => {
+    if (selectionKey === "[]") return;
+    let active = true;
+    const timer = setTimeout(() => {
+      loadCabinetQuotes({ data: JSON.parse(selectionKey) })
+        .then(quotes => { if (active) setPriced({ key: selectionKey, quotes }); })
+        .catch(() => { if (active) setPriced({ key: selectionKey, quotes: null }); });
+    }, 150);
+    return () => { active = false; clearTimeout(timer); };
+  }, [selectionKey, attempt]);
 
   useEffect(() => {
     useEstimatorStore.getState().hydrate();
@@ -531,7 +567,7 @@ export function EstimatorApp() {
                 <Link to="/estimator/roof">Roof trace</Link>
               </Button>
               <EstimateLogButton />
-              <SaveEstimateButton tone="light" />
+              <SaveEstimateButton tone="light" grandTotal={job.grandTotal} disabled={!ready} />
               <Button type="button" variant="ghost" size="sm" onClick={loadSample}>
                 <House className="size-4" />
                 Sample house
@@ -551,7 +587,7 @@ export function EstimatorApp() {
                 </Link>
               </Button>
               <EstimateLogButton icon />
-              <SaveEstimateButton tone="light" icon />
+              <SaveEstimateButton tone="light" icon grandTotal={job.grandTotal} disabled={!ready} />
               <Button
                 type="button"
                 variant="outline"
@@ -592,7 +628,7 @@ export function EstimatorApp() {
             </section>
 
             <Section kicker="The rooms" title="What are we walking into?">
-              <RoomStrip job={job} />
+              <RoomStrip job={ready ? job : null} />
               <div className="mt-6">
                 <div className="sm:hidden">
                   <Label htmlFor="room-type">Room type</Label>
@@ -668,7 +704,9 @@ export function EstimatorApp() {
                 {"R&R"} is remove and replace. R is remove only. + is install only.
               </p>
               <div className="grid gap-3">
-                {showCabinets ? <CabinetPicker room={room} /> : null}
+                {showCabinets && catalog ? <CabinetPicker room={room} catalog={catalog} /> : null}
+                {showCabinets && !catalog ? <p role="status">{catalogFailed ? "Cabinet options could not load." : "Loading cabinet options…"}</p> : null}
+                {showCabinets && catalogFailed ? <Button type="button" onClick={() => setAttempt(value => value + 1)}>Retry cabinet options</Button> : null}
                 {visibleCategories
                   .filter((category) => !isCabinetCategory(category))
                   .map((category) => (
@@ -725,7 +763,12 @@ export function EstimatorApp() {
             </Section>
           </div>
 
-          <EstimateRail job={job} activeRoomId={activeRoomId} />
+          {ready ? <EstimateRail job={job} activeRoomId={activeRoomId} /> : (
+            <aside role="status">
+              {unavailable ? job.warnings.join(" ") : quoteFailed ? "Cabinet pricing could not load." : "Updating cabinet pricing…"}
+              {quoteFailed ? <Button type="button" onClick={() => { setPriced(null); setAttempt(value => value + 1); }}>Retry pricing</Button> : null}
+            </aside>
+          )}
         </main>
       </div>
 
@@ -733,9 +776,9 @@ export function EstimatorApp() {
         <div className="mx-auto flex w-full min-w-0 max-w-6xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] tracking-wide text-muted uppercase">Job total</p>
-            <p className="font-display text-xl font-medium tabular-nums leading-none sm:text-2xl">{money(job.grandTotal)}</p>
+            <p className="font-display text-xl font-medium tabular-nums leading-none sm:text-2xl">{ready ? money(job.grandTotal) : "Pending cabinet pricing"}</p>
           </div>
-          <DownloadPdfButtons job={job} compact />
+          {ready ? <DownloadPdfButtons job={job} compact /> : null}
         </div>
       </div>
     </div>

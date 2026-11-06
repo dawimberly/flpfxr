@@ -1,6 +1,6 @@
 import catalogJson from "@/data/catalog.json";
 import roomTypesJson from "@/data/room-types.json";
-import { cabinetLineItems, isCabinetCategory, type CabinetPick } from "@/lib/cabinets";
+import { isCabinetCategory, type CabinetPick, type CabinetQuote } from "@/lib/cabinets";
 import {
   actDescription,
   actUnitCost,
@@ -263,7 +263,7 @@ export function buildEstimate(
   scan: ParsedScan,
   selections: Selection[],
   opPercent = OP_PERCENT,
-  cabinets?: { finishId: string; picks: CabinetPick[] },
+  cabinetQuote?: CabinetQuote,
 ): Estimate {
   const lineItems: LineItem[] = [];
   const warnings: string[] = [];
@@ -314,10 +314,19 @@ export function buildEstimate(
     });
   }
 
-  if (cabinets) {
-    const extra = cabinetLineItems(cabinets.finishId, cabinets.picks);
-    lineItems.push(...extra.lines);
-    warnings.push(...extra.warnings);
+  if (cabinetQuote) {
+    warnings.push(...cabinetQuote.warnings);
+    if (cabinetQuote.total !== null) {
+      lineItems.push({
+        description: "Cabinet selection · installed",
+        quantity: 1,
+        unit: "package",
+        unitCost: cabinetQuote.total,
+        lineTotal: cabinetQuote.total,
+        kind: "material",
+        category: "cabinet-package",
+      });
+    }
   }
 
   const materialsSubtotal = round2(lineItems.reduce((sum, line) => sum + line.lineTotal, 0));
@@ -334,21 +343,22 @@ export function buildEstimate(
   };
 }
 
-export function estimateJobRoom(room: JobRoom, opPercent = OP_PERCENT): RoomEstimate {
+export function estimateJobRoom(room: JobRoom, opPercent = OP_PERCENT, cabinetQuote?: CabinetQuote): RoomEstimate {
   const scan = parseScan(room);
   return {
     room,
     typeName: getRoom(room.roomTypeId).display_name,
     scan,
-    estimate: buildEstimate(scan, selectionsFromRoom(room), opPercent, {
-      finishId: room.cabinetFinishId ?? "gs",
-      picks: room.cabinets ?? [],
-    }),
+    estimate: buildEstimate(scan, selectionsFromRoom(room), opPercent, cabinetQuote),
   };
 }
 
-export function estimateJob(rooms: JobRoom[], opPercent = OP_PERCENT): JobEstimate {
-  const roomEstimates = rooms.map((room) => estimateJobRoom(room, opPercent));
+export function estimateJob(
+  rooms: JobRoom[],
+  opPercent = OP_PERCENT,
+  cabinetQuotes: Record<string, CabinetQuote> = {},
+): JobEstimate {
+  const roomEstimates = rooms.map((room) => estimateJobRoom(room, opPercent, cabinetQuotes[room.id]));
   const completeLineItems: JobLineItem[] = roomEstimates.flatMap((entry) =>
     entry.estimate.lineItems.map((line) => ({
       ...line,

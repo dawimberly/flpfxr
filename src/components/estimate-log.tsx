@@ -47,10 +47,14 @@ export function SaveEstimateButton({
   compact = false,
   icon = false,
   tone = "rail",
+  grandTotal,
+  disabled = false,
 }: {
   compact?: boolean;
   icon?: boolean;
   tone?: "rail" | "light";
+  grandTotal?: number;
+  disabled?: boolean;
 }) {
   const currentSavedId = useEstimatorStore((s) => s.currentSavedId);
   const lastSavedAt = useEstimatorStore((s) => s.lastSavedAt);
@@ -58,7 +62,7 @@ export function SaveEstimateButton({
   const [flash, setFlash] = useState<string | null>(null);
 
   function save(asNew = false) {
-    const record = saveToLog(asNew);
+    const record = saveToLog(asNew, grandTotal);
     if (!record) return;
     setFlash(asNew ? "Saved as new" : "Saved to log");
     window.setTimeout(() => setFlash(null), 1800);
@@ -70,7 +74,7 @@ export function SaveEstimateButton({
         type="button"
         variant="outline"
         size={icon ? "icon" : "sm"}
-        onClick={() => save(false)}
+        disabled={disabled} onClick={() => save(false)}
         aria-label="Save to log"
       >
         <Bookmark className="size-4" />
@@ -81,7 +85,7 @@ export function SaveEstimateButton({
 
   return (
     <div className="space-y-1">
-      <Button type="button" variant={compact ? "secondary" : "default"} className="w-full" onClick={() => save(false)}>
+      <Button type="button" variant={compact ? "secondary" : "default"} className="w-full" disabled={disabled} onClick={() => save(false)}>
         <Bookmark className="size-4" />
         {currentSavedId ? "Update log" : "Save to log"}
       </Button>
@@ -89,7 +93,7 @@ export function SaveEstimateButton({
         <button
           type="button"
           className="w-full text-center text-xs text-ink-foreground/70 hover:text-ink-foreground"
-          onClick={() => save(true)}
+          disabled={disabled} onClick={() => save(true)}
         >
           Save as new job
         </button>

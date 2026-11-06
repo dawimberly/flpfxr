@@ -118,7 +118,7 @@ describe("free inquiry", () => {
     assert.equal(response.status, 200);
     assert.match(message, /Kitchen remodeling/);
     assert.match(message, /Size: Medium/);
-    assert.match(message, /between \$12,800 and \$16,000/);
+    assert.match(message, /between \$13,300 and \$16,700/);
     assert.match(message, /120 Broadway/);
     assert.match(message, /Side gate is open/);
     assert.doesNotMatch(message, /insured/i);
@@ -141,7 +141,7 @@ describe("labor document", () => {
     assert.equal(doc.totalCents, Math.round(built.low) * 100);
     assert.equal(doc.lines.reduce((sum, line) => sum + line.amountCents, 0), doc.totalCents);
     assert.equal(doc.rangeLabel, formatEstimateRange(built));
-    assert.equal(doc.rangeLabel, "between $12,800 and $16,000");
+    assert.equal(doc.rangeLabel, "between $13,300 and $16,700");
     assert.ok(doc.lines.some((line) => line.label === "Cabinets - supplied and installed"));
     assert.ok(doc.lines.some((line) => line.label === "Counters - supplied and installed"));
     assert.equal(doc.supplierNote, null);
@@ -163,7 +163,7 @@ describe("labor document", () => {
     assert.match(text, /INVESTMENT/);
     assert.match(text, /NOTES/);
     assert.match(text, /Materials named for this job/);
-    assert.match(text, /between \$12,800 and \$16,000/);
+    assert.match(text, /between \$13,300 and \$16,700/);
     assert.match(text, /Cabinets - supplied and installed/);
     assert.doesNotMatch(text, /Material prices|do not put prices|labor only|labor and services/i);
     assert.match(text, /Itemized job estimate/);
@@ -357,7 +357,7 @@ describe("labor pdf", () => {
     assert.match(text, /WHAT'S NOT INCLUDED/);
     assert.match(text, /INVESTMENT/);
     assert.match(text, /Estimated job total/);
-    assert.match(text, /between \$12,800 and \$16,000/);
+    assert.match(text, /between \$13,300 and \$16,700/);
     assert.match(text, /Cabinets - supplied and installed/);
     assert.match(text, /\u2022/);
     assert.doesNotMatch(text, /Material prices|do not put prices|labor only|labor and services/i);

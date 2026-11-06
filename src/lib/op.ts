@@ -2,7 +2,7 @@ export const DEFAULT_OP_PERCENT = 20;
 
 /** Roofing is bid at installed unit prices. Interior work still takes O&P. */
 export function lineTakesOp(category: string) {
-  return category.trim().toLowerCase() !== "roofing";
+  return !["roofing", "cabinet-package"].includes(category.trim().toLowerCase());
 }
 
 export function opBaseFromLines(lines: { category: string; lineTotal: number }[]) {

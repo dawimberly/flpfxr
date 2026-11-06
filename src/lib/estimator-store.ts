@@ -83,7 +83,7 @@ type EstimatorState = JobSlice & {
   startOver: () => void;
   hydrate: () => void;
   refreshLog: () => void;
-  saveToLog: (asNew?: boolean) => SavedEstimate | null;
+  saveToLog: (asNew?: boolean, grandTotal?: number) => SavedEstimate | null;
   openSaved: (id: string) => boolean;
   deleteSaved: (id: string) => void;
   applyRoofTrace: (address: string, summary: RoofSummary, extras?: RoofSendExtras) => void;
@@ -464,7 +464,7 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
       if (nextLog) set({ log: nextLog });
     });
   },
-  saveToLog: (asNew = false) => {
+  saveToLog: (asNew = false, grandTotal) => {
     if (typeof window === "undefined") return null;
     const state = get();
     const record = upsertSavedEstimate(
@@ -476,6 +476,7 @@ export const useEstimatorStore = create<EstimatorState>((set, get) => ({
         client: state.client,
       }),
       asNew ? null : state.currentSavedId,
+      grandTotal,
     );
     set({
       currentSavedId: record.id,

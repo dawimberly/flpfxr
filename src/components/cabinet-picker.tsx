@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,41 +9,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CABINET_LABOR,
-  CABINET_LABOR_OVERSIZED,
-  cabinetLaborFor,
-  cabinetTotals,
-  getCabinetItem,
-  getFinish,
-  groupsForRoom,
-  isClosetRoom,
-  itemsForFinish,
-  northville,
-  preferredCabinetGroup,
-} from "@/lib/cabinets";
+import { CABINET_FINISHES, cabinetTier, isClosetRoom, preferredCabinetGroup, resolveCabinetFinish } from "@/lib/cabinets";
+import type { loadCabinetCatalog } from "@/lib/cabinet-quote";
 import type { JobRoom } from "@/lib/estimator";
 import { useEstimatorStore } from "@/lib/estimator-store";
-import { money } from "@/lib/utils";
 
-export function CabinetPicker({ room }: { room: JobRoom }) {
+export function CabinetPicker({ room, catalog }: {
+  room: JobRoom;
+  catalog: Awaited<ReturnType<typeof loadCabinetCatalog>>;
+}) {
   const setCabinetFinish = useEstimatorStore((s) => s.setCabinetFinish);
   const addCabinet = useEstimatorStore((s) => s.addCabinet);
   const setCabinetQty = useEstimatorStore((s) => s.setCabinetQty);
   const removeCabinet = useEstimatorStore((s) => s.removeCabinet);
   const closetRoom = isClosetRoom(room.roomTypeId);
-  const roomGroups = groupsForRoom(room.roomTypeId);
+  const roomGroups = catalog.groups.filter(item => item.id.startsWith("closet-") === closetRoom);
   const preferred = preferredCabinetGroup(room.roomTypeId);
   const [group, setGroup] = useState(preferred);
   const [sku, setSku] = useState("");
 
   const activeGroup = roomGroups.some((item) => item.id === group) ? group : preferred;
   const picks = room.cabinets ?? [];
-  const finishId = room.cabinetFinishId ?? (closetRoom ? "cl" : "ess");
-  const finish = getFinish(finishId);
-  const options = useMemo(() => itemsForFinish(finishId, activeGroup), [finishId, activeGroup]);
-  const totals = cabinetTotals(finishId, picks);
-  const selected = options.find((item) => item.sku === sku) ?? null;
+  const finishId = resolveCabinetFinish(room.cabinetFinishId, room.roomTypeId);
+  const options = catalog.items.filter(item => item.group === activeGroup && item.finishes.includes(finishId));
+  const selected = options.find(item => item.sku === sku);
+  const finish = CABINET_FINISHES.find(item => item.id === finishId);
+  const tier = finish ? cabinetTier(finish.id) : null;
   const heading = closetRoom ? "Closets" : "Cabinets";
 
   return (
@@ -51,12 +42,8 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-fg">{heading}</p>
-          <p className="text-xs text-muted">
-            Northville MSRP {northville.asOf}. ${CABINET_LABOR} install each, ${CABINET_LABOR_OVERSIZED}{" "}
-            for pantries, fridge panels, and tall closet towers.
-          </p>
+          {tier ? <p className="text-xs text-muted">{tier.label}. {tier.details}</p> : null}
         </div>
-        <p className="shrink-0 font-mono text-sm tabular-nums text-fg">{money(totals.installed)}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -73,7 +60,7 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {northville.finishes.map((item) => (
+              {catalog.finishes.filter(item => closetRoom ? item.id === "cl" : item.id !== "cl").map((item) => (
                 <SelectItem key={item.id} value={item.id}>
                   {item.name}
                 </SelectItem>
@@ -110,21 +97,14 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
             <SelectValue placeholder="Choose a SKU" />
           </SelectTrigger>
           <SelectContent>
-            {options.map((item) => {
-              const price = item.prices[finishId];
-              const labor = cabinetLaborFor(item);
-              return (
-                <SelectItem key={item.sku} value={item.sku}>
-                  {item.sku} — {item.name} · {money(price)}
-                  {labor ? ` + ${money(labor)} labor` : " material only"}
-                </SelectItem>
-              );
-            })}
+            {options.map(item => (
+              <SelectItem key={item.sku} value={item.sku}>{item.sku} — {item.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Button
           type="button"
-          disabled={!sku}
+          disabled={!selected}
           onClick={() => {
             if (!sku) return;
             addCabinet(sku);
@@ -134,14 +114,6 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
           Add
         </Button>
       </div>
-      {selected ? (
-        <p className="mt-2 text-xs text-muted">
-          {selected.sku} · {money(selected.prices[finishId])} material +{" "}
-          {money(cabinetLaborFor(selected))} labor
-          {selected.oversized ? " (oversized)" : ""}
-        </p>
-      ) : null}
-
       {picks.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
           {closetRoom
@@ -151,19 +123,12 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
       ) : (
         <ul className="mt-4 divide-y divide-border">
           {picks.map((pick) => {
-            const item = getCabinetItem(pick.sku);
-            const price = item?.prices[finishId];
-            const labor = item ? cabinetLaborFor(item) * pick.quantity : 0;
-            const material = price != null ? price * pick.quantity : 0;
+            const item = catalog.items.find(entry => entry.sku === pick.sku);
             return (
               <li key={pick.id} className="flex min-w-0 flex-col gap-2 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-fg">
                     {pick.sku} {item ? `· ${item.name}` : ""}
-                  </p>
-                  <p className="font-mono text-xs tabular-nums text-muted">
-                    {finish.code} · {money(material)}
-                    {labor ? ` + ${money(labor)} labor` : " material only"}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">
@@ -200,22 +165,6 @@ export function CabinetPicker({ room }: { room: JobRoom }) {
           })}
         </ul>
       )}
-      {picks.length > 0 ? (
-        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <div className="min-w-0 rounded-md bg-wash px-1 py-2 sm:px-2">
-            <p className="text-[11px] tracking-wide text-muted uppercase">Material</p>
-            <p className="truncate font-mono text-xs tabular-nums sm:text-sm">{money(totals.material)}</p>
-          </div>
-          <div className="min-w-0 rounded-md bg-wash px-1 py-2 sm:px-2">
-            <p className="text-[11px] tracking-wide text-muted uppercase">Labor</p>
-            <p className="truncate font-mono text-xs tabular-nums sm:text-sm">{money(totals.labor)}</p>
-          </div>
-          <div className="min-w-0 rounded-md bg-wash px-1 py-2 sm:px-2">
-            <p className="text-[11px] tracking-wide text-muted uppercase">Installed</p>
-            <p className="truncate font-mono text-xs tabular-nums sm:text-sm">{money(totals.installed)}</p>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

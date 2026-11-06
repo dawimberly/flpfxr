@@ -5,7 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { PRELIMINARY_ESTIMATE_WORDING } from "../src/lib/public-estimate-display.ts";
 
 /** Rounded combined total already shown for the default medium quartz kitchen. */
-export const DEFAULT_PUBLIC_TOTAL = "$12,800";
+export const DEFAULT_PUBLIC_TOTAL = "$13,300";
 const PUBLISHED_RANGE = /between \$[\d,]+ and \$[\d,]+/;
 
 /** Gaps in the public /estimate contract. Empty means the page matches.
