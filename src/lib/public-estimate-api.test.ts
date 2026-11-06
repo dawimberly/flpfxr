@@ -10,7 +10,9 @@ import { projectPlanningEstimate } from "./public-pricing.ts";
 
 const VISITOR_KEYS = [
   "ok", "preliminary", "total", "low", "high", "leadMessage", "disclaimer",
-  "exclusions", "removalNote", "nextStep", "plannerUrl",
+  "exclusions", "removalNote", "detachNote", "nextStep", "plannerUrl",
+  "tier", "tierLabel", "act", "actLabel", "pricedAct", "existing",
+  "removalPriced", "detachPriced",
 ];
 
 function post(body: unknown) {
@@ -54,6 +56,11 @@ describe("public estimate API", () => {
     assert.match(body.removalNote, /on site/);
     assert.match(body.nextStep, /^We can schedule a free walkthrough with Jon/);
     assert.equal(body.plannerUrl, "https://theflipfixer.com/estimate?service=flooring&size=medium&floor=lvp&roomSqft=400");
+    assert.equal(body.tier, "better");
+    assert.equal(body.tierLabel, "Better");
+    assert.equal(body.pricedAct, "install-only");
+    assert.equal(body.removalPriced, false);
+    assert.equal(body.detachPriced, false);
     const raw = JSON.stringify(body);
     assert.doesNotMatch(raw, /personHours|materialsAtCost|CREW_DAY_RATE|unitCost|lines|adjustedDays|"support"|"labor"/);
     assert.doesNotMatch(raw, /\binsured\b|licensed and insured/i);
@@ -112,7 +119,80 @@ describe("public estimate API", () => {
     const kitchen = await (await post({ service: "kitchen", room_sqft: "n/a", floor: "n/a" })).json();
     assert.equal(kitchen.total, 12800);
     assert.equal(kitchen.removalNote, null);
+    assert.equal(kitchen.removalPriced, null);
     assert.match(kitchen.exclusions, /Appliances/);
+  });
+
+  it("prices flooring tiers as install only and does not add removal dollars", async () => {
+    const tiers = [
+      ["good", "carpet", 3100],
+      ["better", "lvp", 3600],
+      ["best", "tile", 9300],
+    ] as const;
+    for (const [tier, floor, total] of tiers) {
+      const body = await (await post({ service: "flooring", tier, roomSqft: 400 })).json();
+      const built = projectPlanningEstimate({
+        ...DEFAULT_PROJECT_INPUTS,
+        service: "flooring",
+        size: "Medium",
+        floor,
+        roomSqft: 400,
+        vanity: undefined,
+      })!;
+      assert.equal(body.total, Math.round(built.total / 100) * 100, tier);
+      assert.equal(body.total, total, tier);
+      assert.equal(body.tier, tier);
+      assert.equal(body.pricedAct, "install-only");
+      assert.equal(body.plannerUrl.includes(`floor=${floor}`), true, tier);
+    }
+    const named = await (await post({
+      service: "flooring",
+      tier: "good",
+      floor: "tile",
+      roomSqft: "400",
+      existing: "old snap-together flooring",
+      act: "remove & replace",
+    })).json();
+    const installOnly = await (await post({
+      service: "flooring",
+      floor: "tile",
+      roomSqft: 400,
+      existing: "prepared surface",
+      act: "install-only",
+    })).json();
+    assert.equal(named.total, 9300);
+    assert.equal(installOnly.total, named.total);
+    assert.equal(named.tier, "best");
+    assert.equal(named.act, "rr");
+    assert.equal(named.actLabel, "Remove & replace");
+    assert.equal(named.existing, "snap-together");
+    assert.equal(named.pricedAct, "install-only");
+    assert.equal(named.removalPriced, false);
+    assert.match(named.removalNote, /install only/);
+    assert.match(named.removalNote, /snap-together/);
+    assert.match(named.removalNote, /extra/);
+    assert.match(named.leadMessage, /Materials: Tile/);
+    assert.match(named.leadMessage, /\$9,300/);
+    assert.equal(installOnly.act, "install-only");
+    assert.equal(installOnly.actLabel, "Install only");
+    assert.match(installOnly.removalNote, /prepared surface/);
+    const detach = await (await post({
+      service: "flooring",
+      floor: "tile",
+      roomSqft: 400,
+      existing: "baseboards come off and go back",
+    })).json();
+    assert.equal(detach.total, 9300);
+    assert.equal(detach.act, "detach");
+    assert.equal(detach.actLabel, "Detach & reattach");
+    assert.equal(detach.detachPriced, false);
+    assert.match(detach.detachNote, /extra/);
+    assert.match(detach.detachNote, /on site/);
+    const wood = await (await post({ service: "flooring", floor: "engineered hardwood", roomSqft: 400 })).json();
+    assert.equal(wood.total, 4700);
+    assert.equal(wood.tier, null);
+    const raw = JSON.stringify(named);
+    assert.doesNotMatch(raw, /7\.85|1\.28|3\.85|remove_cost|cost_per_unit|insured/i);
   });
 
   it("answers a browser preflight and does not import pricing into the route module", async () => {
@@ -127,6 +207,8 @@ describe("public estimate API", () => {
     assert.match(doc, /Help me build an estimate/);
     assert.match(doc, /How much is 400 sq ft of LVP\?/);
     assert.match(doc, /How much is a kitchen or bath\?/);
+    assert.match(doc, /How much is tile floor\?/);
+    assert.match(doc, /Good is carpet, Better is luxury vinyl plank, and Best is tile/);
     assert.match(doc, /\/api\/public-estimate/);
     assert.match(doc, /never invent|Never invent/);
     assert.match(doc, /snap-together/);
