@@ -43,12 +43,12 @@ export const AREA_PAGES: readonly AreaPage[] = [
   {
     slug: "alamo-heights",
     name: "Alamo Heights",
-    title: "Kitchen, bath, and make-ready in Alamo Heights",
-    description: `Alamo Heights remodeling and rental make-ready. Call ${phone}. Clark P. wrote about a rental prepared for an open house.`,
+    title: "Full-home remodeling and construction in Alamo Heights",
+    description: `Residential remodeling, construction, repairs, and rental make-ready in Alamo Heights. Call ${phone}.`,
     paragraphs: [
-      `Alamo Heights is the first name on our service-area list, and it is one of the places in the short line on the site: ${AREA_LINE}`,
+      "We handle residential remodeling and construction in Alamo Heights, from kitchens and baths to flooring, painting, outdoor projects, and home repairs.",
       "The only review that names Alamo Heights is from Clark P. He describes a rental property made ready on a budget, then multiple offers after one open house. The review does not list rooms, a street, or a price.",
-      "Make-ready, as we describe it, is paint, floors, fixtures, and punch lists for rentals and listings. Kitchen and bathroom work is a full-room remodel, with design handled in-house.",
+      "For rentals and listings, make-ready can include painting, flooring, fixtures, and punch-list repairs.",
       "Terrell Hills and Olmos Park are also on the service list. They do not have their own pages. Gallery photos are not labeled by neighborhood, so this page does not present them as Alamo Heights jobs.",
     ],
     reviewName: "Clark P.",
