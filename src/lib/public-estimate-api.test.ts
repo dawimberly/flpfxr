@@ -24,6 +24,16 @@ function post(body: unknown) {
 }
 
 describe("public estimate API", () => {
+  it("returns one cabinet selection price and preserves the finish in its planner link", async () => {
+    const response = await post({ service: "kitchen", cabinetFinish: "VE" });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.total, 12900);
+    assert.equal(body.low, body.total);
+    assert.equal(body.high, body.total);
+    assert.equal(new URL(body.plannerUrl).searchParams.get("cabinetFinish"), "ve");
+    assert.equal((await post({ service: "kitchen", cabinetFinish: "honey" })).status, 400);
+  });
   it("returns the same rounded 400 sq ft LVP total as the public planner", async () => {
     const response = await post({ service: "flooring", floor: "lvp", roomSqft: 400 });
     assert.equal(response.status, 200);

@@ -290,6 +290,8 @@ export function normalizePublicEstimateBody(data: unknown): unknown {
   if (counterSqft !== undefined) body.counterSqft = counterSqft;
   const boxes = field(record, "cabinetBoxes", "cabinet_boxes");
   const xl = field(record, "xlFridgeBoxes", "xl_fridge_boxes");
+  const finish = field(record, "cabinetFinish", "cabinet_finish");
+  if (!isBlank(finish)) body.cabinetFinish = typeof finish === "string" ? finish.trim().toLowerCase() : finish;
   if (!isBlank(boxes)) body.cabinetBoxes = typeof boxes === "string" && /^\d+$/.test(boxes.trim()) ? Number(boxes) : boxes;
   if (!isBlank(xl)) body.xlFridgeBoxes = typeof xl === "string" && /^\d+$/.test(xl.trim()) ? Number(xl) : xl;
   const vanity = field(record, "vanity");
@@ -344,8 +346,9 @@ export function visitorPublicEstimate(input: ProjectInputs, context: PublicEstim
     ok: true as const,
     preliminary: true as const,
     total: priced.total,
-    low: built.low,
-    high: built.high,
+    // Preserve the legacy keys for integrations while kitchen estimates use one amount.
+    low: input.service === "kitchen" ? priced.total : built.low,
+    high: input.service === "kitchen" ? priced.total : built.high,
     leadMessage: priced.leadMessage,
     disclaimer: PRELIMINARY_ESTIMATE_WORDING,
     exclusions: notes.removalNote ? `${built.scope.exclusions} ${notes.removalNote}` : built.scope.exclusions,
