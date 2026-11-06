@@ -44,6 +44,30 @@ try {
   assert.equal(auth.status,"ok",auth.message);
   browser=await chromium.launch({headless:true});
 
+  {
+    const page = await browser.newPage({ viewport: { width: 1100, height: 950 } });
+    activePage = page;
+    await page.route("**/*", route => route.request().url().startsWith(base + "/") ? route.continue() : route.abort());
+    await page.goto(base + "/estimate", { waitUntil: "networkidle" });
+    await page.getByText("Choose a project size and materials to see one combined preliminary total.", { exact: true }).waitFor();
+    const sample = page.getByRole("link", { name: "View sample estimate PDF" });
+    await sample.waitFor();
+    assert.equal(await sample.getAttribute("href"), "/sample-estimate.pdf");
+    assert.equal((await page.request.get(base + "/sample-estimate.pdf")).ok(), true);
+    const sampleCard = page.getByTestId("sample-estimate");
+    await sampleCard.getByText("One combined preliminary total for an example project. Actual project totals vary. Final price is confirmed after an on-site review.", { exact: true }).waitFor();
+    await sampleCard.scrollIntoViewIfNeeded();
+    await sampleCard.getByRole("img").evaluate(image => image.decode());
+    await page.screenshot({ path: join(artifacts, "public-estimator-smoke-cleanup-estimate.png"), fullPage: true });
+
+    await page.goto(base + "/areas/alamo-heights", { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Full-home remodeling and construction in Alamo Heights" }).waitFor();
+    await page.getByText("Clark P.", { exact: true }).waitFor();
+    assert.doesNotMatch(await page.locator("main").innerText(), /TODO owner|only review that names|does not list rooms/i);
+    await page.screenshot({ path: join(artifacts, "public-estimator-smoke-cleanup-alamo-heights.png"), fullPage: true });
+    await page.close();
+  }
+
   for(const width of [1280,390]) for(const mode of ["abort","500"]) {
     const page=await browser.newPage({viewport:{width,height:900}});
     activePage=page;
@@ -213,7 +237,8 @@ try {
     const bodyText=async()=>page.locator("body").innerText();
     assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
     await page.getByTestId("estimate-included").waitFor();
-    assert.equal(await page.getByTestId("sample-estimate").count(), 0, "No priced sample document competes with the single estimate");
+    assert.equal(await page.getByTestId("sample-estimate").count(), 1);
+    assert.equal(await page.getByTestId("estimate-summary").getByTestId("sample-estimate").count(), 0, "The example stays outside the live total");
     await page.getByText("Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage.",{exact:true}).waitFor();
 
     const floor=page.getByLabel("Kitchen floor (sq ft)",{exact:true});

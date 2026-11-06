@@ -1,3 +1,4 @@
+import { SampleEstimate } from "@/components/sample-estimate";
 import { CABINET_FINISHES, cabinetTier, type CabinetFinishId } from "@/lib/cabinets";
 import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
@@ -305,6 +306,9 @@ export function PublicProjectEstimator({
         </ul>
         <p className="mt-2 text-sm text-muted" data-testid="estimate-exclusions">{EXCLUSIONS}</p>
       </div> : null}
+      <div className="mt-4">
+        <SampleEstimate />
+      </div>
     </div>
   );
 }
