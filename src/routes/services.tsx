@@ -17,7 +17,7 @@ export const Route = createFileRoute("/services")({
       {
         name: "description",
         content:
-          `Kitchen and bath, flooring, paint, outdoor, make-ready, and insurance claims. ${AREA_LINE} Call (210) 436-9117.`,
+          `Kitchen and bath, flooring, paint, outdoor, and make-ready. ${AREA_LINE} Call (210) 436-9117.`,
       },
     ],
   }),
@@ -65,35 +65,18 @@ function ServiceCard({
         {service.body}
       </p>
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-        {service.id === "insurance-claims" ? (
-          <Link
-            to="/insurance-claims"
-            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
-          >
-            Insurance claim rebuilds
-          </Link>
-        ) : (
-          <Link
-            to="/contact"
-            search={{ service: service.id }}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
-          >
-            {service.id === "roofing"
-              ? "Schedule an inspection with our roofing specialist"
-              : service.id === "consulting"
-                ? "Schedule a walkthrough"
-                : "Get a price"}
-          </Link>
-        )}
-        {service.id === "insurance-claims" ? (
-          <Link
-            to="/contact"
-            search={{ service: "insurance-claims" }}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-muted hover:text-primary hover:underline"
-          >
-            Contact us
-          </Link>
-        ) : serviceHasWork(service.id) ? (
+        <Link
+          to="/contact"
+          search={{ service: service.id }}
+          className="inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+        >
+          {service.id === "roofing"
+            ? "Schedule an inspection with our roofing specialist"
+            : service.id === "consulting"
+              ? "Schedule a walkthrough"
+              : "Get a price"}
+        </Link>
+        {serviceHasWork(service.id) ? (
           <Link
             to="/gallery"
             search={{ service: service.id }}

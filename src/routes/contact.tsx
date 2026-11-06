@@ -118,14 +118,6 @@ const SERVICE_CONTACT: Record<ServiceId, ContactCopy> = {
     intro: "Paint, floors, fixtures, and punch lists for rentals and homes for sale.",
     placeholder: "Neighborhood, rental or listing, and when it needs to be ready.",
   },
-  "insurance-claims": {
-    eyebrow: "Insurance claims",
-    documentTitle: "Insurance claim rebuild specialists",
-    description: `Insurance claim rebuild specialists in San Antonio. Contact us. ${AREA_LINE}`,
-    title: "Insurance claim rebuild specialists in San Antonio.",
-    intro: "We are insurance claim specialists. After fire, storm, or water damage we rebuild from tear-out through finish and catch scope the carrier left out.",
-    placeholder: "Address, what happened, and when you want someone out.",
-  },
   consulting: {
     eyebrow: "Walkthrough",
     documentTitle: "Walkthrough",
@@ -150,8 +142,8 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
   validateSearch: (search: Record<string, unknown>): Search => {
     const service =
-      typeof search.service === "string"
-        ? (search.service as ServiceId)
+      typeof search.service === "string" && isServiceId(search.service)
+        ? search.service
         : undefined;
     const sent = search.sent === "1" || search.sent === true;
     const side: Search["side"] =
@@ -191,13 +183,6 @@ function ContactPage() {
     <div>
       <PageIntro eyebrow={copy.eyebrow} title={copy.title}>
         <p>{copy.intro}</p>
-        {serviceFromUrl === "insurance-claims" ? (
-          <p className="mt-3">
-            <Link to="/insurance-claims" className="font-medium text-primary">
-              Insurance claim rebuilds
-            </Link>
-          </p>
-        ) : null}
         {specific ? null : <p className="mt-3 text-fg">{PROJECT_FIT}</p>}
         <CallTextActions className="mt-6 hidden justify-center sm:flex" />
       </PageIntro>

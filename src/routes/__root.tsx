@@ -2,6 +2,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { AuthProvider } from "@/lib/auth/provider";
 import { GoogleTag } from "@/components/google-tag";
 import { MicrosoftClarity } from "@/components/microsoft-clarity";
+import { PepoChat } from "@/components/pepo-chat";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { SiteShell } from "@/components/site-shell";
 import { SITE } from "@/lib/site";
@@ -47,6 +48,7 @@ export const Route = createRootRoute({
       <body className="bg-bg text-fg">
         <GoogleTag />
         <MicrosoftClarity />
+        <PepoChat />
         <PreviewHostBridge />
         <AuthProvider>
           <SiteShell>

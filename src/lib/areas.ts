@@ -10,7 +10,6 @@ export type AreaLink =
         | "/gallery"
         | "/about"
         | "/testimonials"
-        | "/insurance-claims"
         | "/estimate"
         | "/blog"
         | "/areas";
@@ -18,7 +17,7 @@ export type AreaLink =
   | {
       label: string;
       to: "/contact";
-      service?: "insurance-claims" | "make-ready" | "outdoor" | "kitchen" | "bathroom";
+      service?: "make-ready" | "outdoor" | "kitchen" | "bathroom";
     }
   | { label: string; to: "/blog/$slug"; slug: string }
   | { label: string; to: "/areas/$slug"; slug: string };
@@ -110,7 +109,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     description: `Boerne remodeling, repair, and make-ready. Call ${phone} to schedule a walkthrough. Boerne is on The Flip Fixer's service list.`,
     paragraphs: [
       `Boerne is named in the short area line: ${AREA_LINE} No review on this site is placed in Boerne.`,
-      "The work we publish for every listed area is indoor full-room kitchen and bathroom remodels, plus flooring, paint, handyman work, outdoor projects, make-ready, and insurance claim rebuilds.",
+      "The work we publish for every listed area is indoor full-room kitchen and bathroom remodels, plus flooring, paint, handyman work, outdoor projects, and make-ready.",
       `A job starts the way we describe it everywhere: we walk the house, then give one clear price. The steps we publish are below. Fair Oaks Ranch is also on the service list and does not have its own page. Call or text ${phone} and say Boerne, the room, and what you want to change.`,
       "If you want a planning range before that visit, use the estimate page. The number there is a planning range. The price we stand behind comes after we walk the house.",
     ],
@@ -136,7 +135,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     description: `Remodeling in The Dominion. Call ${phone}. The Dominion is named on the site. No review is placed there.`,
     paragraphs: [
       `The Dominion is named in the short area line: ${AREA_LINE} No review on this site is placed in The Dominion.`,
-      "A Nextdoor review from Elieen Doctor describes a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements, and a repair that avoided an insurance claim. Those words are hers, from the review on the reviews page. The review does not name a neighborhood. It is not a Dominion project on this page.",
+      "A Nextdoor review from Elieen Doctor describes a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements. Those words are hers, from the review on the reviews page. The review does not name a neighborhood. It is not a Dominion project on this page.",
       "What we do publish for The Dominion, same as the rest of the list: kitchen and bathroom remodels with design in-house, and outdoor work — fences, decks, patios, and lighting.",
     ],
     links: [
@@ -153,19 +152,15 @@ export const AREA_PAGES: readonly AreaPage[] = [
   {
     slug: "kerrville",
     name: "Kerrville",
-    title: "Remodeling and insurance rebuilds in Kerrville",
-    description: `Kerrville remodeling and insurance claim rebuilds. Call ${phone}. Kerrville is on the service list. No Kerrville review is published.`,
+    title: "Remodeling in Kerrville",
+    description: `Kitchen and bathroom remodeling in Kerrville. Call ${phone}. Kerrville is on the service list. No Kerrville review is published.`,
     paragraphs: [
       `Kerrville is on the service-area list and in the short line on the site: ${AREA_LINE} No review on this site is placed in Kerrville.`,
-      "Insurance claim rebuilds are one of the services we publish for the areas we list, Kerrville included. The published description is fire, storm, or water damage, rebuilt from tear-out through finish, catching scope the carrier left out. That description is not a Kerrville story.",
-      "Dan meets adjusters on site. He has written and negotiated hundreds of insurance claims. His biggest increase was 40%, a $130k increase on a fire claim, and he typically gets a 10-20% increase in approved scope. That is his track record, not a Kerrville result, and not a guarantee.",
-      `Kitchen and bathroom remodels are the other main work. Call or text ${phone} and say Kerrville and what you want done.`,
+      `Kitchen and bathroom remodels are our main work. Call or text ${phone} and say Kerrville and what you want done.`,
     ],
     links: [
-      { label: "Insurance claim rebuilds", to: "/insurance-claims" },
       { label: "About the crew", to: "/about" },
       { label: "Kitchen remodeling", to: "/kitchen" },
-      { label: "Contact", to: "/contact", service: "insurance-claims" },
     ],
     todos: [
       "Add a Kerrville project or scheduling note if one should be public. Do not add storm counts, license numbers, or claim stories that are not already written on the site.",
