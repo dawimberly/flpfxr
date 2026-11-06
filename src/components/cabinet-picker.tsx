@@ -31,7 +31,7 @@ export function CabinetPicker({ room, catalog }: {
   const activeGroup = roomGroups.some((item) => item.id === group) ? group : preferred;
   const picks = room.cabinets ?? [];
   const finishId = resolveCabinetFinish(room.cabinetFinishId, room.roomTypeId);
-  const options = catalog.items.filter(item => item.group === activeGroup && item.finishes.includes(finishId));
+  const options = catalog.items.filter(item => item.group === activeGroup && item.finishes.some(finish => finish === finishId));
   const selected = options.find(item => item.sku === sku);
   const finish = CABINET_FINISHES.find(item => item.id === finishId);
   const tier = finish ? cabinetTier(finish.id) : null;
