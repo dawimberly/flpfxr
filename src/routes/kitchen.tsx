@@ -7,7 +7,7 @@ import {
   ProjectTellButton,
   RemodelInquiryIntro,
 } from "@/components/remodel-project-proof";
-import { AREA_LINE, PROJECT_FIT, SITE } from "@/lib/site";
+import { AREA_LINE, PREMIUM_NORTHVILLE_OFFER, PROJECT_FIT, SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/kitchen")({
   component: KitchenLanding,
@@ -48,6 +48,7 @@ function KitchenLanding() {
 
       <section className="mx-auto max-w-6xl px-4 pb-6">
         <div className="md:max-w-xl">
+          <p className="mb-3 text-sm text-fg">{PREMIUM_NORTHVILLE_OFFER}</p>
           <CabinetCatalogGate defaultProject="kitchen" />
         </div>
       </section>

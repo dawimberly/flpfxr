@@ -5,6 +5,7 @@ import {
   SITE,
   AREA_LINE,
   PROJECT_FIT,
+  PREMIUM_NORTHVILLE_OFFER,
   serviceHasWork,
 } from "@/lib/site";
 
@@ -64,6 +65,9 @@ function ServiceCard({
       <p className="mt-2 max-w-xs flex-1 text-sm leading-relaxed text-muted">
         {service.body}
       </p>
+      {service.id === "kitchen-bath" ? (
+        <p className="mt-3 max-w-xs text-sm text-fg">{PREMIUM_NORTHVILLE_OFFER}</p>
+      ) : null}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
         <Link
           to="/contact"

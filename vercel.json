@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "fix/public-estimator-ad-safety": false,
-      "fix/public-documents-crew-access": false
+      "fix/public-documents-crew-access": false,
+      "feat/premium-northville-discount-copy": false
     }
   },
   "redirects": [

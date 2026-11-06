@@ -1,3 +1,5 @@
+export const PREMIUM_NORTHVILLE_OFFER = "Premium Northville cabinets at 20% off MSRP.";
+
 export const SITE = {
   name: "The Flip Fixer",
   legalName: "The Flip Fixer",
