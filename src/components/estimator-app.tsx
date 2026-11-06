@@ -498,7 +498,7 @@ export function EstimatorApp() {
   const laborRate = useEstimatorStore((s) => s.laborRate);
   const opEnabled = useEstimatorStore((s) => s.opEnabled);
   const room = useActiveRoom();
-  const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadCabinetCatalog>> | null>(null);
+  const [cabinetOptions, setCabinetOptions] = useState<Awaited<ReturnType<typeof loadCabinetCatalog>> | null>(null);
   const [catalogFailed, setCatalogFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const selections = rooms.filter(room => room.cabinets?.length).map(room => ({
@@ -519,7 +519,7 @@ export function EstimatorApp() {
 
   useEffect(() => {
     let active = true;
-    loadCabinetCatalog().then(value => { if (active) { setCatalog(value); setCatalogFailed(false); } })
+    loadCabinetCatalog().then(value => { if (active) { setCabinetOptions(value); setCatalogFailed(false); } })
       .catch(() => { if (active) setCatalogFailed(true); });
     return () => { active = false; };
   }, [attempt]);
@@ -704,8 +704,8 @@ export function EstimatorApp() {
                 {"R&R"} is remove and replace. R is remove only. + is install only.
               </p>
               <div className="grid gap-3">
-                {showCabinets && catalog ? <CabinetPicker room={room} catalog={catalog} /> : null}
-                {showCabinets && !catalog ? <p role="status">{catalogFailed ? "Cabinet options could not load." : "Loading cabinet options…"}</p> : null}
+                {showCabinets && cabinetOptions ? <CabinetPicker room={room} catalog={cabinetOptions} /> : null}
+                {showCabinets && !cabinetOptions ? <p role="status">{catalogFailed ? "Cabinet options could not load." : "Loading cabinet options…"}</p> : null}
                 {showCabinets && catalogFailed ? <Button type="button" onClick={() => setAttempt(value => value + 1)}>Retry cabinet options</Button> : null}
                 {visibleCategories
                   .filter((category) => !isCabinetCategory(category))
