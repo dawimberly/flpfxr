@@ -20,13 +20,6 @@ export const GALLERY: Array<{
     category: "Bath",
   },
   {
-    src: "/images/gallery-27-a.webp",
-    alt: "Completed tiled shower with mosaic accent, wall niche and black fixtures",
-    title: "Tiled shower",
-    caption: "Completed shower",
-    category: "Bath",
-  },
-  {
     src: "/images/gallery-23-a.webp",
     alt: "Kitchen before the remodel",
     title: "Kitchen remodel",
