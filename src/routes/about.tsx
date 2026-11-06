@@ -45,22 +45,28 @@ function AboutPage() {
           Who shows up
         </h2>
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
-          {CREW.map((person) => (
-            <article key={person.name}>
-              <Photo
-                src={person.src}
-                alt={person.name}
-                className="photo-frame aspect-[3/4] w-full object-cover object-top"
-              />
-              <h3 className="mt-4 font-display text-2xl text-fg">{person.name}</h3>
-              <p className="mt-1 text-sm font-medium text-primary">
-                {person.role}
-              </p>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                {person.bio}
-              </p>
-            </article>
-          ))}
+          {CREW.map((person) => {
+            const isDan = person.name === "Dan Wimberly";
+            const Portrait = isDan ? "img" : Photo;
+
+            return (
+              <article key={person.name}>
+                <Portrait
+                  src={isDan ? "/images/crew-dan-approved.webp" : person.src}
+                  decoding="async"
+                  alt={person.name}
+                  className="photo-frame aspect-[3/4] w-full object-cover object-top"
+                />
+                <h3 className="mt-4 font-display text-2xl text-fg">{person.name}</h3>
+                <p className="mt-1 text-sm font-medium text-primary">
+                  {person.role}
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  {person.bio}
+                </p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
