@@ -4,11 +4,19 @@ import closets from "../data/northville-frameless-closets.json" with { type: "js
 import { CABINET_FINISHES, type CabinetFinishId, type CabinetPick, type CabinetQuote } from "./cabinets.ts";
 
 const CABINET_PRICING = {
-  multiplier: { ew: 0.80, gs: 0.80, es: 0.80, msk: 0.80, bs: 0.80, me: 0.80, cg: 0.80, aw: 0.80, ve: 0.75 },
+  multiplier: {
+    ew: 0.80, gs: 0.80, es: 0.80, msk: 0.80, bs: 0.80, me: 0.80, cg: 0.80, aw: 0.80,
+    ess: 0.80, prime: 0.80, cl: 0.80,
+    ve: 0.75,
+  },
   install: { standard: 75, oversized: 125 },
 } as const;
 
-const supported = new Set<string>([...CABINET_FINISHES.map(finish => finish.id), "ess", "prime", "cl"]);
+type PricedFinish = keyof typeof CABINET_PRICING.multiplier;
+
+function isPricedFinish(finish: string): finish is PricedFinish {
+  return Object.hasOwn(CABINET_PRICING.multiplier, finish);
+}
 type CatalogItem = { sku: string; group: string; name: string; oversized: boolean; prices: Record<string, number> };
 const items = new Map<string, CatalogItem>();
 for (const catalog of [framed, frameless, closets]) {
@@ -25,13 +33,13 @@ export function cabinetCatalog() {
     finishes: [...CABINET_FINISHES, ...frameless.finishes, ...closets.finishes].map(({ id, name }) => ({ id, name })),
     groups: [...new Map([...framed.groups, ...frameless.groups, ...closets.groups].map(group => [group.id, group])).values()],
     items: [...items.values()].map(({ sku, group, name, prices }) => ({
-      sku, group, name, finishes: Object.keys(prices).filter(id => supported.has(id)),
+      sku, group, name, finishes: Object.keys(prices).filter(isPricedFinish),
     })),
   };
 }
 
-function installedCents(listPrice: number, finish: string, oversized: boolean) {
-  const factor = CABINET_PRICING.multiplier[finish as CabinetFinishId] ?? 1;
+function installedCents(listPrice: number, finish: PricedFinish, oversized: boolean) {
+  const factor = CABINET_PRICING.multiplier[finish];
   return Math.round(listPrice * 100 * factor) + CABINET_PRICING.install[oversized ? "oversized" : "standard"] * 100;
 }
 
@@ -40,12 +48,11 @@ export function quoteCabinets(finish: string, picks: Pick<CabinetPick, "sku" | "
   let cents = 0;
   for (const { sku, quantity } of picks) {
     const item = items.get(sku);
-    const listPrice = supported.has(finish) && item && Object.hasOwn(item.prices, finish) ? item.prices[finish] : undefined;
-    if (listPrice === undefined || !item) {
+    if (!isPricedFinish(finish) || !item || !Object.hasOwn(item.prices, finish)) {
       warnings.push(`${sku} is unavailable in the selected finish.`);
       continue;
     }
-    cents += installedCents(listPrice, finish, item.oversized) * quantity;
+    cents += installedCents(item.prices[finish], finish, item.oversized) * quantity;
   }
   return { total: warnings.length ? null : cents / 100, warnings };
 }

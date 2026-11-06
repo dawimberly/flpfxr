@@ -22,6 +22,19 @@ test("owner finish rules return one installed price for standard and oversized u
   }
 });
 
+test("Essential, Prime, and closet selections use the Premium multiplier", () => {
+  for (const [finish, sku, expected] of [
+    ["ess", "B30", 468.12],
+    ["prime", "B30", 537],
+    ["cl", "CB3024", 381.40],
+  ] as const) {
+    assert.deepEqual(quoteCabinets(finish, [{ sku, quantity: 1 }]), {
+      total: expected,
+      warnings: [],
+    }, finish);
+  }
+});
+
 test("catalog metadata omits pricing and removed finishes, and invalid picks never return partial totals", () => {
   const visible = cabinetCatalog();
   assert.doesNotMatch(JSON.stringify(visible), /MSRP|laborPer|prices|multiplier|honey/i);
