@@ -9,6 +9,8 @@ const entities = JSON.parse(readFileSync(new URL("./html-entities.json", import.
 const allowed = new Set([".js", ".mjs", ".css", ".html", ".htm", ".json", ".map", ".txt", ".xml", ".rels", ".svg", ".csv", ".md", ".webmanifest", ".pdf", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm", ".gz", ".br"]);
 const binary = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm"]);
 const markers = /\bMSRP\b|\bour\s+cost\b|\blabo[u]?r\s+(?:rates?|costs?|per|@)\b|\binstall\s+each\b|\$\s*(?:75|125)(?:\.00)?(?![\d.])|\bO\s*&\s*P\b|\boverhead\s+and\s+profit\b|\bmarkup\b|\boff\s+list\b|\bdealer\s+price\b|\b(?:profit|gross|net)\s+margins?\b|\blabo[u]?r\b[^\r\n]{0,32}\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b|\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b[^\r\n]{0,32}\blabo[u]?r\b|laborPerUnit|laborPerOversized|personHours|adjustedDays|CREW_DAY_RATE|materialsAtCost|laborRate/i;
+// Allow only the approved public offer. Scan the rest of each text view as usual.
+const publicCabinetOffer = /\bPremium Northville cabinets at 20% off MSRP\./g;
 const prose = /\.(?:docx|pdf|txt|json|csv|md|xml|rels|html?|svg|webmanifest)$/i;
 const maxExpanded = 32 * 1024 * 1024;
 const entityPattern = /&(?:#[xX][0-9a-fA-F]+;?|#[0-9]+;?|[a-zA-Z][a-zA-Z0-9]+;?)/g;
@@ -109,7 +111,7 @@ export async function scanPublicPricing(roots) {
     const value=normalizePricingText(text);
     if(/^\s*\{\s*\\rtf/i.test(value))throw new Error("RTF is not allowed in public output: "+file);
     const variants=isProse?[value,normalizePricingText(value.replace(/<[^>]*>/g,""))]:[value];
-    if(variants.some(s=>markers.test(s)||(isProse&&/\bmargins?\b/i.test(s))))throw new Error("Confidential pricing marker in public file: "+file);
+    if(variants.some(s=>markers.test(s.replace(publicCabinetOffer, ""))||(isProse&&/\bmargins?\b/i.test(s))))throw new Error("Confidential pricing marker in public file: "+file);
   }
   async function inspect(buffer,file,depth=0) {
     if(depth>6)throw new Error("Nested archive depth exceeded: "+file);

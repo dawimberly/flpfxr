@@ -68,3 +68,13 @@ test("new pricing phrases fail while ordinary prose/layout passes",async()=>{
   for(const text of ["overhead and profit","markup","off list","dealer price","labor 42/hr","labor 19/unit","19/unit labor"])await fixture("phrase.txt",text,true);
   for(const text of ["Welcome home","labor of love","kitchen design","main { margin: 0; }"])await fixture("safe.css",text);
 });
+
+test("allows only the approved Premium cabinet offer without masking other pricing text", async () => {
+  const offer = "Premium Northville cabinets at 20% off MSRP.";
+  await fixture("page.html", `<p>${offer}</p>`);
+  await fixture("chunk.js", `const offer = "${offer}";`);
+  await fixture("page.html", "<p>Premium Northville cabinets at <strong>20% off MSRP</strong>.</p>");
+  await fixture("page.html", `<p>${offer}</p><p>Northville MSRP by SKU</p>`, true);
+  await fixture("chunk.js", `const offer = "${offer}"; const laborPerUnit = 75;`, true);
+  await fixture("page.html", "<p>Builder Grade Northville cabinets at 25% off MSRP.</p>", true);
+});
