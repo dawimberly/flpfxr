@@ -17,7 +17,7 @@ export const Route = createFileRoute("/services")({
       {
         name: "description",
         content:
-          `Kitchen and bath, flooring, paint, outdoor, and make-ready. ${AREA_LINE} Call (210) 436-9117.`,
+          `Residential remodeling and construction, including kitchens, baths, flooring, painting, outdoor work, make-ready, and repairs. ${AREA_LINE} Call (210) 436-9117.`,
       },
     ],
   }),

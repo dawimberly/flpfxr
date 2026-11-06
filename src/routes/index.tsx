@@ -21,11 +21,11 @@ export const Route = createFileRoute("/")({
     scripts: [{ type: "application/ld+json", children: JSON.stringify(businessJsonLd()).replace(/</g, "\\u003c") }],
     links: [{ rel: "canonical", href: `${SITE.url}/` }],
     meta: [
-      { title: `Kitchen & Bathroom Remodeling in San Antonio | ${SITE.name}` },
+      { title: `Full-Home Remodeling and Construction in San Antonio | ${SITE.name}` },
       {
         name: "description",
         content:
-          `Kitchen and bath remodels in San Antonio. Call or text ${SITE.phoneDisplay}. ${SITE.tagline} ${AREA_LINE}`,
+          `${SITE.tagline} Kitchens, baths, flooring, painting, outdoor projects, make-ready, and home repairs. Call or text ${SITE.phoneDisplay}.`,
       },
     ],
   }),
@@ -44,11 +44,11 @@ function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/55 to-bg/25" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-start px-4 pb-4 pt-4 md:min-h-[32rem] md:justify-end md:pb-20 md:pt-36">
           <h1 className="max-w-2xl font-display text-4xl font-semibold tracking-tight text-fg sm:text-5xl md:text-6xl">
-            Kitchen and bathroom remodeling in San Antonio.
+            Full-home remodeling and construction help in San Antonio.
           </h1>
           <p className="mt-4 max-w-xl text-lg text-fg/90 md:text-xl">
-            Full-room remodels with in-house design, one crew from start to finish,
-            and clear communication throughout the job.
+            From full-room remodels to outdoor projects and repairs, you get one crew
+            from start to finish and clear communication throughout the job.
           </p>
           <p className="mt-2 text-fg/75">{AREA_LINE}</p>
           <CallTextActions className="mt-8 hidden sm:flex" />
