@@ -4,6 +4,7 @@
     "deploymentEnabled": {
       "fix/public-estimator-ad-safety": false,
       "fix/public-documents-crew-access": false,
+      "fix/public-sample-one-total": false,
       "feat/owner-cabinet-pricing": false
     }
   },

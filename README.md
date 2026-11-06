@@ -1,6 +1,6 @@
 # The Flip Fixer — marketing site + estimator
 
-Public website for **The Flip Fixer** (kitchen/bath remodels, flooring, paint, make-ready), plus the employee room-by-room estimator. Built with React, TanStack Start, and Vite. Deploys to Vercel.
+Public website for **The Flip Fixer**, a full-home residential remodeling and construction company serving the San Antonio area, plus the employee room-by-room estimator. Built with React, TanStack Start, and Vite. Deploys to Vercel.
 
 **Live site:** https://theflipfixer.com / https://www.theflipfixer.com  
 **Repo:** https://github.com/dawimberly/flpfxr  
