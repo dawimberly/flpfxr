@@ -6,20 +6,6 @@ export const GALLERY: Array<{
   category: "Kitchen" | "Bath" | "Outdoor" | "Interior" | "Custom";
 }> = [
   {
-    src: "/images/gallery-26-a.webp",
-    alt: "Bathtub beneath an arched window before conversion to a shower",
-    title: "Tub-to-shower conversion",
-    caption: "Before",
-    category: "Bath",
-  },
-  {
-    src: "/images/gallery-26-b.webp",
-    alt: "Completed glass-enclosed shower with pebble floor beneath the same arched window",
-    title: "Tub-to-shower conversion",
-    caption: "After",
-    category: "Bath",
-  },
-  {
     src: "/images/gallery-23-a.webp",
     alt: "Kitchen before the remodel",
     title: "Kitchen remodel",
@@ -53,6 +39,20 @@ export const GALLERY: Array<{
     title: "Kitchen remodel",
     caption: "After",
     category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-26-a.webp",
+    alt: "Bathtub beneath an arched window before conversion to a shower",
+    title: "Tub-to-shower conversion",
+    caption: "Before",
+    category: "Bath",
+  },
+  {
+    src: "/images/gallery-26-b.webp",
+    alt: "Completed glass-enclosed shower with pebble floor beneath the same arched window",
+    title: "Tub-to-shower conversion",
+    caption: "After",
+    category: "Bath",
   },
   {
     src: "/images/gallery-01-a.webp",
