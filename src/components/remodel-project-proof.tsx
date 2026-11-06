@@ -11,7 +11,6 @@ const kitchenPhotos = [
 const bathroomPhotos = [
   "/images/gallery-26-b.webp",
   "/images/gallery-26-a.webp",
-  "/images/gallery-27-a.webp",
 ] as const;
 
 type ProjectSrc = (typeof kitchenPhotos)[number] | (typeof bathroomPhotos)[number];
@@ -23,7 +22,6 @@ const photoSize: Record<ProjectSrc, { width: number; height: number }> = {
   "/images/gallery-02-a.webp": { width: 1200, height: 1600 },
   "/images/gallery-26-b.webp": { width: 1170, height: 1591 },
   "/images/gallery-26-a.webp": { width: 1170, height: 1361 },
-  "/images/gallery-27-a.webp": { width: 1170, height: 1556 },
 };
 
 function photosFor(service: "kitchen" | "bathroom") {

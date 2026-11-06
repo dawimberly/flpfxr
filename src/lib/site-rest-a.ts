@@ -20,13 +20,6 @@ export const GALLERY: Array<{
     category: "Bath",
   },
   {
-    src: "/images/gallery-27-a.webp",
-    alt: "Completed tiled shower with mosaic accent, wall niche and black fixtures",
-    title: "Tiled shower",
-    caption: "Completed shower",
-    category: "Bath",
-  },
-  {
     src: "/images/gallery-23-a.webp",
     alt: "Kitchen before the remodel",
     title: "Kitchen remodel",
@@ -122,27 +115,6 @@ export const GALLERY: Array<{
     alt: "Charcoal kitchen by The Flip Fixer",
     title: "Charcoal kitchen",
     caption: "Charcoal kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-05-a.webp",
-    alt: "Two-tone kitchen by The Flip Fixer",
-    title: "Two-tone kitchen",
-    caption: "Two-tone kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-05-b.webp",
-    alt: "Two-tone kitchen by The Flip Fixer",
-    title: "Two-tone kitchen",
-    caption: "Two-tone kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-05-c.webp",
-    alt: "Two-tone kitchen by The Flip Fixer",
-    title: "Two-tone kitchen",
-    caption: "Two-tone kitchen",
     category: "Kitchen",
   },
   {
