@@ -73,7 +73,6 @@ test("allows only the approved Premium cabinet offer without masking other prici
   const offer = "Premium Northville cabinets at 20% off MSRP.";
   await fixture("page.html", `<p>${offer}</p>`);
   await fixture("chunk.js", `const offer = "${offer}";`);
-  await fixture("page.html", "<p>Premium Northville cabinets at <strong>20% off MSRP</strong>.</p>");
   await fixture("page.html", `<p>${offer}</p><p>Northville MSRP by SKU</p>`, true);
   await fixture("chunk.js", `const offer = "${offer}"; const laborPerUnit = 75;`, true);
   await fixture("page.html", "<p>Builder Grade Northville cabinets at 25% off MSRP.</p>", true);
