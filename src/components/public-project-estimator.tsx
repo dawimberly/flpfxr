@@ -11,7 +11,7 @@ import { formatPublicEstimate, PRELIMINARY_ESTIMATE_WORDING } from "@/lib/public
 import { SERVICE_AREAS, saveLeadDraft, type ServiceId } from "@/lib/site";
 import {
   DEFAULT_ESTIMATE_HEADLINE, ESTIMATE_INTRO, estimateHandoffSearch, estimateLandingUrl,
-  estimateTrustLine, headlineFor, inputsFromLanding,
+  estimateTrustLine, headlineFor, inputsFromLanding, areasFromLanding,
   type EstimateLanding,
 } from "@/lib/estimate-landing";
 import {
@@ -71,7 +71,7 @@ export function PublicProjectEstimator({
 }) {
   const [explicitService, setExplicitService] = useState(landing.explicitService);
   const [inputs, setInputs] = useState(() => inputsFromLanding(landing));
-  const [areas, setAreas] = useState(() => presetAreas(landing.service, landing.size));
+  const [areas, setAreas] = useState(() => areasFromLanding(landing));
   const floorParsed = parseSqft(areas.floor);
   const showerParsed = parseSqft(areas.shower);
   const counterParsed = parseSqft(areas.counter);

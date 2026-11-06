@@ -2,8 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  DEFAULT_ESTIMATE_HEADLINE, estimateHandoffSearch, estimateLandingFromSearch,
+  DEFAULT_ESTIMATE_HEADLINE, areasFromLanding, estimateHandoffSearch, estimateLandingFromSearch,
   estimateLandingUrl, estimateRouteSearch, estimateTrustLine, headlineFor, inputsFromLanding,
+  publicPlannerPath,
 } from "./estimate-landing.ts";
 import { formatEstimateRange, projectPlanningEstimate } from "./public-pricing.ts";
 import { SERVICE_AREAS } from "./site.ts";
@@ -79,6 +80,35 @@ describe("estimate landing links", () => {
     assert.doesNotMatch(page, /Preliminary estimate only/);
     assert.equal([...ui.matchAll(/\{PRELIMINARY_ESTIMATE_WORDING\}/g)].length, 1);
     assert.match(ui, /history\.replaceState/);
+    assert.match(ui, /areasFromLanding/);
     assert.doesNotMatch(ui, /\/estimator|\/login/);
+  });
+
+  it("opens a flooring planner link on the same preliminary total", () => {
+    const landing = estimateLandingFromSearch({ service: "flooring", floor: "LVP", roomSqft: "400" });
+    assert.equal(landing.service, "flooring");
+    assert.equal(landing.size, "Medium");
+    assert.equal(landing.explicitSize, false);
+    assert.equal(landing.floor, "lvp");
+    assert.equal(landing.roomSqft, 400);
+    assert.equal(areasFromLanding(landing).room, "400");
+    const linked = projectPlanningEstimate(inputsFromLanding(landing))!;
+    const preset = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "flooring", size: "medium" })))!;
+    assert.equal(Math.round(linked.total / 100) * 100, Math.round(preset.total / 100) * 100);
+    assert.equal(publicPlannerPath(inputsFromLanding(landing)), "/estimate?service=flooring&size=medium&floor=lvp&roomSqft=400");
+    const search = estimateRouteSearch({ service: "flooring", floor: "LVP", roomSqft: "400", gclid: "keep" });
+    assert.equal(search.service, "flooring");
+    assert.equal(search.floor, "lvp");
+    assert.equal(search.roomSqft, 400);
+    assert.equal(search.gclid, "keep");
+    const dropped = estimateRouteSearch({ service: "flooring", roomSqft: "10", floor: "marble" });
+    assert.equal(dropped.roomSqft, undefined);
+    assert.equal(dropped.floor, undefined);
+    const next = estimateLandingUrl("https://theflipfixer.com/estimate?service=flooring&floor=lvp&roomSqft=400&gclid=keep", "flooring", "Large");
+    const url = new URL(next, "https://theflipfixer.com");
+    assert.equal(url.searchParams.get("size"), "large");
+    assert.equal(url.searchParams.get("roomSqft"), null);
+    assert.equal(url.searchParams.get("floor"), "lvp");
+    assert.equal(url.searchParams.get("gclid"), "keep");
   });
 });
