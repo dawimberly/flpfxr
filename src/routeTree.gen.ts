@@ -28,6 +28,7 @@ import { Route as ApiCatalogSignupRouteImport } from './routes/api/catalog-signu
 import { Route as ApiEstimateCheckoutRouteImport } from './routes/api/estimate-checkout'
 import { Route as ApiEstimateInquiryRouteImport } from './routes/api/estimate-inquiry'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
+import { Route as ApiPublicEstimateRouteImport } from './routes/api/public-estimate'
 import { Route as AreasIndexRouteImport } from './routes/areas.index'
 import { Route as AreasSlugRouteImport } from './routes/areas.$slug'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -134,6 +135,11 @@ const ApiLeadsRoute = ApiLeadsRouteImport.update({
   path: '/api/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEstimateRoute = ApiPublicEstimateRouteImport.update({
+  id: '/api/public-estimate',
+  path: '/api/public-estimate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AreasIndexRoute = AreasIndexRouteImport.update({
   id: '/areas/',
   path: '/areas/',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/api/public-estimate': typeof ApiPublicEstimateRoute
   '/areas/$slug': typeof AreasSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/api/public-estimate': typeof ApiPublicEstimateRoute
   '/areas/$slug': typeof AreasSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
+  '/api/public-estimate': typeof ApiPublicEstimateRoute
   '/areas/$slug': typeof AreasSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/estimate/paid': typeof EstimatePaidRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/api/estimate-checkout'
     | '/api/estimate-inquiry'
     | '/api/leads'
+    | '/api/public-estimate'
     | '/areas/$slug'
     | '/blog/$slug'
     | '/estimate/paid'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/api/estimate-checkout'
     | '/api/estimate-inquiry'
     | '/api/leads'
+    | '/api/public-estimate'
     | '/areas/$slug'
     | '/blog/$slug'
     | '/estimate/paid'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/api/estimate-checkout'
     | '/api/estimate-inquiry'
     | '/api/leads'
+    | '/api/public-estimate'
     | '/areas/$slug'
     | '/blog/$slug'
     | '/estimate/paid'
@@ -393,6 +405,7 @@ export interface RootRouteChildren {
   ApiEstimateCheckoutRoute: typeof ApiEstimateCheckoutRoute
   ApiEstimateInquiryRoute: typeof ApiEstimateInquiryRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
+  ApiPublicEstimateRoute: typeof ApiPublicEstimateRoute
   AreasSlugRoute: typeof AreasSlugRoute
   BlogSlugRoute: typeof BlogSlugRoute
   AreasIndexRoute: typeof AreasIndexRoute
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public-estimate': {
+      id: '/api/public-estimate'
+      path: '/api/public-estimate'
+      fullPath: '/api/public-estimate'
+      preLoaderRoute: typeof ApiPublicEstimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/areas/': {
       id: '/areas/'
       path: '/areas'
@@ -656,6 +676,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiEstimateCheckoutRoute: ApiEstimateCheckoutRoute,
   ApiEstimateInquiryRoute: ApiEstimateInquiryRoute,
   ApiLeadsRoute: ApiLeadsRoute,
+  ApiPublicEstimateRoute: ApiPublicEstimateRoute,
   AreasSlugRoute: AreasSlugRoute,
   BlogSlugRoute: BlogSlugRoute,
   AreasIndexRoute: AreasIndexRoute,
