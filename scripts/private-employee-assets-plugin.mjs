@@ -17,7 +17,13 @@ export function privateEmployeeAssetsPlugin() {
       if (!privateFiles.length) throw new Error("No employee chunks identified; refusing an unverified public build");
       const privateSet = new Set(privateFiles);
       for (const chunk of Object.values(bundle)) {
-        if (chunk.type !== "chunk" || privateSet.has(chunk.fileName)) continue;
+        if (chunk.type !== "chunk") continue;
+        if (privateSet.has(chunk.fileName)) {
+          if (chunk.isEntry) {
+            throw new Error(`Browser entry chunk ${chunk.fileName} is classified as an employee asset`);
+          }
+          continue;
+        }
         const protectedImport = chunk.imports.find(file => privateSet.has(file));
         if (protectedImport) {
           throw new Error(`Public chunk ${chunk.fileName} statically imports employee asset ${protectedImport}`);

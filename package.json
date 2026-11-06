@@ -25,7 +25,7 @@
     "seo:sitemap": "node --experimental-strip-types scripts/generate-sitemap.ts",
     "prebuild": "npm run seo:sitemap",
     "prebuild:dev": "npm run seo:sitemap",
-    "test:app": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/auth/*.test.ts src/lib/app-data/*.test.ts src/components/*.test.ts && node --test scripts/public-security.test.mjs scripts/public-pricing-encoding.test.mjs"
+    "test:app": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/auth/*.test.ts src/lib/app-data/*.test.ts src/components/*.test.ts && node --test scripts/public-security.test.mjs scripts/public-pricing-encoding.test.mjs scripts/private-employee-assets-plugin.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
