@@ -325,7 +325,6 @@ export function LeadForm({
             <option value="handyman">Repairs / handyman</option>
             <option value="outdoor">Outdoor work</option>
             <option value="roofing">Roofing</option>
-            <option value="insurance-claims">Insurance rebuild</option>
             <option value="consulting">Walkthrough / other</option>
           </select>
         </div>

@@ -89,7 +89,6 @@ function Home() {
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
           <Link to="/kitchen" className="font-medium text-primary hover:underline">Kitchen remodeling</Link>
           <Link to="/bathroom" className="font-medium text-primary hover:underline">Bathroom remodeling</Link>
-          <Link to="/insurance-claims" className="font-medium text-primary hover:underline">Insurance claim rebuilds</Link>
           <Link to="/areas" className="font-medium text-primary hover:underline">Service areas</Link>
           <Link to="/services" className="font-medium text-primary hover:underline">Other services</Link>
         </div>
