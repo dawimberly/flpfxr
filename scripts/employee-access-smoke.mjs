@@ -1,7 +1,7 @@
 /** Local production-artifact integration; all identities/data are disposable PGLite fixtures. */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { readFile, readdir, copyFile, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { provisionEmployee } from "./employee-admin.mjs";
@@ -11,7 +11,9 @@ process.env.DATABASE_URL = "";
 process.env.VITE_AUTH_ENABLED = "true";
 process.env.BETTER_AUTH_SECRET = "isolated-fixture-secret-not-used-in-production";
 const functionRoot = resolve(".vercel/output/functions/__server.func"), staticRoot = resolve(".vercel/output/static");
-for (const name of (await readdir("node_modules/@electric-sql/pglite/dist")).filter(name=>/\.(?:wasm|data)$/.test(name))) await copyFile("node_modules/@electric-sql/pglite/dist/"+name,functionRoot+"/"+name);
+for (const name of ["pglite.data", "pglite.wasm"]) {
+  assert.ok((await stat(resolve(functionRoot, name))).size > 0, "Build must package " + name);
+}
 const app = (await import(pathToFileURL(functionRoot+"/index.mjs").href)).default;
 const base = "http://localhost:8080";
 await app.fetch(new Request(base+"/login"));
