@@ -1,3 +1,4 @@
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
@@ -67,4 +68,25 @@ for(const type of ["tEXt","zTXt","iTXt","iTXt-plain"])test("PNG "+type+" scans e
 test("new pricing phrases fail while ordinary prose/layout passes",async()=>{
   for(const text of ["overhead and profit","markup","off list","dealer price","labor 42/hr","labor 19/unit","19/unit labor"])await fixture("phrase.txt",text,true);
   for(const text of ["Welcome home","labor of love","kitchen design","main { margin: 0; }"])await fixture("safe.css",text);
+});
+
+test("public sample scan rejects itemized totals, ranges, fees, and unreviewed previews", async () => {
+  const disclaimer = "Preliminary estimate only — not a quote.";
+  async function samplePdf(copy) {
+    const pdf = await PDFDocument.create();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    pdf.addPage().drawText(copy + "\n" + disclaimer, { x: 36, y: 700, font });
+    return pdf.save();
+  }
+  await fixture("sample-estimate.pdf", await samplePdf("Combined preliminary total $12,800"));
+  for (const copy of [
+    "Cabinets $4,200\nFlooring $8,600\nTotal $12,800",
+    "Cabinets 4,200\nFlooring 8,600\nTotal $12,800",
+    "$12,800–$16,000",
+    "$12,800 to 16,000",
+    "$12,800\nA booking fee is credited.",
+  ]) {
+    await fixture("sample-estimate.pdf", await samplePdf(copy), true);
+  }
+  await fixture("sample-estimate.png", png("tEXt", Buffer.from("k\0Sample")), true);
 });

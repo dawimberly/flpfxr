@@ -1,6 +1,7 @@
+import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { extname, join, resolve } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
 import { inflateRawSync, inflateSync, gunzipSync, brotliDecompressSync } from "node:zlib";
 import { pathToFileURL } from "node:url";
 
@@ -10,6 +11,22 @@ const allowed = new Set([".js", ".mjs", ".css", ".html", ".htm", ".json", ".map"
 const binary = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm"]);
 const markers = /\bMSRP\b|\bour\s+cost\b|\blabo[u]?r\s+(?:rates?|costs?|per|@)\b|\binstall\s+each\b|\$\s*(?:75|125)(?:\.00)?(?![\d.])|\bO\s*&\s*P\b|\boverhead\s+and\s+profit\b|\bmarkup\b|\boff\s+list\b|\bdealer\s+price\b|\b(?:profit|gross|net)\s+margins?\b|\blabo[u]?r\b[^\r\n]{0,32}\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b|\d+(?:\.\d+)?\s*\/\s*(?:hr|unit)\b[^\r\n]{0,32}\blabo[u]?r\b|laborPerUnit|laborPerOversized|personHours|adjustedDays|CREW_DAY_RATE|materialsAtCost|laborRate/i;
 const prose = /\.(?:docx|pdf|txt|json|csv|md|xml|rels|html?|svg|webmanifest)$/i;
+// PNG metadata cannot tell us what the pixels say. Re-render and visually review
+// the PDF before updating this digest when the public sample changes.
+const reviewedSamplePng = "013c1be22adf2dbd47a94c7d0b400cc97c63c2c31a6a5fea792b8f65deda6639";
+
+function checkSampleEstimate(text, file) {
+  const value = normalizePricingText(text).replace(/\s+/g, " ");
+  const amounts = value.match(/\$\s*\d[\d,.]*/g) ?? [];
+  const numbers = value.match(/\d[\d,.]*/g) ?? [];
+  const banned = /\b(?:itemized|fees?|credit(?:ed)?|insurance claims?|guaranteed|free quote|starting at|licensed and insured)\b/i;
+  if (amounts.length !== 1 || (value.match(/\$/g) ?? []).length !== 1 ||
+      numbers.length !== 1 || !/^\$\d{1,3}(?:,\d{3})*$/.test(amounts[0]) ||
+      banned.test(value) || !value.includes("Preliminary estimate only — not a quote.")) {
+    throw new Error("Public sample must show one preliminary total and no itemized prices, ranges, or fees: " + file);
+  }
+}
+
 const maxExpanded = 32 * 1024 * 1024;
 const entityPattern = /&(?:#[xX][0-9a-fA-F]+;?|#[0-9]+;?|[a-zA-Z][a-zA-Z0-9]+;?)/g;
 function decodeEntity(value) {
@@ -117,6 +134,10 @@ export async function scanPublicPricing(roots) {
     if(!allowed.has(ext))throw new Error("Public extension is not allow-listed: "+file);
     expanded+=buffer.length;if(buffer.length>maxExpanded || expanded>256*1024*1024)throw new Error("Public scan expansion limit exceeded");
     const kind=signature(buffer);
+    if (basename(file).toLowerCase() === "sample-estimate.png" &&
+        createHash("sha256").update(buffer).digest("hex") !== reviewedSamplePng) {
+      throw new Error("Public sample PNG must match the reviewed preview: " + file);
+    }
     if(kind==="gzip" || kind==="zlib") {
       const data=kind==="gzip"?gunzipSync(buffer,{maxOutputLength:maxExpanded}):inflateSync(buffer,{maxOutputLength:maxExpanded});
       const inner=ext===".gz"?file.slice(0,-3):file;
@@ -133,7 +154,12 @@ export async function scanPublicPricing(roots) {
       return;
     }
     if(ext===".docx")throw new Error("Invalid DOCX ZIP signature: "+file);
-    if(kind==="pdf") {checkText(await pdfText(buffer),file,true);return;}
+    if (kind === "pdf") {
+      const text = await pdfText(buffer);
+      checkText(text, file, true);
+      if (basename(file).toLowerCase() === "sample-estimate.pdf") checkSampleEstimate(text, file);
+      return;
+    }
     if(ext===".pdf")throw new Error("Invalid PDF signature: "+file);
     if(kind==="png") {for(const metadata of pngMetadata(buffer)) for(const text of textViews(metadata))checkText(text,file,true);return;}
     if(ext===".png")throw new Error("Invalid PNG signature: "+file);

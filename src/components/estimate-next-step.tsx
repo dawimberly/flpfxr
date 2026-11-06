@@ -156,7 +156,7 @@ export function EstimateNextStep({
             ) : (
               <p>The range above is free. Tell us how to reach you and we will call you back about this project.</p>
             )}
-            <SampleEstimate feeLabel={paidEstimateOn ? feeLabel : null} paid={paidEstimateOn} />
+            <SampleEstimate />
             <button type="button" className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 font-semibold text-primary-fg" onClick={() => setStep(1)}>
               {paidEstimateOn ? "Continue" : "Get your free estimate"}
             </button>
@@ -310,8 +310,7 @@ export function EstimateNextStep({
   );
 }
 
-function SampleEstimate({ feeLabel, paid }: { feeLabel: string | null; paid: boolean }) {
-  const price = feeLabel ?? "$35";
+function SampleEstimate() {
   return (
     <div data-testid="sample-estimate" className="flex gap-4 rounded-xl border border-border bg-bg p-3">
       <a
@@ -323,7 +322,7 @@ function SampleEstimate({ feeLabel, paid }: { feeLabel: string | null; paid: boo
       >
         <img
           src="/sample-estimate.png"
-          alt="First page of a sample Flip Fixer job estimate"
+          alt="Sample Flip Fixer preliminary estimate with one combined total"
           className="h-40 w-auto rounded-md border border-border bg-white"
         />
         <span className="absolute left-2 top-2 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-primary-fg">
@@ -333,9 +332,7 @@ function SampleEstimate({ feeLabel, paid }: { feeLabel: string | null; paid: boo
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-fg">See a sample estimate</h3>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          {paid
-            ? `For ${price} you get an itemized job estimate like this: what is included, what is not, and the estimated total for the whole job.`
-            : "A sample of the itemized job estimate: what is included, what is not, and the estimated total for the whole job."}
+          An example of the online planner’s combined preliminary total. Final price is confirmed after an on-site review.
         </p>
       </div>
     </div>
