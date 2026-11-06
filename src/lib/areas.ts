@@ -47,9 +47,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     description: `Residential remodeling, construction, repairs, and rental make-ready in Alamo Heights. Call ${phone}.`,
     paragraphs: [
       "We handle residential remodeling and construction in Alamo Heights, from kitchens and baths to flooring, painting, outdoor projects, and home repairs.",
-      "The only review that names Alamo Heights is from Clark P. He describes a rental property made ready on a budget, then multiple offers after one open house. The review does not list rooms, a street, or a price.",
       "For rentals and listings, make-ready can include painting, flooring, fixtures, and punch-list repairs.",
-      "Terrell Hills and Olmos Park are also on the service list. They do not have their own pages. Gallery photos are not labeled by neighborhood, so this page does not present them as Alamo Heights jobs.",
     ],
     reviewName: "Clark P.",
     links: [
@@ -58,9 +56,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
       { label: "Bathroom remodeling", to: "/bathroom" },
       { label: "All reviews", to: "/testimonials" },
     ],
-    todos: [
-      "Add an Alamo Heights project note (which room, what changed) if you want more here than Clark P.'s review. Do not assign a gallery photo to Alamo Heights unless you know that house was there.",
-    ],
+    todos: [],
   },
   {
     slug: "stone-oak",
@@ -111,12 +107,12 @@ export const AREA_PAGES: readonly AreaPage[] = [
       `Boerne is named in the short area line: ${AREA_LINE} No review on this site is placed in Boerne.`,
       "In Boerne and across our service area, we handle residential remodeling and construction, including kitchens, baths, flooring, painting, outdoor projects, make-ready, and home repairs.",
       `A job starts the way we describe it everywhere: we walk the house, then give one clear price. The steps we publish are below. Fair Oaks Ranch is also on the service list and does not have its own page. Call or text ${phone} and say Boerne, the room, and what you want to change.`,
-      "If you want a planning range before that visit, use the estimate page. The number there is a planning range. The price we stand behind comes after we walk the house.",
+      "Use the online planner for a combined preliminary estimate. We confirm the final price after an on-site review.",
     ],
     showProcess: true,
     links: [
       { label: "Services", to: "/services" },
-      { label: "Planning range", to: "/estimate" },
+      { label: "Online project estimate", to: "/estimate" },
       {
         label: "What to have ready for the first visit",
         to: "/blog/$slug",

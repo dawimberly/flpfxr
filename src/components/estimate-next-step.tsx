@@ -1,3 +1,4 @@
+import { SampleEstimate } from "@/components/sample-estimate";
 import { useRef, useState, type FormEvent } from "react";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,6 @@ import {
   CATALOG_BROWSE_NOTE,
   DESIGNER_MATERIALS_NOTE,
   FEE_CREDIT_NOTE,
-  LABOR_ONLY_NOTE,
 } from "@/lib/offer-copy";
 import { paidEstimateEnabled } from "@/lib/paid-estimate-flag";
 
@@ -139,14 +139,13 @@ export function EstimateNextStep({
           ? (paidEstimateOn ? "Your job estimate, or a free call" : "Get your free estimate")
           : step === 1 ? "A few details" : step === 2 ? "How do we reach you?" : (paidEstimateOn ? "Choose one" : "Get your free estimate")}
       </h2>
-      {paidEstimateOn && cancelled ? <p className="mt-2 text-sm text-fg">Checkout closed before payment. The planning range is still free.</p> : null}
+      {paidEstimateOn && cancelled ? <p className="mt-2 text-sm text-fg">Checkout closed before payment. You can still use the online planner.</p> : null}
       <form className="mt-4 space-y-4" onSubmit={submit} noValidate>
           <div className={step === 0 ? "space-y-3 text-sm leading-relaxed text-muted" : "hidden"}>
             {paidEstimateOn ? (
               <>
-                <p>The range above stays free. For {feeLabel ?? "$35"} you can buy an itemized job estimate for the whole job, on that same range. Or send an inquiry and we call you back.</p>
+                <p>You can view the combined preliminary total above. For {feeLabel ?? "$35"} you can buy a detailed job estimate, or send an inquiry and we’ll call you back.</p>
                 <ul className="list-disc space-y-1 pl-5 text-fg">
-                  <li>{LABOR_ONLY_NOTE}</li>
                   <li>Other sizes and an on-site timeline are in the PDF.</li>
                   <li>{DESIGNER_MATERIALS_NOTE}</li>
                   <li>{CATALOG_BROWSE_NOTE}</li>
@@ -154,7 +153,7 @@ export function EstimateNextStep({
                 </ul>
               </>
             ) : (
-              <p>The range above is free. Tell us how to reach you and we will call you back about this project.</p>
+              <p>Tell us how to reach you and we’ll call you back about your project.</p>
             )}
             <SampleEstimate />
             <button type="button" className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 font-semibold text-primary-fg" onClick={() => setStep(1)}>
@@ -211,7 +210,7 @@ export function EstimateNextStep({
             </div>
           </div>
           <div hidden={step !== 3} className={step === 3 ? "space-y-4" : "hidden"}>
-              {paidEstimateOn ? <p className="text-sm text-muted">{LABOR_ONLY_NOTE} {FEE_CREDIT_NOTE}</p> : (
+              {paidEstimateOn ? <p className="text-sm text-muted">The detailed estimate covers the whole job. {FEE_CREDIT_NOTE}</p> : (
                 <p className="text-sm text-muted">We will save the project you built above and call you back.</p>
               )}
               {preview && preview.kind === "itemized" ? (
@@ -307,34 +306,5 @@ export function EstimateNextStep({
           </div>
         </form>
     </section>
-  );
-}
-
-function SampleEstimate() {
-  return (
-    <div data-testid="sample-estimate" className="flex gap-4 rounded-xl border border-border bg-bg p-3">
-      <a
-        href="/sample-estimate.pdf"
-        target="_blank"
-        rel="noreferrer"
-        className="relative block shrink-0"
-        aria-label="Open the sample estimate PDF"
-      >
-        <img
-          src="/sample-estimate.png"
-          alt="Sample Flip Fixer preliminary estimate with one combined total"
-          className="h-40 w-auto rounded-md border border-border bg-white"
-        />
-        <span className="absolute left-2 top-2 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-primary-fg">
-          SAMPLE
-        </span>
-      </a>
-      <div className="min-w-0">
-        <h3 className="text-sm font-semibold text-fg">See a sample estimate</h3>
-        <p className="mt-1 text-sm leading-relaxed text-muted">
-          One combined preliminary total for an example project. Actual project totals vary. Final price is confirmed after an on-site review.
-        </p>
-      </div>
-    </div>
   );
 }
