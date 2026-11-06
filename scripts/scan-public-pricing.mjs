@@ -13,7 +13,7 @@ const markers = /\bMSRP\b|\bour\s+cost\b|\blabo[u]?r\s+(?:rates?|costs?|per|@)\b
 const prose = /\.(?:docx|pdf|txt|json|csv|md|xml|rels|html?|svg|webmanifest)$/i;
 // PNG metadata cannot tell us what the pixels say. Re-render and visually review
 // the PDF before updating this digest when the public sample changes.
-const reviewedSamplePng = "013c1be22adf2dbd47a94c7d0b400cc97c63c2c31a6a5fea792b8f65deda6639";
+const reviewedSamplePng = "bc3faa37810d5a183c8c61db2338af1ee366c02bc3e28d27d930b51e953cd019";
 
 function checkSampleEstimate(text, file) {
   const value = normalizePricingText(text).replace(/\s+/g, " ");

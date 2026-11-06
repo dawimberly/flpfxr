@@ -24,7 +24,7 @@ page.drawRectangle({ x: 0, y: 492, width: 612, height: 8, color: accent });
 text("THE FLIP FIXER", 446, 16, bold);
 text("SAN ANTONIO  /  SAMPLE ESTIMATE", 423, 10, bold, accent);
 text("Example kitchen remodel", 367, 30, bold);
-text("Illustrative project from the online planner.", 342, 13, regular, muted);
+text("Example only. Actual project totals vary.", 342, 13, regular, muted);
 
 page.drawRectangle({ x: 36, y: 214, width: 540, height: 100, color: rgb(0.93, 0.96, 0.95) });
 text("COMBINED PRELIMINARY TOTAL", 284, 11, bold);

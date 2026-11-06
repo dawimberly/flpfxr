@@ -332,7 +332,7 @@ function SampleEstimate() {
       <div className="min-w-0">
         <h3 className="text-sm font-semibold text-fg">See a sample estimate</h3>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          An example of the online planner’s combined preliminary total. Final price is confirmed after an on-site review.
+          One combined preliminary total for an example project. Actual project totals vary. Final price is confirmed after an on-site review.
         </p>
       </div>
     </div>
