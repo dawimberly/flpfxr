@@ -1,5 +1,5 @@
 import { planningCabinetPrices } from "./cabinet-pricing.server.ts";
-import { CABINET_FINISHES } from "./cabinets.ts";
+import { CABINET_FINISHES } from "./public-cabinet-finishes.ts";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
   SHOWER_MATERIALS, projectScope, scopeAreaError, selectedVanity, getVanity,

@@ -1,5 +1,5 @@
 import { SampleEstimate } from "@/components/sample-estimate";
-import { CABINET_FINISHES, cabinetTier, type CabinetFinishId } from "@/lib/cabinets";
+import { CABINET_FINISHES, cabinetTier, type CabinetFinishId } from "@/lib/public-cabinet-finishes";
 import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {

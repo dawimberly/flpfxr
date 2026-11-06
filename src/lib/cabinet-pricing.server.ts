@@ -1,7 +1,8 @@
 import framed from "../data/northville.json" with { type: "json" };
 import frameless from "../data/northville-frameless-cabinets.json" with { type: "json" };
 import closets from "../data/northville-frameless-closets.json" with { type: "json" };
-import { CABINET_FINISHES, type CabinetFinishId, type CabinetPick, type CabinetQuote } from "./cabinets.ts";
+import { CABINET_FINISHES, type CabinetFinishId } from "./public-cabinet-finishes.ts";
+import type { CabinetPick, CabinetQuote } from "./cabinets.ts";
 
 const CABINET_PRICING = {
   multiplier: {

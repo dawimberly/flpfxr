@@ -1,4 +1,4 @@
-import type { CabinetFinishId } from "./cabinets.ts";
+import type { CabinetFinishId } from "./public-cabinet-finishes.ts";
 
 /** Public scope examples, not measured takeoffs or fixed bids. */
 export const PROJECT_SIZES = ["Small", "Medium", "Large"] as const;

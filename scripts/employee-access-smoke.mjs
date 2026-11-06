@@ -65,6 +65,24 @@ await new Promise(r=>server.listen(8080,"127.0.0.1",r));
 let browser;
 try {
   browser=await chromium.launch({headless:true});
+  const visitor = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await visitor.route("https://**/*", route => route.fulfill({ status: 200, body: "", contentType: route.request().resourceType() === "stylesheet" ? "text/css" : "text/javascript" }));
+  const blockedImports = [];
+  visitor.on("request", request => {
+    if (new URL(request.url()).pathname.startsWith("/api/employee-assets/")) blockedImports.push(request.url());
+  });
+  await visitor.goto(base + "/", { waitUntil: "networkidle" });
+  await visitor.getByRole("button", { name: "Open menu", exact: true }).click();
+  await visitor.getByRole("dialog", { name: "Menu" }).waitFor();
+  await visitor.goto(base + "/estimate", { waitUntil: "networkidle" });
+  const small = visitor.getByRole("button", { name: "Small", exact: true });
+  await small.click();
+  await visitor.waitForURL(url => url.searchParams.get("size") === "small");
+  assert.equal(await small.getAttribute("aria-pressed"), "true");
+  assert.deepEqual(blockedImports, [], "Public pages must not load employee chunks");
+  await visitor.close();
+  console.log("PASS signed-out production mobile menu and estimator hydration");
+
   const page=await browser.newPage({extraHTTPHeaders:{authorization:"Bearer "+employeeToken}});
   await page.route("https://**/*", route=>route.fulfill({ status: 200, body: "", contentType: route.request().resourceType()==="stylesheet" ? "text/css" : "text/javascript" }));
   const failures=[];
