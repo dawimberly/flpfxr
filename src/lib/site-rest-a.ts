@@ -118,27 +118,6 @@ export const GALLERY: Array<{
     category: "Kitchen",
   },
   {
-    src: "/images/gallery-05-a.webp",
-    alt: "Two-tone kitchen by The Flip Fixer",
-    title: "Two-tone kitchen",
-    caption: "Two-tone kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-05-b.webp",
-    alt: "Two-tone kitchen by The Flip Fixer",
-    title: "Two-tone kitchen",
-    caption: "Two-tone kitchen",
-    category: "Kitchen",
-  },
-  {
-    src: "/images/gallery-05-c.webp",
-    alt: "Two-tone kitchen by The Flip Fixer",
-    title: "Two-tone kitchen",
-    caption: "Two-tone kitchen",
-    category: "Kitchen",
-  },
-  {
     src: "/images/gallery-06-a.webp",
     alt: "Open kitchen by The Flip Fixer",
     title: "Open kitchen",
