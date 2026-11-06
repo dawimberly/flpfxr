@@ -32,7 +32,6 @@ describe("public estimate live contract", () => {
       "between $12,800 and $16,000",
       "Request an on-site estimate",
     ].join(" ");
-    // The old range string still contains the low figure, so the range check is what rejects it.
-    assert.deepEqual(liveEstimateGaps(stale), ["disclaimer", "published range"]);
+    assert.deepEqual(liveEstimateGaps(stale), ["disclaimer", `default total ${DEFAULT_PUBLIC_TOTAL}`, "published range"]);
   });
 });

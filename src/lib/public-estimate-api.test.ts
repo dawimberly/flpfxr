@@ -117,7 +117,7 @@ describe("public estimate API", () => {
     assert.doesNotMatch(JSON.stringify(custom), /\$\d/);
     assert.match(custom.nextStep, /walkthrough with Jon/);
     const kitchen = await (await post({ service: "kitchen", room_sqft: "n/a", floor: "n/a" })).json();
-    assert.equal(kitchen.total, 12800);
+    assert.equal(kitchen.total, 13300);
     assert.equal(kitchen.removalNote, null);
     assert.equal(kitchen.removalPriced, null);
     assert.match(kitchen.exclusions, /Appliances/);

@@ -23,7 +23,7 @@ export type SavedEstimate = {
     address: string;
     phone: string;
     roomCount: number;
-    grandTotal: number;
+    grandTotal: number | null;
   };
 };
 
@@ -70,7 +70,7 @@ export function summarizeSnapshot(snapshot: EstimateSnapshot) {
     address,
     phone: snapshot.client.phone.trim(),
     roomCount: snapshot.rooms.length,
-    grandTotal: job.grandTotal,
+    grandTotal: snapshot.rooms.some(room => room.cabinets?.length) ? null : job.grandTotal,
   };
 }
 

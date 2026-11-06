@@ -170,7 +170,7 @@ function EstimateLogDialog({
                           </p>
                         </div>
                         <p className="shrink-0 font-mono text-sm tabular-nums text-fg">
-                          {money(item.summary.grandTotal)}
+                          {item.summary.grandTotal == null ? "Open to price" : money(item.summary.grandTotal)}
                         </p>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
