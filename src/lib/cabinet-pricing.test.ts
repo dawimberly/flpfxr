@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import catalog from "../data/northville.json" with { type: "json" };
+import frameless from "../data/northville-frameless-cabinets.json" with { type: "json" };
+import closets from "../data/northville-frameless-closets.json" with { type: "json" };
 import { CABINET_FINISHES, cabinetTier, resolveCabinetFinish } from "./cabinets.ts";
 import { cabinetCatalog, quoteCabinets } from "./cabinet-pricing.server.ts";
 import { publicEstimateResult } from "./public-estimate-result.server.ts";
@@ -23,11 +25,14 @@ test("owner finish rules return one installed price for standard and oversized u
 });
 
 test("Essential, Prime, and closet selections use the Premium multiplier", () => {
-  for (const [finish, sku, expected] of [
-    ["ess", "B30", 468.12],
-    ["prime", "B30", 537],
-    ["cl", "CB3024", 381.40],
+  const cabinet = frameless.items.find(item => item.sku === "B30")!;
+  const closet = closets.items.find(item => item.sku === "CB3024")!;
+  for (const [finish, sku, listPrice] of [
+    ["ess", cabinet.sku, cabinet.prices.ess!],
+    ["prime", cabinet.sku, cabinet.prices.prime!],
+    ["cl", closet.sku, closet.prices.cl!],
   ] as const) {
+    const expected = Math.round(listPrice * 80) / 100 + 75;
     assert.deepEqual(quoteCabinets(finish, [{ sku, quantity: 1 }]), {
       total: expected,
       warnings: [],
