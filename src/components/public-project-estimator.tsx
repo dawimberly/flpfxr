@@ -1,3 +1,4 @@
+import { CABINET_FINISHES, cabinetTier, type CabinetFinishId } from "@/lib/cabinets";
 import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -259,6 +260,13 @@ export function PublicProjectEstimator({
             <select id="estimate-counter" value={inputs.counter} onChange={e => patch("counter", e.target.value as ProjectInputs["counter"])} className={fieldClass}>
               {COUNTER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
+          </label> : null}
+          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-cabinet-finish">Cabinet finish
+            <select id="estimate-cabinet-finish" value={inputs.cabinetFinish ?? "ew"}
+              onChange={e => patch("cabinetFinish", e.target.value as CabinetFinishId)} className={fieldClass}>
+              {CABINET_FINISHES.map(finish => <option key={finish.id} value={finish.id}>{finish.name} · {cabinetTier(finish.id).label}</option>)}
+            </select>
+            <span className="mt-1 block font-normal text-muted">{cabinetTier(inputs.cabinetFinish ?? "ew").details}</span>
           </label> : null}
           {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-vanity">Vanity size
             <select id="estimate-vanity" value={inputs.vanity ?? vanityForSize(inputs.size)} onChange={e => patch("vanity", e.target.value)} className={fieldClass}>

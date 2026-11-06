@@ -23,7 +23,7 @@ export type SavedEstimate = {
     address: string;
     phone: string;
     roomCount: number;
-    grandTotal: number;
+    grandTotal: number | null;
   };
 };
 
@@ -70,7 +70,7 @@ export function summarizeSnapshot(snapshot: EstimateSnapshot) {
     address,
     phone: snapshot.client.phone.trim(),
     roomCount: snapshot.rooms.length,
-    grandTotal: job.grandTotal,
+    grandTotal: snapshot.rooms.some(room => room.cabinets?.length) ? null : job.grandTotal,
   };
 }
 
@@ -140,6 +140,7 @@ export function snapshotFromJob(input: EstimateSnapshot): EstimateSnapshot {
 export function upsertSavedEstimate(
   snapshot: EstimateSnapshot,
   id?: string | null,
+  grandTotal?: number,
 ): SavedEstimate {
   const list = loadEstimateLog();
   const normalized = snapshotFromJob(snapshot);
@@ -147,7 +148,7 @@ export function upsertSavedEstimate(
     id: id && list.some((item) => item.id === id) ? id : crypto.randomUUID(),
     savedAt: new Date().toISOString(),
     snapshot: normalized,
-    summary: summarizeSnapshot(normalized),
+    summary: { ...summarizeSnapshot(normalized), ...(grandTotal === undefined ? {} : { grandTotal }) },
   };
   writeEstimateLog([record, ...list.filter((item) => item.id !== record.id)]);
   return record;

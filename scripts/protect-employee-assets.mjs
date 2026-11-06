@@ -54,5 +54,13 @@ function audit(dir) {
   }
 }
 audit(staticRoot);
+// Authenticated employee chunks still run in the browser.
+const cabinetPricingMarkers = /\bMSRP\b|install each|laborPerUnit|laborPerOversized|Cabinet install labor|Closet install labor|\$\s*(?:75|125)(?:\.00)?\s+(?:per|install|labor)/i;
+for (const name of privateNames) {
+  if (/\.(?:js|mjs|map|json)$/.test(name) && cabinetPricingMarkers.test(readFileSync(join(privateRoot, name), "utf8"))) {
+    throw new Error("Cabinet pricing inputs remain in an employee browser asset: " + name);
+  }
+}
+console.log("Employee browser assets passed the cabinet pricing input scan.");
 await scanPublicPricing(["public", staticRoot]);
 console.log("Protected " + privateNames.size + " employee chunks; public pricing scan passed.");

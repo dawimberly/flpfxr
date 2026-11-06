@@ -66,7 +66,7 @@ describe("estimate landing links", () => {
   it("keeps the bathroom and kitchen ranges for the current box prices", () => {
     const kitchen = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "kitchen", size: "medium" })));
     const bathroom = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "bathroom", size: "medium" })));
-    assert.equal(formatEstimateRange(kitchen!), "between $12,800 and $16,000");
+    assert.equal(formatEstimateRange(kitchen!), "between $13,300 and $16,700");
     assert.equal(formatEstimateRange(bathroom!), "between $9,300 and $11,700");
   });
 

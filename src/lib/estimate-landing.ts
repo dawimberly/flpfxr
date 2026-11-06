@@ -1,3 +1,4 @@
+import { CABINET_FINISHES } from "./cabinets.ts";
 import {
   COUNTER_MATERIALS, DEFAULT_PROJECT_INPUTS, FLOOR_MATERIALS, SHOWER_MATERIALS,
   presetAreas, scopeAreaError, vanityForSize,
@@ -43,6 +44,7 @@ export type EstimateLanding = {
   /** Set only when the URL names a floor this project can use. */
   floor?: ProjectInputs["floor"];
   counter?: ProjectInputs["counter"];
+  cabinetFinish?: ProjectInputs["cabinetFinish"];
   shower?: ProjectInputs["shower"];
   /** Measured areas copied only when they sit inside the planner's range. */
   roomSqft?: number;
@@ -71,7 +73,7 @@ function text(value: unknown): string {
 const FLOOR_IDS = FLOOR_MATERIALS.map(row => row.id);
 const COUNTER_IDS = COUNTER_MATERIALS.map(row => row.id);
 const SHOWER_IDS = SHOWER_MATERIALS.map(row => row.id);
-const MEASUREMENT_KEYS = ["floor", "counter", "shower", "roomSqft", "floorSqft", "showerSqft", "counterSqft"];
+const MEASUREMENT_KEYS = ["floor", "counter", "shower", "cabinetFinish", "roomSqft", "floorSqft", "showerSqft", "counterSqft"];
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   const token = text(value);
@@ -129,6 +131,7 @@ export function estimateLandingFromSearch(search: URLSearchParams | Record<strin
   const floor = oneOf(raw.floor, FLOOR_IDS);
   const counter = oneOf(raw.counter, COUNTER_IDS);
   const shower = oneOf(raw.shower, SHOWER_IDS);
+  const cabinetFinish = oneOf(raw.cabinetFinish, CABINET_FINISHES.map(finish => finish.id));
   return {
     service: resolved,
     size: size ?? "Medium",
@@ -137,6 +140,7 @@ export function estimateLandingFromSearch(search: URLSearchParams | Record<strin
     ...(floor && floorAllowed(resolved, floor) ? { floor } : {}),
     ...(counter && (resolved === "kitchen" || resolved === "bathroom") ? { counter } : {}),
     ...(shower && resolved === "bathroom" ? { shower } : {}),
+    ...(cabinetFinish && resolved === "kitchen" ? { cabinetFinish } : {}),
     ...measuredFromSearch(resolved, raw),
   };
 }
@@ -172,6 +176,7 @@ export function inputsFromLanding(landing: EstimateLanding): ProjectInputs {
     floor: landing.floor ?? (bathroom ? "tile" : "lvp"),
     counter: landing.counter ?? DEFAULT_PROJECT_INPUTS.counter,
     shower: landing.shower ?? DEFAULT_PROJECT_INPUTS.shower,
+    ...(landing.cabinetFinish ? { cabinetFinish: landing.cabinetFinish } : {}),
     vanity: bathroom ? vanityForSize(landing.size) : DEFAULT_PROJECT_INPUTS.vanity,
     ...(landing.roomSqft != null ? { roomSqft: landing.roomSqft } : {}),
     ...(landing.floorSqft != null ? { floorSqft: landing.floorSqft } : {}),
@@ -188,6 +193,7 @@ export function publicPlannerPath(input: ProjectInputs): string {
   if (floorAllowed(input.service, input.floor)) params.set("floor", input.floor);
   if (input.service === "kitchen" || input.service === "bathroom") params.set("counter", input.counter);
   if (input.service === "bathroom") params.set("shower", input.shower);
+  if (input.service === "kitchen" && input.cabinetFinish) params.set("cabinetFinish", input.cabinetFinish);
   if (input.roomSqft != null && (input.service === "flooring" || input.service === "interior-paint" || input.service === "exterior-paint")) {
     params.set("roomSqft", String(input.roomSqft));
   }
@@ -213,6 +219,7 @@ export function estimateRouteSearch(search: Record<string, unknown>): Record<str
   if (landing.floor) next.floor = landing.floor;
   if (landing.counter) next.counter = landing.counter;
   if (landing.shower) next.shower = landing.shower;
+  if (landing.cabinetFinish) next.cabinetFinish = landing.cabinetFinish;
   // Keep measurements as numbers. The router JSON-parses an unquoted query
   // number, and writing it back as a string redirects to a quoted value.
   if (landing.roomSqft != null) next.roomSqft = landing.roomSqft;

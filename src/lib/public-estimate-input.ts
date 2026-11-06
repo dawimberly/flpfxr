@@ -1,3 +1,4 @@
+import { CABINET_FINISHES } from "./cabinets.ts";
 import { z } from "zod";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
@@ -20,6 +21,7 @@ const schema = z.object({
   floorSqft: area, showerSqft: area, counterSqft: area, roomSqft: area,
   cabinetBoxes: z.number().int().min(0).max(40).nullable().optional(),
   xlFridgeBoxes: z.number().int().min(0).max(6).nullable().optional(),
+  cabinetFinish: oneOf(CABINET_FINISHES.map(row => row.id)).optional(),
   vanity: oneOf(VANITY_SIZES.map(row => row.id)).optional(),
 }).strict();
 

@@ -54,7 +54,7 @@ try {
     await page.getByTestId("estimate-total").waitFor();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.waitForURL(url=>url.searchParams.get("size")==="medium");
-    await page.getByTestId("estimate-total").getByText("$12,800",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
     let blocked=0;
     await page.route("**/_serverFn/**",route=>{
       blocked++;
@@ -121,7 +121,7 @@ try {
     await page.getByRole("heading",{name:"Plan your next project.",exact:true}).waitFor();
     assert.equal(await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
-    await page.getByTestId("estimate-total").getByText("$12,800",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Large",exact:true}).click();
@@ -194,7 +194,7 @@ try {
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
     await page.getByTestId("estimate-disclaimer").getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).waitFor();
-    await page.getByTestId("estimate-total").getByText("$12,800",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Small",exact:true}).click();
@@ -204,7 +204,12 @@ try {
     assert.ok(interactive,"Estimator hydration failed");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     const total=page.getByTestId("estimate-total");
-    await page.getByText("$12,800",{exact:true}).waitFor();
+    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByLabel("Cabinet finish").selectOption("ve");
+    await total.getByText("$12,900",{exact:true}).waitFor();
+    await page.getByText("Partial overlay, standard hinges and slides.",{exact:true}).waitFor();
+    await page.getByLabel("Cabinet finish").selectOption("ew");
+    await total.getByText("$13,300",{exact:true}).waitFor();
     const bodyText=async()=>page.locator("body").innerText();
     assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
     await page.getByTestId("estimate-included").waitFor();
@@ -221,14 +226,14 @@ try {
       assert.ok(page.url().includes("/estimate"),"Invalid inputs must not navigate");
     }
     await floor.fill("168");
-    await page.getByText("$12,800",{exact:true}).waitFor();
+    await page.getByText("$13,300",{exact:true}).waitFor();
 
     await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
-    await page.getByText("$12,800",{exact:true}).waitFor();
+    await page.getByText("$13,300",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("laminate");
-    await page.getByText("$11,300",{exact:true}).waitFor();
+    await page.getByText("$11,200",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("quartz");
 
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
