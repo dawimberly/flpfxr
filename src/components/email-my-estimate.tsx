@@ -21,6 +21,8 @@ type ApiResult = {
   downloadExpiresAt?: string;
   total?: number;
   available?: boolean;
+  leadSaved?: boolean;
+  staffNotified?: boolean;
 };
 
 function newSubmissionId() {
@@ -28,6 +30,7 @@ function newSubmissionId() {
   return "00000000-0000-4000-8000-000000000000";
 }
 
+/** Download personalized PDF + request shop follow-up (no customer email). */
 export function EmailMyEstimate({
   selections,
   displayedTotal,
@@ -43,13 +46,16 @@ export function EmailMyEstimate({
   const [state, setState] = useState<DeliveryState>("checking");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [zip, setZip] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [downloadHref, setDownloadHref] = useState<string | null>(null);
   const [acceptedTotal, setAcceptedTotal] = useState<number | null>(null);
+  const [staffNotified, setStaffNotified] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState(() => newSubmissionId());
   const [unavailableMessage, setUnavailableMessage] = useState(
-    "Emailing a personalized estimate PDF is not available right now. Call or text — we still want the job.",
+    "Estimate download and follow-up are temporarily unavailable. Call or text — we still want the job.",
   );
 
   useEffect(() => {
@@ -64,7 +70,7 @@ export function EmailMyEstimate({
         } else {
           setUnavailableMessage(
             body.message
-              || "Emailing a personalized estimate PDF is not available right now. Call or text — we still want the job.",
+              || "Estimate download and follow-up are temporarily unavailable. Call or text — we still want the job.",
           );
           setState("unavailable");
         }
@@ -93,24 +99,31 @@ export function EmailMyEstimate({
     form.set("submissionId", submissionId);
     form.set("name", name);
     form.set("email", email);
+    form.set("phone", phone);
+    form.set("zip", zip);
     form.set("selections", JSON.stringify(selections));
     form.set("displayedTotal", String(displayedTotal));
     form.set("plannerPath", plannerPath);
-    if (marketingConsent) form.set("marketingConsent", "1");
-    form.set("company", ""); // honeypot stays empty for humans
+    form.set("company", "");
     try {
       const response = await fetch("/api/estimate-email", { method: "POST", body: form });
       const body = (await response.json()) as ApiResult;
       if (body.state === "unavailable" || body.available === false || response.status === 503) {
+        if (body.leadSaved && body.downloadToken) {
+          setState("accepted");
+          setAcceptedTotal(typeof body.total === "number" ? body.total : displayedTotal);
+          setStaffNotified(Boolean(body.staffNotified));
+          setStatusMessage(body.message ?? null);
+          setDownloadHref(`/api/estimate-pdf/${encodeURIComponent(body.downloadToken)}`);
+          return;
+        }
         setState("unavailable");
         setUnavailableMessage(body.message || unavailableMessage);
         return;
       }
-      if (!body.ok && body.state !== "duplicate") {
+      if (!body.ok && body.state !== "duplicate" && body.state !== "accepted") {
         setState("failed");
-        setError(body.message ?? "Could not send the estimate. Try again or call.");
-        // Keep the same submission id for conflict/rate-limit retries that must match;
-        // mint a new one after validation/delivery failure so visitors can correct and retry.
+        setError(body.message ?? "Could not save your request. Try again or call.");
         if (body.state !== "rate_limited" && body.state !== "conflict") {
           setSubmissionId(newSubmissionId());
         }
@@ -118,6 +131,8 @@ export function EmailMyEstimate({
       }
       setState("accepted");
       setAcceptedTotal(typeof body.total === "number" ? body.total : displayedTotal);
+      setStaffNotified(Boolean(body.staffNotified));
+      setStatusMessage(body.message ?? null);
       if (body.downloadToken) {
         setDownloadHref(`/api/estimate-pdf/${encodeURIComponent(body.downloadToken)}`);
       } else {
@@ -133,7 +148,7 @@ export function EmailMyEstimate({
   if (state === "checking") {
     return (
       <p className="text-sm text-muted" data-testid="email-my-estimate-checking" role="status">
-        Checking whether estimate email is available…
+        Checking whether estimate download is available…
       </p>
     );
   }
@@ -145,7 +160,7 @@ export function EmailMyEstimate({
         data-testid="email-my-estimate-unavailable"
         role="status"
       >
-        <p className="font-semibold">Estimate email unavailable</p>
+        <p className="font-semibold">Estimate download unavailable</p>
         <p className="mt-1 text-muted">{unavailableMessage}</p>
         <p className="mt-2 text-xs text-muted">Your on-screen preliminary estimate is unchanged.</p>
       </div>
@@ -161,7 +176,7 @@ export function EmailMyEstimate({
         onClick={open}
         className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-bg px-5 py-2.5 font-semibold text-fg md:py-3 ${disabled ? "opacity-60" : ""}`}
       >
-        Email me my estimate
+        Download estimate &amp; request follow-up
       </button>
     );
   }
@@ -173,10 +188,15 @@ export function EmailMyEstimate({
         data-testid="email-my-estimate-accepted"
         role="status"
       >
-        <p className="font-semibold">Accepted for email delivery</p>
+        <p className="font-semibold">Request saved</p>
         <p className="mt-1 text-muted">
-          Provider acceptance is not proof the message reached your inbox. Combined preliminary total:{" "}
-          {formatPublicEstimate(acceptedTotal ?? displayedTotal)}.
+          {statusMessage
+            || (staffNotified
+              ? "The Flip Fixer was notified to follow up."
+              : "Your details were saved. Shop email notification is still pending.")}
+        </p>
+        <p className="mt-1 text-muted">
+          Combined preliminary total: {formatPublicEstimate(acceptedTotal ?? displayedTotal)}.
         </p>
         {downloadHref ? (
           <a
@@ -188,9 +208,11 @@ export function EmailMyEstimate({
           >
             Download your personalized estimate PDF
           </a>
-        ) : null}
+        ) : (
+          <p className="mt-3 text-sm text-muted">PDF download is not available for this request. Call or text.</p>
+        )}
         <p className="mt-2 text-xs text-muted">
-          This download is your personalized preliminary estimate — not the example sample PDF below.
+          This is your personalized preliminary estimate — not the example sample PDF below. No estimate email was sent to you.
         </p>
       </div>
     );
@@ -204,20 +226,18 @@ export function EmailMyEstimate({
       data-testid="email-my-estimate-form"
       noValidate
     >
-      <p className="text-sm font-semibold text-fg">Email me my estimate</p>
+      <p className="text-sm font-semibold text-fg">Download estimate &amp; request follow-up</p>
       <p className="mt-1 text-sm text-muted">
-        Submitting requests this preliminary estimate PDF and permits contact about this project.
-        Phone number is not required.{" "}
+        Download your preliminary estimate and send your project details to The Flip Fixer so we can contact you about your project.{" "}
         <Link to="/privacy" className="underline">How we use your information</Link>.
       </p>
       <div className="mt-3 grid gap-3">
         <label className="text-sm font-semibold text-fg" htmlFor={`${formId}-name`}>
-          Name
+          Name <span className="font-normal text-muted">(optional)</span>
           <input
             id={`${formId}-name`}
             name="name"
             autoComplete="name"
-            required
             maxLength={80}
             value={name}
             onChange={e => setName(e.target.value)}
@@ -225,31 +245,43 @@ export function EmailMyEstimate({
           />
         </label>
         <label className="text-sm font-semibold text-fg" htmlFor={`${formId}-email`}>
-          Email
+          Email <span className="font-normal text-muted">(email or phone required)</span>
           <input
             id={`${formId}-email`}
             name="email"
             type="email"
             autoComplete="email"
-            required
             value={email}
             onChange={e => setEmail(e.target.value)}
             className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface p-3 text-fg"
           />
         </label>
-        <label className="flex min-h-11 items-start gap-3 text-sm text-fg" htmlFor={`${formId}-marketing`}>
+        <label className="text-sm font-semibold text-fg" htmlFor={`${formId}-phone`}>
+          Phone <span className="font-normal text-muted">(email or phone required)</span>
           <input
-            id={`${formId}-marketing`}
-            type="checkbox"
-            className="mt-0.5 size-11 shrink-0 rounded border-border"
-            checked={marketingConsent}
-            onChange={e => setMarketingConsent(e.target.checked)}
-            data-testid="email-my-estimate-marketing"
+            id={`${formId}-phone`}
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface p-3 text-fg"
           />
-          <span>
-            Optional: send me occasional project tips and offers.
-            <span className="mt-1 block text-muted">Unchecked by default. Not required for your estimate PDF.</span>
-          </span>
+        </label>
+        <label className="text-sm font-semibold text-fg" htmlFor={`${formId}-zip`}>
+          Project ZIP code
+          <input
+            id={`${formId}-zip`}
+            name="zip"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            required
+            maxLength={10}
+            value={zip}
+            onChange={e => setZip(e.target.value)}
+            className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface p-3 text-fg"
+            data-testid="email-my-estimate-zip"
+          />
         </label>
         <div className="hidden" aria-hidden="true">
           <label htmlFor={`${formId}-company`}>Company
@@ -264,7 +296,7 @@ export function EmailMyEstimate({
         className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg disabled:opacity-60"
         data-testid="email-my-estimate-submit"
       >
-        {state === "submitting" ? "Submitting…" : "Send my estimate PDF"}
+        {state === "submitting" ? "Saving…" : "Download estimate & request follow-up"}
       </button>
       {state === "failed" ? (
         <p className="mt-2 text-xs text-muted">Your project selections are still on this page for another try.</p>

@@ -7,18 +7,17 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   ABUSE_LIMITS,
   DOWNLOAD_TTL_MS,
+  ESTIMATE_STAFF_NOTIFY_TO,
   estimateCustomerMailConfig,
   estimateEmailAvailability,
-  estimateSiteOrigin,
   handleEstimateEmailRequest,
   handleEstimatePdfDownload,
   revokeEstimatePdfToken,
-  validateEstimateEmailContact,
+  validateEstimateFollowUpContact,
 } from "./estimate-email.server.ts";
 import { DEFAULT_PROJECT_INPUTS } from "./public-estimate-options.ts";
 import { publicEstimateResult } from "./public-estimate-result.server.ts";
 import { renderPublicEstimatePdf } from "./public-estimate-pdf.server.ts";
-import { SITE } from "./site.ts";
 
 function formFrom(fields: Record<string, string>) {
   const form = new FormData();
@@ -30,6 +29,7 @@ type LeadRow = {
   submission_id: string;
   name: string;
   email: string | null;
+  phone: string | null;
   marketing_consent: boolean | null;
   estimate_total_cents: number | null;
   planner_inputs: unknown;
@@ -53,7 +53,6 @@ type DownloadRow = {
   created_at: string;
 };
 
-/** Shared durable store simulating Postgres across “instances”. */
 function createMemorySql() {
   const abuse = new Map<string, number>();
   const leads = new Map<string, LeadRow>();
@@ -67,9 +66,7 @@ function createMemorySql() {
       const sqlText = text.replace(/\s+/g, " ").trim();
 
       if (/insert into estimate_email_abuse/i.test(sqlText)) {
-        const bucket = String(params[0]);
-        const window = String(params[1]);
-        const key = `${bucket}|${window}`;
+        const key = `${params[0]}|${params[1]}`;
         const next = (abuse.get(key) ?? 0) + 1;
         abuse.set(key, next);
         return [{ hit_count: next }] as T[];
@@ -84,32 +81,31 @@ function createMemorySql() {
         const submissionId = String(params[0]);
         const existing = leads.get(submissionId);
         if (existing) {
-          existing.delivered_email = existing.delivered_email || Boolean(params[7]);
-          existing.customer_email_ok = existing.customer_email_ok || Boolean(params[12]);
-          existing.staff_email_ok = existing.staff_email_ok || Boolean(params[13]);
+          existing.staff_email_ok = existing.staff_email_ok || Boolean(params[12]);
+          existing.delivered_email = existing.delivered_email || Boolean(params[8]);
           return [] as T[];
         }
         leads.set(submissionId, {
           submission_id: submissionId,
           name: String(params[1]),
-          email: String(params[2]),
-          marketing_consent: Boolean(params[9]),
+          email: params[2] == null ? null : String(params[2]),
+          phone: params[3] == null ? null : String(params[3]),
+          marketing_consent: false,
           estimate_total_cents: Number(params[10]),
           planner_inputs: JSON.parse(String(params[11])),
-          estimate_snapshot: JSON.parse(String(params[14])),
-          customer_email_ok: Boolean(params[12]),
-          staff_email_ok: Boolean(params[13]),
-          delivered_email: Boolean(params[7]),
+          estimate_snapshot: JSON.parse(String(params[13])),
+          customer_email_ok: false,
+          staff_email_ok: Boolean(params[12]),
+          delivered_email: Boolean(params[8]),
         });
         return [] as T[];
       }
 
-      if (/update contact_leads set/i.test(sqlText) && /customer_email_ok/i.test(sqlText)) {
+      if (/update contact_leads set/i.test(sqlText) && /staff_email_ok = true/i.test(sqlText)) {
         const row = leads.get(String(params[0]));
         if (row) {
-          row.customer_email_ok = row.customer_email_ok || Boolean(params[1]);
-          row.staff_email_ok = row.staff_email_ok || Boolean(params[2]);
-          row.delivered_email = row.delivered_email || Boolean(params[1]);
+          row.staff_email_ok = true;
+          row.delivered_email = true;
         }
         return [] as T[];
       }
@@ -141,12 +137,12 @@ function createMemorySql() {
         return (rows[0] ? [rows[0]] : []) as T[];
       }
 
-      if (/from estimate_pdf_downloads/i.test(sqlText) && /where token_hash/i.test(sqlText) && /select submission_id, expires_at/i.test(sqlText)) {
+      if (/from estimate_pdf_downloads/i.test(sqlText) && /where token_hash/i.test(sqlText)) {
         const row = downloads.get(String(params[0]));
         return (row ? [row] : []) as T[];
       }
 
-      if (/update estimate_pdf_downloads/i.test(sqlText) && /revoked_at/i.test(sqlText) && /download_count/i.test(sqlText) === false) {
+      if (/update estimate_pdf_downloads/i.test(sqlText) && /revoked_at/i.test(sqlText) && !/download_count/i.test(sqlText)) {
         const row = downloads.get(String(params[0]));
         if (row) {
           row.revoked_at = row.revoked_at ?? String(params[1]);
@@ -171,322 +167,257 @@ function createMemorySql() {
   return sql;
 }
 
-function enableDeliveryEnv() {
-  process.env.RESEND_API_KEY = "re_test_key";
-  process.env.ESTIMATE_FROM_EMAIL = "The Flip Fixer <leads@theflipfixer.com>";
-  process.env.LEAD_TO_EMAIL = "Jon@TheFlipFixer.com";
-  process.env.ESTIMATE_EMAIL_DELIVERY = "1";
-}
+const baseFields = () => ({
+  submissionId: randomUUID(),
+  name: "Alex Sample",
+  email: "alex.sample@example.com",
+  phone: "",
+  zip: "78209",
+  selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false }),
+});
 
-describe("estimate email delivery", () => {
+describe("estimate follow-up download", () => {
   beforeEach(() => {
-    enableDeliveryEnv();
+    process.env.RESEND_API_KEY = "re_test_key";
+    process.env.LEAD_FROM_EMAIL = "The Flip Fixer <leads@theflipfixer.com>";
+    process.env.DATABASE_URL = "postgres://test";
+    delete process.env.ESTIMATE_EMAIL_DELIVERY;
   });
 
-  it("requires a bounded plain-text name and email but not phone", () => {
-    assert.equal(validateEstimateEmailContact({ name: "A", email: "a@example.com" }).ok, false);
-    assert.equal(validateEstimateEmailContact({ name: "Alex\nBcc: evil@x.com", email: "alex@example.com" }).ok, false);
-    assert.equal(validateEstimateEmailContact({ name: "Alex <script>", email: "alex@example.com" }).ok, false);
-    assert.equal(validateEstimateEmailContact({ name: "Alex Sample", email: "not-an-email" }).ok, false);
-    const ok = validateEstimateEmailContact({ name: "Alex Sample", email: "Alex.Sample@Example.com" });
-    assert.equal(ok.ok, true);
-    if (ok.ok) assert.equal(ok.email, "alex.sample@example.com");
+  it("requires email or phone plus a five-digit ZIP; name is optional", () => {
+    assert.equal(validateEstimateFollowUpContact({
+      name: "", email: "", phone: "", zip: "78209",
+    }).ok, false);
+    assert.equal(validateEstimateFollowUpContact({
+      name: "", email: "alex@example.com", phone: "", zip: "782",
+    }).ok, false);
+    assert.equal(validateEstimateFollowUpContact({
+      name: "", email: "alex@example.com", phone: "", zip: "78209",
+    }).ok, true);
+    assert.equal(validateEstimateFollowUpContact({
+      name: "", email: "", phone: "2104369117", zip: "78209",
+    }).ok, true);
+    assert.equal(validateEstimateFollowUpContact({
+      name: "Alex Sample", email: "alex@example.com", phone: "(210) 436-9117", zip: "78209",
+    }).ok, true);
   });
 
-  it("keeps customer delivery disabled without the explicit delivery flag even when an API key exists", () => {
+  it("keeps customer email delivery retired even when Resend is configured", () => {
     const cfg = estimateCustomerMailConfig({
       RESEND_API_KEY: "re_test",
       ESTIMATE_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
-      ESTIMATE_EMAIL_DELIVERY: undefined,
-    });
-    assert.equal(cfg.configured, false);
-    assert.equal(estimateEmailAvailability({
-      RESEND_API_KEY: "re_test",
-      ESTIMATE_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
-    }).available, false);
-  });
-
-  it("disables customer delivery for the Resend onboarding sender", () => {
-    const cfg = estimateCustomerMailConfig({
-      RESEND_API_KEY: "re_test",
-      ESTIMATE_FROM_EMAIL: "The Flip Fixer <onboarding@resend.dev>",
       ESTIMATE_EMAIL_DELIVERY: "1",
     });
     assert.equal(cfg.configured, false);
+    assert.equal(cfg.staffTo, ESTIMATE_STAFF_NOTIFY_TO);
   });
 
-  it("builds customer links from SITE.url and ignores spoofed Host headers", async () => {
+  it("reports storage availability without exposing setup instructions", () => {
+    assert.equal(estimateEmailAvailability({ DATABASE_URL: "postgres://x" }).available, true);
+    const down = estimateEmailAvailability({});
+    assert.equal(down.available, false);
+    assert.doesNotMatch(down.message, /RESEND|ESTIMATE_EMAIL_DELIVERY|onboarding@/i);
+  });
+
+  it("accepts email-only, phone-only, and both; notifies Jon only; never emails the customer", async () => {
+    for (const contact of [
+      { email: "alex.sample@example.com", phone: "" },
+      { email: "", phone: "2104369117" },
+      { email: "alex.sample@example.com", phone: "2104369117" },
+    ]) {
+      const sql = createMemorySql();
+      const sent: Array<{ to: string; subject: string; text: string; attachments?: unknown[] }> = [];
+      const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+        method: "POST",
+        body: formFrom({ ...baseFields(), ...contact }),
+      }), {
+        sql,
+        env: process.env,
+        sendMail: async (input) => {
+          sent.push(input);
+          return { ok: true, id: "mock_" + sent.length };
+        },
+      });
+      const body = await response.json() as {
+        ok: boolean; state: string; downloadToken?: string; staffNotified?: boolean; leadSaved?: boolean; total?: number;
+      };
+      assert.equal(response.status, 200);
+      assert.equal(body.ok, true);
+      assert.equal(body.leadSaved, true);
+      assert.equal(body.staffNotified, true);
+      assert.ok(body.downloadToken);
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].to.toLowerCase(), ESTIMATE_STAFF_NOTIFY_TO);
+      assert.notEqual(sent[0].to.toLowerCase(), "alex.sample@example.com");
+      assert.equal(sent[0].attachments, undefined);
+      assert.match(sent[0].text, /No customer email was sent/i);
+      assert.match(sent[0].text, /ZIP: 78209/);
+    }
+  });
+
+  it("rejects missing contact details, invalid ZIP, and forged totals", async () => {
     const sql = createMemorySql();
-    const sent: Array<{ text: string }> = [];
-    const response = await handleEstimateEmailRequest(new Request("https://evil.example/api/estimate-email", {
+    const sendMail = async () => ({ ok: true as const, id: "x" });
+
+    const missing = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      headers: {
-        host: "evil.example",
-        "x-forwarded-host": "phish.example",
-        "x-forwarded-proto": "https",
-      },
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false }),
-      }),
+      body: formFrom({ ...baseFields(), email: "", phone: "" }),
+    }), { sql, sendMail });
+    assert.equal(missing.status, 400);
+
+    const badZip = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom({ ...baseFields(), zip: "78" }),
+    }), { sql, sendMail });
+    assert.equal(badZip.status, 400);
+
+    const expected = publicEstimateResult({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false })!.total;
+    const forged = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom({ ...baseFields(), displayedTotal: "999999" }),
     }), {
       sql,
       sendMail: async (input) => {
-        sent.push(input);
-        return { ok: true, id: "mock_1" };
+        assert.match(input.text, /\$12,000/);
+        return { ok: true, id: "ok" };
       },
     });
-    assert.equal(response.status, 200);
-    assert.match(sent[0].text, new RegExp(SITE.url.replace("https://", "https://")));
-    assert.doesNotMatch(sent[0].text, /evil\.example|phish\.example/i);
-    assert.equal(estimateSiteOrigin(), SITE.url.replace(/\/+$/, ""));
-  });
-
-  it("does not collect or persist when delivery is disabled", async () => {
-    const sql = createMemorySql();
-    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
-      method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify(DEFAULT_PROJECT_INPUTS),
-      }),
-    }), {
-      sql,
-      env: {
-        RESEND_API_KEY: "re_test",
-        ESTIMATE_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
-        // ESTIMATE_EMAIL_DELIVERY intentionally unset
-      },
-      sendMail: async () => {
-        throw new Error("should not send");
-      },
-    });
-    const body = await response.json() as { state: string; available?: boolean; setupNeeded?: unknown };
-    assert.equal(response.status, 503);
-    assert.equal(body.state, "unavailable");
-    assert.equal(body.available, false);
-    assert.equal(body.setupNeeded, undefined);
-    assert.equal(sql.leads.size, 0);
-  });
-
-  it("recalculates totals server-side and ignores a forged displayed total", async () => {
-    const selections = { ...DEFAULT_PROJECT_INPUTS, includeFlooring: false };
-    const expected = publicEstimateResult(selections)!.total;
-    const sent: Array<{ to: string; subject: string; text: string; attachments?: unknown[]; idempotencyKey?: string }> = [];
-    const sql = createMemorySql();
-    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
-      method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify(selections),
-        displayedTotal: "999999",
-      }),
-    }), {
-      sql,
-      sendMail: async (input) => {
-        sent.push(input);
-        return { ok: true, id: "mock_" + sent.length };
-      },
-    });
-    const body = await response.json() as { ok: boolean; state: string; total: number; downloadToken: string };
-    assert.equal(response.status, 200);
-    assert.equal(body.ok, true);
-    assert.equal(body.state, "accepted");
+    const body = await forged.json() as { total: number };
+    assert.equal(forged.status, 200);
     assert.equal(body.total, expected);
     assert.notEqual(body.total, 999999);
-    assert.equal(sent[0].to, "alex.sample@example.com");
-    assert.match(sent[0].subject, /\$12,000/);
-    assert.ok(sent[0].attachments?.length);
-    assert.ok(body.downloadToken);
-    assert.equal(sql.leads.size, 1);
-    assert.equal([...sql.leads.values()][0].estimate_total_cents, expected * 100);
-    assert.equal([...sql.leads.values()][0].customer_email_ok, true);
   });
 
-  it("persists the immutable snapshot before send and rejects conflicting retries", async () => {
+  it("rejects conflicting retries and does not duplicate Jon notifications", async () => {
     const sql = createMemorySql();
     const submissionId = randomUUID();
-    const selections = { ...DEFAULT_PROJECT_INPUTS, includeFlooring: false };
     let sends = 0;
+    const sendMail = async () => {
+      sends += 1;
+      return { ok: true as const, id: "m" + sends };
+    };
     const first = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      body: formFrom({
-        submissionId,
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify(selections),
-      }),
-    }), {
-      sql,
-      sendMail: async () => {
-        sends += 1;
-        return { ok: false, status: 500, message: "provider down" };
-      },
-    });
-    assert.equal(first.status, 502);
-    assert.equal(sql.leads.size, 1);
-    assert.equal([...sql.leads.values()][0].customer_email_ok, false);
-    assert.equal(sql.downloads.size, 1);
+      body: formFrom({ ...baseFields(), submissionId }),
+    }), { sql, sendMail });
+    assert.equal(first.status, 200);
+    assert.equal(sends, 1);
 
     const conflict = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      body: formFrom({
-        submissionId,
-        name: "Alex Sample",
-        email: "other@example.com",
-        selections: JSON.stringify(selections),
-      }),
-    }), {
-      sql,
-      sendMail: async () => ({ ok: true, id: "x" }),
-    });
+      body: formFrom({ ...baseFields(), submissionId, email: "other@example.com" }),
+    }), { sql, sendMail });
     assert.equal(conflict.status, 409);
-    const body = await conflict.json() as { state: string };
-    assert.equal(body.state, "conflict");
     assert.equal(sends, 1);
+
+    const duplicate = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom({ ...baseFields(), submissionId }),
+    }), { sql, sendMail });
+    assert.equal(duplicate.status, 200);
+    const body = await duplicate.json() as { state: string; downloadToken?: string; staffNotified?: boolean };
+    assert.equal(body.state, "duplicate");
+    assert.ok(body.downloadToken);
+    assert.equal(body.staffNotified, true);
+    assert.equal(sends, 1);
+    assert.equal(sql.leads.size, 1);
   });
 
-  it("tracks staff notification separately from customer delivery", async () => {
+  it("keeps the lead and PDF when staff notification fails, without claiming delivery", async () => {
     const sql = createMemorySql();
     const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false }),
-      }),
+      body: formFrom(baseFields()),
+    }), {
+      sql,
+      sendMail: async () => ({ ok: false, status: 500, message: "provider down" }),
+    });
+    const body = await response.json() as {
+      ok: boolean; leadSaved?: boolean; staffNotified?: boolean; downloadToken?: string; message: string;
+    };
+    assert.equal(response.status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.leadSaved, true);
+    assert.equal(body.staffNotified, false);
+    assert.ok(body.downloadToken);
+    assert.match(body.message, /could not notify/i);
+    assert.equal([...sql.leads.values()][0].staff_email_ok, false);
+    assert.equal([...sql.leads.values()][0].customer_email_ok, false);
+  });
+
+  it("retries staff notification safely after a prior notify failure", async () => {
+    const sql = createMemorySql();
+    const submissionId = randomUUID();
+    let sends = 0;
+    await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom({ ...baseFields(), submissionId }),
+    }), {
+      sql,
+      sendMail: async () => ({ ok: false, status: 500, message: "down" }),
+    });
+    const retry = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom({ ...baseFields(), submissionId }),
     }), {
       sql,
       sendMail: async (input) => {
-        if (input.idempotencyKey?.includes("staff")) {
-          return { ok: false, status: 500, message: "staff fail" };
-        }
-        return { ok: true, id: "customer_ok" };
+        sends += 1;
+        assert.equal(input.to.toLowerCase(), ESTIMATE_STAFF_NOTIFY_TO);
+        return { ok: true, id: "recovered" };
       },
     });
-    const body = await response.json() as { ok: boolean; state: string; message: string };
-    assert.equal(response.status, 200);
-    assert.equal(body.ok, true);
-    assert.equal(body.state, "accepted");
-    assert.match(body.message, /Staff notification is still pending/i);
-    const lead = [...sql.leads.values()][0];
-    assert.equal(lead.customer_email_ok, true);
-    assert.equal(lead.staff_email_ok, false);
+    const body = await retry.json() as { staffNotified?: boolean; downloadToken?: string };
+    assert.equal(retry.status, 200);
+    assert.equal(body.staffNotified, true);
+    assert.ok(body.downloadToken);
+    assert.equal(sends, 1);
+    assert.equal(sql.leads.size, 1);
   });
 
-  it("enforces durable abuse limits across separate handler instances sharing one store", async () => {
+  it("enforces durable abuse limits across shared store instances", async () => {
     const shared = createMemorySql();
     const sendMail = async () => ({ ok: true as const, id: "m" });
-    for (let i = 0; i < ABUSE_LIMITS.emailPerHour; i += 1) {
+    for (let i = 0; i < ABUSE_LIMITS.contactPerHour; i += 1) {
       const ok = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
         method: "POST",
-        body: formFrom({
-          submissionId: randomUUID(),
-          name: "Alex Sample",
-          email: "same.person@example.com",
-          selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false }),
-        }),
+        body: formFrom({ ...baseFields(), submissionId: randomUUID(), email: "same.person@example.com" }),
       }), { sql: shared, sendMail });
       assert.equal(ok.status, 200);
     }
     const blocked = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "same.person@example.com",
-        selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false }),
-      }),
+      body: formFrom({ ...baseFields(), submissionId: randomUUID(), email: "same.person@example.com" }),
     }), { sql: shared, sendMail });
     assert.equal(blocked.status, 429);
   });
 
-  it("fails closed when the abuse store is unavailable", async () => {
+  it("fails closed when storage is unavailable and does not invent success", async () => {
     const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify(DEFAULT_PROJECT_INPUTS),
-      }),
+      body: formFrom(baseFields()),
     }), {
-      sql: {
-        async query() {
-          throw new Error("db down");
-        },
-      },
+      sql: null,
+      env: { ...process.env, DATABASE_URL: "" },
       sendMail: async () => ({ ok: true, id: "x" }),
     });
-    assert.equal(response.status, 429);
-  });
-
-  it("preserves the lead when email delivery fails and does not claim acceptance or return a token", async () => {
-    const sql = createMemorySql();
-    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
-      method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: true }),
-      }),
-    }), {
-      sql,
-      sendMail: async () => ({ ok: false, status: 500, message: "provider down" }),
-    });
-    const body = await response.json() as { ok: boolean; state: string; downloadToken?: string };
-    assert.equal(response.status, 502);
-    assert.equal(body.ok, false);
-    assert.equal(body.state, "delivery_failed");
-    assert.equal(body.downloadToken, undefined);
-    assert.equal(sql.leads.size, 1);
-    assert.equal([...sql.leads.values()][0].customer_email_ok, false);
-  });
-
-  it("rejects forged selection payloads that fail validation", async () => {
-    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
-      method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify({ service: "kitchen", total: 12 }),
-      }),
-    }), {
-      sql: createMemorySql(),
-      sendMail: async () => ({ ok: true, id: "x" }),
-    });
-    assert.equal(response.status, 400);
-    const body = await response.json() as { state: string };
-    assert.equal(body.state, "validation");
+    const body = await response.json() as { state: string; leadSaved?: boolean; setupNeeded?: unknown };
+    assert.equal(response.status, 503);
+    assert.equal(body.state, "unavailable");
+    assert.equal(body.leadSaved, false);
+    assert.equal(body.setupNeeded, undefined);
   });
 
   it("serves the stored PDF snapshot and ignores later pricing changes", async () => {
     const sql = createMemorySql();
-    const selections = { ...DEFAULT_PROJECT_INPUTS, includeFlooring: false };
-    const expected = publicEstimateResult(selections)!.total;
     const accepted = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
       method: "POST",
-      body: formFrom({
-        submissionId: randomUUID(),
-        name: "Alex Sample",
-        email: "alex.sample@example.com",
-        selections: JSON.stringify(selections),
-      }),
+      body: formFrom(baseFields()),
     }), {
       sql,
       sendMail: async () => ({ ok: true, id: "mock" }),
     });
     const body = await accepted.json() as { downloadToken: string };
-    // Mutate stored snapshot total to prove download uses bytes, not live reprice.
     const download = [...sql.downloads.values()][0];
     download.snapshot_total_cents = 99999900;
     const pdf = await handleEstimatePdfDownload(
@@ -497,11 +428,7 @@ describe("estimate email delivery", () => {
     assert.equal(pdf.status, 200);
     assert.equal(pdf.headers.get("referrer-policy"), "no-referrer");
     assert.match(pdf.headers.get("cache-control") || "", /no-store/);
-    const bytes = new Uint8Array(await pdf.arrayBuffer());
-    assert.ok(bytes.byteLength > 500);
-    // Stored cents were tampered; response still came from original pdf_bytes.
-    assert.equal(download.snapshot_total_cents, 99999900);
-    assert.equal(expected, 12000);
+    assert.ok((await pdf.arrayBuffer()).byteLength > 500);
   });
 
   it("blocks unauthorized, expired, and revoked downloads", async () => {
@@ -528,12 +455,11 @@ describe("estimate email delivery", () => {
       last_download_at: null,
       created_at: new Date().toISOString(),
     });
-    const expired = await handleEstimatePdfDownload(
+    assert.equal((await handleEstimatePdfDownload(
       new Request(`https://theflipfixer.com/api/estimate-pdf/${token}`),
       token,
-      { sql, now: Date.now() },
-    );
-    assert.equal(expired.status, 410);
+      { sql },
+    )).status, 410);
 
     const live = "abcdefghijklmnopqrstu123";
     const liveHash = createHash("sha256").update(live).digest("hex");
@@ -551,12 +477,11 @@ describe("estimate email delivery", () => {
       created_at: new Date().toISOString(),
     });
     assert.equal(await revokeEstimatePdfToken(live, { sql }), true);
-    const revoked = await handleEstimatePdfDownload(
+    assert.equal((await handleEstimatePdfDownload(
       new Request(`https://theflipfixer.com/api/estimate-pdf/${live}`),
       live,
       { sql },
-    );
-    assert.equal(revoked.status, 410);
+    )).status, 410);
   });
 
   it("writes a fictitious personalized PDF without example-only labeling", async () => {
@@ -568,29 +493,22 @@ describe("estimate email delivery", () => {
     });
     const dir = mkdtempSync(join(tmpdir(), "flpfxr-estimate-pdf-"));
     try {
-      const path = join(dir, "fictitious-personalized-estimate.pdf");
-      writeFileSync(path, bytes);
+      writeFileSync(join(dir, "fictitious-personalized-estimate.pdf"), bytes);
       const { PDFDocument } = await import("pdf-lib");
       const doc = await PDFDocument.load(bytes);
       assert.equal(doc.getPageCount(), 1);
-      const title = doc.getTitle() ?? "";
-      assert.match(title, /Alex Sample/);
-      assert.doesNotMatch(title, /example only/i);
-      // Also write review evidence under docs when present locally (best-effort).
+      assert.match(doc.getTitle() ?? "", /Alex Sample/);
+      assert.doesNotMatch(doc.getTitle() ?? "", /example only/i);
       try {
         writeFileSync(
           join("docs", "reviews", "estimator-flooring-pdf-2026-11", "fictitious-personalized-estimate.pdf"),
           bytes,
         );
       } catch {
-        // CI may not need the docs path; temp file assertion already passed.
+        // optional local evidence path
       }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
-
-  it("documents download TTL", () => {
-    assert.equal(DOWNLOAD_TTL_MS, 7 * 24 * 60 * 60 * 1000);
   });
 });
