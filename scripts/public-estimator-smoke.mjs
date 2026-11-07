@@ -155,7 +155,12 @@ try {
     await page.evaluate(()=>document.fonts?.ready);
     const fold=await page.locator("#estimate-fold").boundingBox();
     assert.ok(fold,"Fold block is missing");
-    assert.ok(fold.y+fold.height<=844-88,`Phone fold extends under the call bar: ${Math.round(fold.y+fold.height)}`);
+    // Size/material controls now follow the standalone PDF and on-site actions.
+    await page.evaluate(()=>window.scrollTo(0,0));
+    for (const action of [page.getByTestId("email-my-estimate-open"), page.getByRole("link", {name:"Request an on-site estimate",exact:true})]) {
+      const box = await action.boundingBox();
+      assert.ok(box.y+box.height<=844-88,`Phone action extends under the call bar: ${Math.round(box.y+box.height)}`);
+    }
     await page.screenshot({path:join(artifacts,"public-estimator-smoke-before-handoff.png"),fullPage:true});
     console.log("HANDOFF STATE", await page.getByRole("link",{name:"Request an on-site estimate"}).getAttribute("aria-disabled"));
     await page.getByRole("link",{name:"Request an on-site estimate"}).click();
@@ -345,7 +350,7 @@ try {
     await page.getByLabel("Countertop type").selectOption("quartz");
 
     // Gated follow-up: mock notifications stay off (no RESEND key); PDF download still works.
-    await page.getByRole("button", { name: "Download estimate & request follow-up" }).click();
+    await page.getByRole("button", { name: "Download estimate PDF", exact: true }).click();
     await page.getByTestId("email-my-estimate-form").waitFor();
     await page.getByLabel(/^Email/).fill("alex.sample@example.com");
     await page.getByTestId("email-my-estimate-zip").fill("78209");

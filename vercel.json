@@ -6,7 +6,8 @@
       "fix/public-documents-crew-access": false,
       "fix/public-sample-one-total": false,
       "feat/owner-cabinet-pricing": false,
-      "fix/public-site-cleanup": false
+      "fix/public-site-cleanup": false,
+      "fix/standalone-estimate-pdf": false
     }
   },
   "redirects": [
