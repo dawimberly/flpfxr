@@ -1,3 +1,4 @@
+import { RemodelDetails } from "@/components/remodel-details";
 import { createFileRoute } from "@tanstack/react-router";
 import { CabinetCatalogGate } from "@/components/cabinet-catalog-gate";
 import { LeadForm } from "@/components/lead-form";
@@ -66,6 +67,7 @@ function BathroomLanding() {
         </div>
       </section>
 
+      <RemodelDetails service="bathroom" />
       <MoreProjectPhotos service="bathroom" />
     </div>
   );
