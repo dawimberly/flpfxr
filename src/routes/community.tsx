@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallLink, CallNumber } from "@/components/call-link";
@@ -18,13 +19,13 @@ export const Route = createFileRoute("/community")({
   }),
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/community` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Community | ${SITE.legalName}` },
       {
         name: "description",
         content: COMMUNITY.title + " " + COMMUNITY.intro,
       },
-    ],
+    ]),
   }),
 });
 

@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import {
@@ -12,14 +13,14 @@ export const Route = createFileRoute("/services")({
   component: ServicesPage,
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/services` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Services | ${SITE.legalName}` },
       {
         name: "description",
         content:
           `Residential remodeling and construction, including kitchens, baths, flooring, painting, outdoor work, make-ready, and repairs. ${AREA_LINE} Call (210) 436-9117.`,
       },
-    ],
+    ]),
   }),
 });
 

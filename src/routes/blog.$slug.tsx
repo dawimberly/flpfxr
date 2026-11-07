@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
@@ -13,14 +14,14 @@ export const Route = createFileRoute("/blog/$slug")({
   head: ({ loaderData: post }) =>
     post
       ? {
-          meta: [
+          meta: publicPageMeta([
             { title: `${post.title} | ${SITE.name}` },
             { name: "description", content: post.description },
             { property: "og:title", content: post.title },
             { property: "og:description", content: post.description },
             { property: "og:type", content: "article" },
             { property: "og:image", content: `${SITE.url}${post.image}` },
-          ],
+          ]),
           links: [{ rel: "canonical", href: `${SITE.url}/blog/${post.slug}` }],
         }
       : {},

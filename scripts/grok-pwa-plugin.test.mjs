@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import test from "node:test";
+import test, { after } from "node:test";
 import {
   appNameFromHost,
   createHeadInjector,
@@ -20,6 +20,10 @@ import {
 import { renderInstallPage } from "./grok-pwa-plugin.mjs";
 
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+// Generic injector tests must not inherit the real site identity from the checkout.
+const originalCwd = process.cwd();
+process.chdir(mkdtempSync(join(tmpdir(), "grok-pwa-test-")));
+after(() => process.chdir(originalCwd));
 
 test("injects before </head>", () => {
   const out = injectGrokPwaHead("<html><head><title>x</title></head><body></body></html>");
@@ -504,3 +508,18 @@ test("vite plugin bakes og identity as a virtual module", () => {
   assert.match(plugin, /snapshotOgIdentity/);
 });
 
+
+
+test('route social text survives both SSR injectors with article metadata and canonical intact', () => {
+  const html = '<html><head><title>Kitchen guide | The Flip Fixer</title><meta name="description" content="Kitchen guide details."><link rel="canonical" href="https://theflipfixer.com/blog/guide"><meta name="robots" content="noindex"><script type="application/ld+json">{"keep":true}</script><meta property="og:title" content="Kitchen guide | The Flip Fixer"><meta property="og:description" content="Kitchen guide details."><meta name="twitter:title" content="Kitchen guide | The Flip Fixer"><meta name="twitter:description" content="Kitchen guide details."><meta property="og:type" content="article"><meta property="og:image" content="https://theflipfixer.com/guide.webp"></head><body></body></html>';
+  const ctx = { site: { title: 'The Flip Fixer', description: 'Generic identity' }, host: 'theflipfixer.com' };
+  const once = injectGrokPwaHead(html, ctx);
+  const injector = createHeadInjector(ctx);
+  const twice = Buffer.concat([...injector.push(once.slice(0,95)), ...injector.push(once.slice(95)), ...injector.flush()]).toString();
+  assert.equal(once, twice);
+  for (const key of ['og:title','og:description','twitter:title','twitter:description']) {
+    assert.equal([...twice.matchAll(new RegExp('(?:property|name)="'+key+'"','g'))].length, 1);
+  }
+  assert.doesNotMatch(twice, /content="Generic identity"/);
+  for(const preserved of ['content="article"','content="https://theflipfixer.com/guide.webp"','rel="canonical" href="https://theflipfixer.com/blog/guide"','name="robots" content="noindex"','{"keep":true}']) assert.ok(twice.includes(preserved));
+});

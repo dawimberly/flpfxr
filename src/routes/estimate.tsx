@@ -1,7 +1,8 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { PublicProjectEstimator } from "@/components/public-project-estimator";
 import {
-  DEFAULT_ESTIMATE_HEADLINE, estimateLandingFromSearch, estimateRouteSearch, headlineFor,
+  estimateLandingFromSearch, estimateRouteSearch,
 } from "@/lib/estimate-landing";
 import { loadPublicEstimate } from "@/lib/public-estimate";
 import { inputsFromLanding } from "@/lib/estimate-landing";
@@ -15,14 +16,12 @@ export const Route = createFileRoute("/estimate")({
     catch { return null; } // Keep the planner mounted so its retry UI can recover.
   },
   validateSearch: (search: Record<string, unknown>) => estimateRouteSearch(search),
-  head: ({ match }) => {
-    const landing = estimateLandingFromSearch(match?.search ?? {});
-    const headline = landing.explicitService ? headlineFor(landing.service) : DEFAULT_ESTIMATE_HEADLINE;
+  head: () => {
     return {
-      meta: [
-        { title: `${headline} | ${SITE.name}` },
-        { name: "description", content: "Explore a preliminary estimate for your kitchen, bathroom, flooring, painting or other remodeling project in San Antonio." },
-      ],
+      meta: publicPageMeta([
+        { title: `San Antonio Remodeling & Handyman Estimator | ${SITE.name}` },
+        { name: "description", content: "Explore preliminary estimates for kitchen, bathroom, flooring, painting, and handyman projects in San Antonio. Choose your project size and materials." },
+      ]),
     };
   },
 });

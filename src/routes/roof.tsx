@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AREA_LINE, SITE } from "@/lib/site";
 
@@ -10,13 +11,13 @@ export const Route = createFileRoute("/roof")({
   },
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/roof` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Roof | ${SITE.legalName}` },
       {
         name: "description",
         content: `Roof repair and replacement in San Antonio. Call ${SITE.phoneDisplay}. We walk the job. ${AREA_LINE}`,
       },
-    ],
+    ]),
   }),
   component: () => null,
 });

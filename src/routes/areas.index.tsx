@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { OwnerTodo } from "@/components/owner-todo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
@@ -8,13 +9,13 @@ export const Route = createFileRoute("/areas/")({
   component: AreasIndex,
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/areas` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Service areas | ${SITE.name}` },
       {
         name: "description",
         content: `Service areas for The Flip Fixer, including Alamo Heights, Stone Oak, Boerne, The Dominion, and Kerrville. Call ${SITE.phoneDisplay}.`,
       },
-    ],
+    ]),
   }),
 });
 

@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { CtaBand, PageIntro } from "@/components/site-shell";
 import { SITE, TESTIMONIALS, FEATURED_REVIEW } from "@/lib/site";
@@ -6,14 +7,14 @@ export const Route = createFileRoute("/testimonials")({
   component: TestimonialsPage,
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/testimonials` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Reviews | ${SITE.legalName}` },
       {
         name: "description",
         content:
           "What San Antonio homeowners say about The Flip Fixer. Fast, clean, and the job actually got finished.",
       },
-    ],
+    ]),
   }),
 });
 

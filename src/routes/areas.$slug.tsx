@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { OwnerTodo } from "@/components/owner-todo";
 import { Photo } from "@/components/photo";
@@ -14,10 +15,10 @@ export const Route = createFileRoute("/areas/$slug")({
   head: ({ loaderData }) =>
     loaderData
       ? {
-          meta: [
+          meta: publicPageMeta([
             { title: `${loaderData.title} | ${SITE.name}` },
             { name: "description", content: loaderData.description },
-          ],
+          ]),
           links: [{ rel: "canonical", href: `${SITE.url}/areas/${loaderData.slug}` }],
         }
       : {},
