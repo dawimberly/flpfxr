@@ -272,7 +272,28 @@ try {
     assert.equal(await page.getByTestId("estimate-keep-flooring").getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByTestId("estimate-replace-flooring").getAttribute("aria-pressed"),"false");
     await page.getByTestId("estimate-flooring-choice").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: join(artifacts, "flooring-ux-keep-1280.png"), fullPage: false });
+    // Phone: stacked full-width taps, no horizontal overflow; desktop: side-by-side pair.
+    const flooringLayout = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const keep = document.querySelector("[data-testid='estimate-keep-flooring']");
+      const replace = document.querySelector("[data-testid='estimate-replace-flooring']");
+      if (!keep || !replace) return null;
+      const kb = keep.getBoundingClientRect();
+      const rb = replace.getBoundingClientRect();
+      return {
+        overflowX: doc.scrollWidth > doc.clientWidth + 1,
+        keepH: kb.height,
+        replaceH: rb.height,
+        stacked: Math.abs(kb.left - rb.left) < 2 && rb.top > kb.bottom - 1,
+        sideBySide: Math.abs(kb.top - rb.top) < 2 && rb.left > kb.right - 1,
+      };
+    });
+    assert.ok(flooringLayout, "Flooring choice controls should be present");
+    assert.equal(flooringLayout.overflowX, false, "Flooring controls must not force horizontal scroll");
+    assert.ok(flooringLayout.keepH >= 44 && flooringLayout.replaceH >= 44, "Flooring choices need tap-sized targets");
+    if (width <= 480) assert.equal(flooringLayout.stacked, true, "Phone layout stacks Keep/Replace");
+    else assert.equal(flooringLayout.sideBySide, true, "Desktop Keep/Replace sit side by side");
+    await page.screenshot({ path: join(artifacts, `flooring-ux-keep-${width}.png`), fullPage: false });
     // Shared/older links: flooring off by default; includeFlooring=1 restores bundled flooring.
     await page.goto(base+"/estimate?service=kitchen&size=medium&includeFlooring=1&floor=lvp",{waitUntil:"domcontentloaded"});
     await total.getByText("$13,300",{exact:true}).waitFor();
@@ -280,7 +301,7 @@ try {
     assert.equal(await page.getByTestId("estimate-replace-flooring").getAttribute("aria-pressed"),"true");
     await page.locator("#estimate-floor").waitFor();
     await page.getByTestId("estimate-flooring-choice").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: join(artifacts, "flooring-ux-replace-1280.png"), fullPage: false });
+    await page.screenshot({ path: join(artifacts, `flooring-ux-replace-${width}.png`), fullPage: false });
     await page.goto(base+"/estimate?service=flooring&size=medium&floor=lvp",{waitUntil:"domcontentloaded"});
     await total.getByText("$3,600",{exact:true}).waitFor();
     assert.equal(await page.getByTestId("estimate-flooring-choice").count(),0);
