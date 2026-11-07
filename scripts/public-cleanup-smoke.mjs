@@ -20,12 +20,16 @@ const screenshotNames = new Map([["/", "home"], ["/kitchen", "kitchen"], ["/esti
 const server = process.env.PUBLIC_CLEANUP_BASE ? null : spawn(process.execPath, ["node_modules/vite/bin/vite.js", "dev", "--host", "127.0.0.1", "--port", "8097", "--strictPort"], { windowsHide: true, stdio: "pipe" });
 let serverLog = "";
 if (server) for (const stream of [server.stdout, server.stderr]) stream.on("data", chunk => { serverLog = (serverLog + chunk).slice(-6000); });
+server?.on("error", error => { serverLog += String(error); });
 let browser;
 let activePage;
 const results = [];
 try {
   let ready = false;
-  for (let attempt = 0; attempt < 60; attempt++) {
+  // Connection-refused polls return immediately, so a fixed attempt count can
+  // exhaust in 30s before a cold Windows Vite/PGLite bootstrap opens its port.
+  const readyDeadline = Date.now() + 180_000;
+  while (Date.now() < readyDeadline) {
     if (server && server.exitCode !== null) break;
     try { if ((await fetch(base + "/kitchen", { signal: AbortSignal.timeout(2000) })).ok) { ready = true; break; } } catch { /* startup */ }
     await delay(500);
@@ -47,14 +51,18 @@ try {
     });
     let expectedFooter;
     const seenTitles = new Set();
+    const seenDescriptions = new Set();
     for (const path of paths) {
       console.log(`${width}: ${path}`);
       const response = await page.goto(base + path, { waitUntil: "networkidle" });
       assert.equal(response.status(), 200, path);
       const title = await page.title();
+      assert.equal(await page.locator("head title").count(), 1, `${path}: document title count`);
       assert.ok(!seenTitles.has(title), `Duplicate title: ${path}`);
       seenTitles.add(title);
       const description = await page.locator('meta[name="description"]').getAttribute("content");
+      assert.ok(description?.trim() && !seenDescriptions.has(description), `${path}: empty/duplicate description`);
+      seenDescriptions.add(description);
       for (const [attribute, key, expected] of [["property", "og:title", title], ["name", "twitter:title", title], ["property", "og:description", description], ["name", "twitter:description", description]]) {
         const tag = page.locator(`meta[${attribute}="${key}"]`);
         assert.equal(await tag.count(), 1, `${path}: duplicate/missing ${key}`);
