@@ -7,6 +7,9 @@ type Props = {
   afterSrc: string;
   beforeAlt: string;
   afterAlt: string;
+  beforeFallbackSrc?: string;
+  afterFallbackSrc?: string;
+  loading?: "lazy" | "eager";
   className?: string;
 };
 
@@ -15,6 +18,9 @@ export function BeforeAfterSlider({
   afterSrc,
   beforeAlt,
   afterAlt,
+  beforeFallbackSrc,
+  afterFallbackSrc,
+  loading,
   className,
 }: Props) {
   const [pos, setPos] = useState(52);
@@ -59,6 +65,8 @@ export function BeforeAfterSlider({
     >
       <Photo
         src={afterSrc}
+        fallbackSrc={afterFallbackSrc}
+        loading={loading}
         alt={afterAlt}
         className="absolute inset-0 size-full object-cover"
         draggable={false}
@@ -69,15 +77,14 @@ export function BeforeAfterSlider({
       >
         <Photo
           src={beforeSrc}
+          fallbackSrc={beforeFallbackSrc}
+          loading={loading}
           alt={beforeAlt}
           className="size-full object-cover"
           draggable={false}
         />
       </div>
-      <div
-        className="absolute inset-y-0 z-10 w-0.5 bg-fg"
-        style={{ left: `${pos}%` }}
-      >
+      <div className="absolute inset-y-0 z-10 w-0.5 bg-fg" style={{ left: `${pos}%` }}>
         <div className="absolute top-1/2 left-1/2 flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-fg text-bg shadow-md">
           <span className="sr-only">Drag to compare</span>
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>

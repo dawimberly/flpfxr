@@ -1,9 +1,11 @@
 export const GALLERY: Array<{
   src: string;
+  fallbackSrc?: string;
+  phase?: "before" | "after";
   alt: string;
   title: string;
   caption: string;
-  category: "Kitchen" | "Bath" | "Outdoor" | "Interior" | "Custom";
+  category: "Kitchen" | "Bath" | "Outdoor" | "Interior" | "Custom" | "Process";
 }> = [
   {
     src: "/images/gallery-23-a.webp",
@@ -298,5 +300,89 @@ export const GALLERY: Array<{
     title: "Privacy fence & gate",
     caption: "After",
     category: "Outdoor",
+  },
+  {
+    src: "/images/gallery-28-a.webp",
+    fallbackSrc: "/images/gallery-28-a.jpg",
+    alt: "White perimeter cabinets and stainless appliances around a dark island with a white countertop.",
+    title: "Modern kitchen",
+    caption:
+      "Modern kitchen remodel with white perimeter cabinets, dark island, and quartz counters.",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-29-a.webp",
+    fallbackSrc: "/images/gallery-29-a.jpg",
+    alt: "Dark wood cabinets, double wall ovens and warm lighting over wood-look counters.",
+    title: "Dark wood kitchen",
+    caption:
+      "Updated kitchen with dark wood cabinets, wood-look counters, and under-cabinet lighting.",
+    category: "Kitchen",
+  },
+  {
+    src: "/images/gallery-30-a.webp",
+    fallbackSrc: "/images/gallery-30-a.jpg",
+    alt: "Tiled shower under construction with blue painter’s tape, a corner bench and a pebble floor.",
+    title: "Walk-in shower remodel",
+    caption: "Before",
+    category: "Bath",
+    phase: "before",
+  },
+  {
+    src: "/images/gallery-30-b.webp",
+    fallbackSrc: "/images/gallery-30-b.jpg",
+    alt: "Finished walk-in shower with marble-look walls, a pebble floor, corner bench and metal grab bars.",
+    title: "Walk-in shower remodel",
+    caption: "Walk-in shower remodel with marble-look tile, pebble floor, and grab bars.",
+    category: "Bath",
+    phase: "after",
+  },
+  {
+    src: "/images/gallery-30-c.webp",
+    fallbackSrc: "/images/gallery-30-c.jpg",
+    alt: "Glass tub enclosure with stone-look wall tiles, a diamond-pattern border and a chrome towel bar.",
+    title: "Walk-in shower remodel",
+    caption: "Glass tub enclosure with a decorative tile border.",
+    category: "Bath",
+  },
+  {
+    src: "/images/gallery-31-a.webp",
+    fallbackSrc: "/images/gallery-31-a.jpg",
+    alt: "Small powder room with white beadboard walls, a white vanity and light tile flooring.",
+    title: "Powder room",
+    caption: "Powder room remodel with beadboard wainscoting and new vanity.",
+    category: "Bath",
+  },
+  {
+    src: "/images/gallery-32-a.webp",
+    fallbackSrc: "/images/gallery-32-a.jpg",
+    alt: "White built-in with open shelves and lower cabinet doors beside a hallway.",
+    title: "Custom built-in",
+    caption: "Floor-to-ceiling white built-in shelving and cabinet wall.",
+    category: "Custom",
+  },
+  {
+    src: "/images/gallery-33-a.webp",
+    fallbackSrc: "/images/gallery-33-a.jpg",
+    alt: "White upper and lower kitchen cabinets being installed around a window.",
+    title: "How we work",
+    caption: "Cabinet install in progress.",
+    category: "Process",
+  },
+  {
+    src: "/images/gallery-33-b.webp",
+    fallbackSrc: "/images/gallery-33-b.jpg",
+    alt: "Cream cabinets and dark stone counters beside windows, with protective covering on the floor.",
+    title: "How we work",
+    caption: "Cream cabinetry and stone counters going in.",
+    category: "Process",
+  },
+  {
+    src: "/images/gallery-33-c.webp",
+    fallbackSrc: "/images/gallery-33-c.jpg",
+    alt: "Gray wood-look plank flooring seen from a doorway, with a chair near the window.",
+    title: "How we work",
+    caption: "New wood-look flooring installed.",
+    category: "Process",
   },
 ];
