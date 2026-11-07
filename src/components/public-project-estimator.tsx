@@ -31,13 +31,13 @@ const sqftText = (n: number) => {
   return Number.isInteger(tenths) ? String(tenths) : tenths.toFixed(1);
 };
 function sizeText(service: ProjectInputs["service"], scope: NonNullable<ReturnType<typeof projectScope>>) {
-  if (service === "bathroom") return `${sqftText(scope.floor)} sq ft floor, ${sqftText(scope.shower)} sq ft shower`;
+  if (service === "bathroom") return `${sqftText(scope.floor)} sq ft room, ${sqftText(scope.shower)} sq ft shower`;
   if (service === "kitchen") {
     const boxes = scope.base + scope.wallUnits;
     const xl = scope.xlFridgeBoxes
       ? `, ${sqftText(scope.xlFridgeBoxes)} XL fridge ${scope.xlFridgeBoxes === 1 ? "box" : "boxes"}`
       : "";
-    return `${sqftText(scope.floor)} sq ft floor, ${sqftText(scope.counters)} sq ft counters, ${sqftText(boxes)} cabinet boxes${xl}`;
+    return `${sqftText(scope.floor)} sq ft room, ${sqftText(scope.counters)} sq ft counters, ${sqftText(boxes)} cabinet boxes${xl}`;
   }
   if (service === "flooring") return `${sqftText(scope.floor)} sq ft`;
   return `${sqftText(scope.wall)} sq ft`;
