@@ -10,14 +10,38 @@ import { chromium } from "playwright";
 import { toJSONAsync } from "seroval";
 import { compareAuthInvariant, probeDevAuthEnabled, buildAuthEnabled } from "./check-auth-invariant.mjs";
 import { mergeAppEnv, readAppEnv } from "./with-app-env.mjs";
+import {
+  allowsEstimateFollowUpEphemeralStorage,
+  estimateFollowUpStoragePolicy,
+  isEstimateFollowUpServerlessHost,
+} from "../src/lib/estimate-email.server.ts";
 
 const base = "http://127.0.0.1:8080";
 const artifacts = process.env.GITHUB_ACTIONS ? process.cwd() : mkdtempSync(join(tmpdir(), "flipfixer-estimator-smoke-"));
+const smokeServerEnv = mergeAppEnv(readAppEnv(process.cwd()), {
+  ...process.env,
+  CI: "1",
+  // Local/smoke only: feature on + explicit ephemeral PGLite for follow-up storage.
+  // Do not set these on Vercel. Unset VERCEL so this cannot weaken the production guard.
+  ESTIMATE_FOLLOWUP_ENABLED: "1",
+  ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE: "1",
+  VERCEL: "",
+  AWS_LAMBDA_FUNCTION_NAME: "",
+  NETLIFY: "",
+});
+// Guard: this smoke env must stay off serverless markers; Vercel + ephemeral must remain blocked.
+assert.equal(isEstimateFollowUpServerlessHost(smokeServerEnv), false);
+assert.equal(allowsEstimateFollowUpEphemeralStorage(smokeServerEnv), true);
+assert.equal(estimateFollowUpStoragePolicy({
+  ESTIMATE_FOLLOWUP_ENABLED: "1",
+  VERCEL: "1",
+  ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE: "1",
+}).allowed, false, "smoke must not weaken the Vercel durable-storage guard");
 const server = spawn(process.execPath, [
   "node_modules/vite/bin/vite.js",
   "dev", "--host", "127.0.0.1", "--port", "8080", "--strictPort",
 ], { detached: process.platform !== "win32", windowsHide: true,
-  stdio: ["ignore", "pipe", "pipe"], env: mergeAppEnv(readAppEnv(process.cwd()), { ...process.env, CI: "1" }) });
+  stdio: ["ignore", "pipe", "pipe"], env: smokeServerEnv });
 let logs = "";
 for (const stream of [server.stdout, server.stderr]) stream.on("data", c => { logs=(logs+String(c)).slice(-12000); });
 server.on("error", error => { logs += String(error); });
@@ -78,7 +102,7 @@ try {
     await page.getByTestId("estimate-total").waitFor();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.waitForURL(url=>url.searchParams.get("size")==="medium");
-    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,000",{exact:true}).waitFor();
     let blocked=0;
     await page.route("**/_serverFn/**",route=>{
       blocked++;
@@ -126,7 +150,7 @@ try {
     await page.waitForURL(url=>url.searchParams.get("size")==="medium");
     assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
-    await page.getByTestId("estimate-total").getByText("$9,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$8,000",{exact:true}).waitFor();
     assert.equal(await page.getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).count(),1);
     await page.evaluate(()=>document.fonts?.ready);
     const fold=await page.locator("#estimate-fold").boundingBox();
@@ -145,7 +169,7 @@ try {
     await page.getByRole("heading",{name:"Plan your next project.",exact:true}).waitFor();
     assert.equal(await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
-    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,000",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Large",exact:true}).click();
@@ -218,7 +242,7 @@ try {
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
     await page.getByTestId("estimate-disclaimer").getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).waitFor();
-    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,000",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Small",exact:true}).click();
@@ -228,12 +252,49 @@ try {
     assert.ok(interactive,"Estimator hydration failed");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     const total=page.getByTestId("estimate-total");
-    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByText("$12,000",{exact:true}).waitFor();
+    const northville = page.getByTestId("estimate-northville-cabinets");
+    await northville.waitFor();
+    assert.equal(await northville.getAttribute("href"), "https://www.northvillecabinetry.com/");
+    assert.equal(await northville.getAttribute("target"), "_blank");
+    assert.equal(await northville.getAttribute("rel"), "noopener noreferrer");
+    assert.match(await northville.innerText(), /Browse Northville cabinet styles/);
+    assert.match(await northville.textContent() || "", /opens in a new tab/i);
     await page.getByLabel("Cabinet finish").selectOption("ve");
-    await total.getByText("$12,900",{exact:true}).waitFor();
+    await total.getByText("$11,600",{exact:true}).waitFor();
+    // External browse link must not clear estimator selections.
+    assert.equal(await page.getByLabel("Cabinet finish").inputValue(), "ve");
     await page.getByText("Partial overlay, standard hinges and slides.",{exact:true}).waitFor();
     await page.getByLabel("Cabinet finish").selectOption("ew");
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Flooring not included");
+    assert.equal(await page.locator("#estimate-floor").count(),0);
+    assert.equal(await page.getByTestId("estimate-include-flooring").count(),1);
+    // Shared/older links: flooring off by default; includeFlooring=1 restores bundled flooring.
+    await page.goto(base+"/estimate?service=kitchen&size=medium&includeFlooring=1&floor=lvp",{waitUntil:"domcontentloaded"});
     await total.getByText("$13,300",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Flooring included");
+    assert.equal(await page.getByTestId("estimate-include-flooring").isChecked(),true);
+    await page.locator("#estimate-floor").waitFor();
+    await page.goto(base+"/estimate?service=flooring&size=medium&floor=lvp",{waitUntil:"domcontentloaded"});
+    await total.getByText("$3,600",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-include-flooring").count(),0);
+    await page.locator("#estimate-floor").waitFor();
+    await page.goto(base+"/estimate?service=kitchen&size=medium",{waitUntil:"domcontentloaded"});
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    // Wait for hydration before toggling — same pattern as size buttons above.
+    for(let i=0;i<30;i++) {
+      await page.getByRole("button",{name:"Small",exact:true}).click();
+      if(await page.getByRole("button",{name:"Small",exact:true}).getAttribute("aria-pressed")==="true") break;
+      await delay(100);
+    }
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    await page.getByTestId("estimate-include-flooring").check();
+    await total.getByText("$13,300",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-include-flooring").isChecked(),true);
+    await page.getByTestId("estimate-include-flooring").uncheck();
+    await total.getByText("$12,000",{exact:true}).waitFor();
     const bodyText=async()=>page.locator("body").innerText();
     assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
     await page.getByTestId("estimate-included").waitFor();
@@ -251,20 +312,41 @@ try {
       assert.ok(page.url().includes("/estimate"),"Invalid inputs must not navigate");
     }
     await floor.fill("168");
-    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByText("$12,000",{exact:true}).waitFor();
 
     await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
-    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByText("$12,000",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("laminate");
-    await page.getByText("$11,200",{exact:true}).waitFor();
+    await page.getByText("$10,600",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("quartz");
+
+    // Gated follow-up: mock notifications stay off (no RESEND key); PDF download still works.
+    await page.getByRole("button", { name: "Download estimate & request follow-up" }).click();
+    await page.getByTestId("email-my-estimate-form").waitFor();
+    await page.getByLabel(/^Email/).fill("alex.sample@example.com");
+    await page.getByTestId("email-my-estimate-zip").fill("78209");
+    await page.getByTestId("email-my-estimate-submit").click();
+    await page.getByTestId("email-my-estimate-accepted").waitFor();
+    const downloadLink = page.getByTestId("email-my-estimate-download");
+    await downloadLink.waitFor();
+    const pdfHref = await downloadLink.getAttribute("href");
+    assert.ok(pdfHref && pdfHref.startsWith("/api/estimate-pdf/"));
+    const pdfResponse = await page.request.get(base + pdfHref);
+    assert.equal(pdfResponse.status(), 200);
+    assert.match(pdfResponse.headers()["content-type"] || "", /application\/pdf/);
+    assert.match(pdfResponse.headers()["cache-control"] || "", /no-store/);
+    assert.equal(pdfResponse.headers()["referrer-policy"], "no-referrer");
+    assert.ok((await pdfResponse.body()).byteLength > 500);
+    assert.equal(await page.getByLabel("Cabinet finish").inputValue(), "ew");
+    assert.equal(await total.innerText(), "$12,000");
 
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
+    assert.equal(await page.getByTestId("estimate-northville-cabinets").count(), 0, "Northville link is kitchen-only");
     await page.getByTestId("estimate-included").getByText("Demolition",{exact:true}).waitFor();
-    await page.getByText("$9,300",{exact:true}).waitFor();
+    await page.getByText("$8,000",{exact:true}).waitFor();
     await page.getByLabel("Shower wall").selectOption("stone");
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
     assert.match(await total.innerText(),/^\$[\d,]+$/);
@@ -278,7 +360,7 @@ try {
     await page.getByText("$8,600",{exact:true}).waitFor();
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
-    await page.getByText("$9,300",{exact:true}).waitFor();
+    await page.getByText("$8,000",{exact:true}).waitFor();
     const undersized=await page.locator("main select, main input, main button, main summary, main a").evaluateAll(elements=>
       elements.filter(el=>el.getBoundingClientRect().width>0 && el.getBoundingClientRect().height>0)
         .filter(el=>el.getBoundingClientRect().height<44).map(el=>el.id||el.textContent));
@@ -295,7 +377,7 @@ try {
     await page.waitForURL(/\/contact/);
     await page.waitForFunction(()=>document.querySelector('textarea[name="message"]')?.value.includes("Preliminary estimate:"));
     const message=await page.locator('textarea[name="message"]').inputValue();
-    assert.match(message,/\$9,300/);
+    assert.match(message,/\$8,000/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
     assert.ok(message.includes(PRELIMINARY_ESTIMATE_WORDING));
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
@@ -318,7 +400,7 @@ try {
     assert.equal(leadRequests[0].Source,"estimate");
     assert.equal(leadRequests[0].estimate_service,"bathroom");
     assert.equal(leadRequests[0].estimate_size,"Medium");
-    assert.equal(leadRequests[0].estimate_range,"$9,300");
+    assert.equal(leadRequests[0].estimate_range,"$8,000");
     assert.equal(leadRequests[0].landing_page,"/estimate");
     assert.equal(leadRequests[0].submitting_page,"/contact");
     assert.equal(leadRequests[0].first_landing_path,undefined);

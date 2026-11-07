@@ -280,6 +280,9 @@ export function normalizePublicEstimateBody(data: unknown): unknown {
     shower: normalizeChoice(field(record, "shower"), SHOWER_ALIASES, DEFAULT_PROJECT_INPUTS.shower),
     prime: normalizeBoolean(field(record, "prime"), DEFAULT_PROJECT_INPUTS.prime),
     newToilet: normalizeBoolean(field(record, "newToilet", "new_toilet"), DEFAULT_PROJECT_INPUTS.newToilet),
+    includeFlooring: service === "flooring"
+      ? true
+      : normalizeBoolean(field(record, "includeFlooring", "include_flooring"), false),
     exteriorCoats: normalizeCoats(field(record, "exteriorCoats", "exterior_coats")),
     delivery: normalizeMoney(field(record, "delivery"), 0),
     specialist: normalizeMoney(field(record, "specialist"), 0),

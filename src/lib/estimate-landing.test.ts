@@ -63,11 +63,24 @@ describe("estimate landing links", () => {
     assert.equal("fbclid" in handoff, false);
   });
 
-  it("keeps the bathroom and kitchen ranges for the current box prices", () => {
-    const kitchen = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "kitchen", size: "medium" })));
-    const bathroom = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "bathroom", size: "medium" })));
-    assert.equal(formatEstimateRange(kitchen!), "between $13,300 and $16,700");
-    assert.equal(formatEstimateRange(bathroom!), "between $9,300 and $11,700");
+  it("defaults older kitchen/bath links to flooring excluded, and honors includeFlooring=1", () => {
+    const kitchenNoFloor = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "kitchen", size: "medium" })));
+    const bathroomNoFloor = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({ service: "bathroom", size: "medium" })));
+    assert.equal(formatEstimateRange(kitchenNoFloor!), "between $12,000 and $15,000");
+    assert.equal(formatEstimateRange(bathroomNoFloor!), "between $8,000 and $10,000");
+    assert.equal(inputsFromLanding(estimateLandingFromSearch({ service: "kitchen", size: "medium" })).includeFlooring, false);
+    const kitchenWithFloor = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({
+      service: "kitchen", size: "medium", includeFlooring: "1", floor: "lvp",
+    })));
+    const kitchenWithFloorNum = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({
+      service: "kitchen", size: "medium", includeFlooring: 1, floor: "lvp",
+    })));
+    const bathroomWithFloor = projectPlanningEstimate(inputsFromLanding(estimateLandingFromSearch({
+      service: "bathroom", size: "medium", includeFlooring: "1", floor: "tile",
+    })));
+    assert.equal(formatEstimateRange(kitchenWithFloor!), "between $13,300 and $16,700");
+    assert.equal(formatEstimateRange(kitchenWithFloorNum!), "between $13,300 and $16,700");
+    assert.equal(formatEstimateRange(bathroomWithFloor!), "between $9,300 and $11,700");
   });
 
   it("builds the trust line only from places the site already lists", () => {

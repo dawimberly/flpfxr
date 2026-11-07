@@ -12,7 +12,15 @@ import {
   DEFAULT_PROJECT_INPUTS, PROJECT_SIZES, PROJECT_SERVICES, presetAreas,
   projectScope, scopeAreaError, selectedVanity, type ProjectInputs,
 } from "../lib/public-estimate-options.ts";
-const input = (changes: Partial<ProjectInputs> = {}): ProjectInputs => ({ ...DEFAULT_PROJECT_INPUTS, ...changes });
+/** Existing suite prices kitchen/bath with flooring unless a test opts out. */
+const input = (changes: Partial<ProjectInputs> = {}): ProjectInputs => {
+  const merged: ProjectInputs = { ...DEFAULT_PROJECT_INPUTS, ...changes };
+  if (Object.hasOwn(changes, "includeFlooring")) return merged;
+  if (merged.service === "kitchen" || merged.service === "bathroom") {
+    return { ...merged, includeFlooring: true };
+  }
+  return merged;
+};
 const line = (changes: Partial<ProjectInputs>, id: string) =>
   projectPlanningEstimate(input(changes))!.lines.find(row => row.id === id)!;
 const close = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);

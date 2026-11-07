@@ -3,6 +3,7 @@ import { CABINET_FINISHES } from "./public-cabinet-finishes.ts";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,
   SHOWER_MATERIALS, projectScope, scopeAreaError, selectedVanity, getVanity,
+  effectiveIncludeFlooring,
   type ProjectInputs, type ScopeAreas,
 } from "./public-estimate-options.ts";
 import { priceOffList, CUSTOMER_LIST_DISCOUNT, FILLER_STRIPS, INCLUDED_FILLER_SKU, VANITY_LIST_PRICES } from "./public-estimate-costs.server.ts";
@@ -175,6 +176,7 @@ function validate(input: ProjectInputs) {
       !validShower(input.shower) ||
       (input.cabinetFinish !== undefined && !CABINET_FINISHES.some(finish => finish.id === input.cabinetFinish)) || (input.vanity != null && !getVanity(input.vanity)) ||
       typeof input.newToilet !== "boolean" || typeof input.prime !== "boolean" ||
+      typeof input.includeFlooring !== "boolean" ||
       (input.exteriorCoats !== 1 && input.exteriorCoats !== 2) ||
       ![input.delivery, input.specialist].every(n => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= ALLOWANCE_CAP)) {
     throw new Error("Invalid project selections or allowances");
@@ -189,7 +191,10 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
     lines.push({ id, materials: quantity * unitCost, personHours: quantity * hoursPerUnit });
   const floorHours = { lvp: TRADE_HOURS.lvp, tile: TRADE_HOURS.tileFloor,
     wood: TRADE_HOURS.woodFloor, carpet: TRADE_HOURS.carpetFloor };
-  if (scope.floor) add("floor", scope.floor, FLOOR_COST[input.floor], floorHours[input.floor]);
+  const includeFloor = effectiveIncludeFlooring(input);
+  // Floor covering dollars and install hours are a separable line. Kitchen/bath room
+  // area still drives wall/trim/backsplash scaling when flooring is opted out.
+  if (includeFloor && scope.floor) add("floor", scope.floor, FLOOR_COST[input.floor], floorHours[input.floor]);
   if (scope.trim) add("trim", scope.trim, REFERENCE_COST.trim, TRADE_HOURS.trim);
   if (scope.wall) {
     const exterior = input.service === "exterior-paint";
@@ -236,7 +241,8 @@ function buildLines(input: ProjectInputs, scope: NonNullable<ReturnType<typeof p
     }
     // Slab install is already in the stone rate. Tile setting stays on ceramic, porcelain and tiled floors.
     const tiledSurround = input.shower === "stone" ? 0 : scope.shower;
-    const tileArea = tiledSurround + (input.floor === "tile" ? scope.floor : 0);
+    const tiledFloor = includeFloor && input.floor === "tile" ? scope.floor : 0;
+    const tileArea = tiledSurround + tiledFloor;
     for (const [name, cost] of Object.entries(BATH_SETTING_COST)) add(name, tileArea, cost, 0);
     // Allowance covers a toilet, vanity faucet, and shower valve trim. Skipping the toilet drops one third.
     const fixtureShare = input.newToilet ? 1 : 2 / 3;
@@ -310,8 +316,9 @@ export const PRELIMINARY_ESTIMATE_WORDING =
 export function projectEstimateLeadMessage(input: ProjectInputs): string {
   const result = projectPlanningEstimate(input);
   const service = PROJECT_SERVICES.find(s => s.id === input.service)!.label;
+  const includeFloor = effectiveIncludeFlooring(input);
   const selections = [
-    result?.scope.floor ? FLOOR_MATERIALS.find(m => m.id === input.floor)!.label : "",
+    includeFloor && result?.scope.floor ? FLOOR_MATERIALS.find(m => m.id === input.floor)!.label : "",
     input.service === "kitchen" || input.service === "bathroom"
       ? COUNTER_MATERIALS.find(m => m.id === input.counter)!.label + " counters" : "",
     input.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === input.shower)!.label + " shower wall" : "",
@@ -321,9 +328,13 @@ export function projectEstimateLeadMessage(input: ProjectInputs): string {
     result?.scope.wall ? (input.prime ? "Primer and paint" : "Paint only") : "",
     input.service === "exterior-paint" ? (input.exteriorCoats === 2 ? "2 coats" : "1 coat (standard)") : "",
   ].filter(Boolean).join(", ");
+  const flooringStatus = input.service === "kitchen" || input.service === "bathroom"
+    ? (includeFloor ? "Flooring included." : "Flooring not included.")
+    : "";
   return [
     `Project: ${service}. Size: ${input.size}. Materials: ${selections || "To be selected"}.`,
+    flooringStatus,
     result ? `Preliminary estimate: ${formatEstimateRange(result)}.` : "On-site estimate requested.",
     PRELIMINARY_ESTIMATE_WORDING,
-  ].join(" ");
+  ].filter(Boolean).join(" ");
 }

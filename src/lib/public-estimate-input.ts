@@ -15,6 +15,8 @@ const schema = z.object({
   shower: oneOf(SHOWER_MATERIALS.map(row => row.id)),
   prime: z.boolean(),
   newToilet: z.boolean(),
+  /** Omitted on older clients → false for kitchen/bath; forced true for flooring. */
+  includeFlooring: z.boolean().optional(),
   exteriorCoats: z.union([z.literal(1), z.literal(2)]),
   delivery: z.number().finite().min(0).max(50000),
   specialist: z.number().finite().min(0).max(50000),
@@ -27,12 +29,15 @@ const schema = z.object({
 
 export function validatePublicEstimateInput(data: unknown): ProjectInputs {
   const parsed = schema.safeParse(data);
-  const input = parsed.success ? parsed.data as ProjectInputs : null;
-  if (!input || scopeAreaError(input.service, input)) {
+  const raw = parsed.success ? parsed.data as Omit<ProjectInputs, "includeFlooring"> & { includeFlooring?: boolean } : null;
+  if (!raw || scopeAreaError(raw.service, raw)) {
     throw new Response(JSON.stringify({
       error: "invalid_estimate_input",
       message: "Choose valid project selections and measurements.",
     }), { status: 400, headers: { "content-type": "application/json" } });
   }
-  return input;
+  return {
+    ...raw,
+    includeFlooring: raw.service === "flooring" ? true : Boolean(raw.includeFlooring),
+  };
 }

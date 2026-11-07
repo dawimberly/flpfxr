@@ -88,7 +88,7 @@ function AreaReview({ area }: { area: AreaPage }) {
 }
 
 function AreaPageView() {
-  const area = Route.useLoaderData();
+  const area: AreaPage = Route.useLoaderData();
   return (
     <div>
       <PageIntro eyebrow={area.name} title={area.title} />

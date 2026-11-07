@@ -41,6 +41,12 @@ export type ProjectInputs = {
   exteriorCoats: ExteriorCoats;
   delivery: number;
   specialist: number;
+  /**
+   * Kitchen and bathroom only. When false, floor covering materials and install are omitted.
+   * Dedicated flooring projects always include flooring regardless of this flag.
+   * Older saved links omit the field and default to false (not bundled).
+   */
+  includeFlooring: boolean;
   /** Measured areas. Leave unset to price the size example. */
   floorSqft?: number | null;
   showerSqft?: number | null;
@@ -59,7 +65,19 @@ export type ProjectInputs = {
 export const DEFAULT_PROJECT_INPUTS: ProjectInputs = {
   service: "kitchen", size: "Medium", floor: "lvp", counter: "quartz",
   shower: "ceramic", prime: true, exteriorCoats: 1, delivery: 0, specialist: 0, newToilet: true,
+  includeFlooring: false,
 };
+
+/** Floor covering is always in scope for dedicated flooring projects. */
+export function flooringIsOptional(service: ProjectService): boolean {
+  return service === "kitchen" || service === "bathroom";
+}
+
+export function effectiveIncludeFlooring(input: Pick<ProjectInputs, "service" | "includeFlooring">): boolean {
+  if (input.service === "flooring") return true;
+  if (!flooringIsOptional(input.service)) return false;
+  return Boolean(input.includeFlooring);
+}
 /** Optional measured areas. Omit a key to keep the size example. Null means the box was left blank. */
 export type ScopeAreas = {
   floorSqft?: number | null;

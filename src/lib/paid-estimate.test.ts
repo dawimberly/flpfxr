@@ -20,7 +20,7 @@ const submissionId = "550e8400-e29b-41d4-a716-446655440000";
 function planner(changes: Partial<ProjectInputs> = {}, extra: Partial<StoredPlanner> = {}): StoredPlanner {
   return {
     v: 1,
-    project: { ...DEFAULT_PROJECT_INPUTS, ...changes },
+    project: { ...DEFAULT_PROJECT_INPUTS, includeFlooring: true, ...changes },
     address: "120 Broadway, San Antonio",
     note: "Side gate is open.",
     occupancy: "occupied",
@@ -101,6 +101,7 @@ describe("free inquiry", () => {
     form.set("floor", stored.project.floor);
     form.set("counter", stored.project.counter);
     form.set("shower", stored.project.shower);
+    form.set("include_flooring", stored.project.includeFlooring ? "1" : "0");
     form.set("prime", "1");
     form.set("exterior_coats", "1");
     form.set("new_toilet", "1");
