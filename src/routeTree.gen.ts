@@ -27,6 +27,7 @@ import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as ApiCatalogSignupRouteImport } from './routes/api/catalog-signup'
 import { Route as ApiEstimateCheckoutRouteImport } from './routes/api/estimate-checkout'
 import { Route as ApiEstimateEmailRouteImport } from './routes/api/estimate-email'
+import { Route as ApiEstimateEmailConfirmRouteImport } from './routes/api/estimate-email-confirm'
 import { Route as ApiEstimateInquiryRouteImport } from './routes/api/estimate-inquiry'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as ApiPublicEstimateRouteImport } from './routes/api/public-estimate'
@@ -132,6 +133,11 @@ const ApiEstimateEmailRoute = ApiEstimateEmailRouteImport.update({
   path: '/api/estimate-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEstimateEmailConfirmRoute = ApiEstimateEmailConfirmRouteImport.update({
+  id: '/api/estimate-email-confirm',
+  path: '/api/estimate-email-confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiEstimateInquiryRoute = ApiEstimateInquiryRouteImport.update({
   id: '/api/estimate-inquiry',
   path: '/api/estimate-inquiry',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/api/catalog-signup': typeof ApiCatalogSignupRoute
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-email': typeof ApiEstimateEmailRoute
+  '/api/estimate-email-confirm': typeof ApiEstimateEmailConfirmRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/api/public-estimate': typeof ApiPublicEstimateRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/api/catalog-signup': typeof ApiCatalogSignupRoute
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-email': typeof ApiEstimateEmailRoute
+  '/api/estimate-email-confirm': typeof ApiEstimateEmailConfirmRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/api/public-estimate': typeof ApiPublicEstimateRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/api/catalog-signup': typeof ApiCatalogSignupRoute
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
   '/api/estimate-email': typeof ApiEstimateEmailRoute
+  '/api/estimate-email-confirm': typeof ApiEstimateEmailConfirmRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/api/public-estimate': typeof ApiPublicEstimateRoute
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/api/catalog-signup'
     | '/api/estimate-checkout'
     | '/api/estimate-email'
+    | '/api/estimate-email-confirm'
     | '/api/estimate-inquiry'
     | '/api/leads'
     | '/api/public-estimate'
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/api/catalog-signup'
     | '/api/estimate-checkout'
     | '/api/estimate-email'
+    | '/api/estimate-email-confirm'
     | '/api/estimate-inquiry'
     | '/api/leads'
     | '/api/public-estimate'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/api/catalog-signup'
     | '/api/estimate-checkout'
     | '/api/estimate-email'
+    | '/api/estimate-email-confirm'
     | '/api/estimate-inquiry'
     | '/api/leads'
     | '/api/public-estimate'
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   ApiCatalogSignupRoute: typeof ApiCatalogSignupRoute
   ApiEstimateCheckoutRoute: typeof ApiEstimateCheckoutRoute
   ApiEstimateEmailRoute: typeof ApiEstimateEmailRoute
+  ApiEstimateEmailConfirmRoute: typeof ApiEstimateEmailConfirmRoute
   ApiEstimateInquiryRoute: typeof ApiEstimateInquiryRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
   ApiPublicEstimateRoute: typeof ApiPublicEstimateRoute
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       path: '/api/estimate-email'
       fullPath: '/api/estimate-email'
       preLoaderRoute: typeof ApiEstimateEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/estimate-email-confirm': {
+      id: '/api/estimate-email-confirm'
+      path: '/api/estimate-email-confirm'
+      fullPath: '/api/estimate-email-confirm'
+      preLoaderRoute: typeof ApiEstimateEmailConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/estimate-inquiry': {
@@ -715,6 +735,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCatalogSignupRoute: ApiCatalogSignupRoute,
   ApiEstimateCheckoutRoute: ApiEstimateCheckoutRoute,
   ApiEstimateEmailRoute: ApiEstimateEmailRoute,
+  ApiEstimateEmailConfirmRoute: ApiEstimateEmailConfirmRoute,
   ApiEstimateInquiryRoute: ApiEstimateInquiryRoute,
   ApiLeadsRoute: ApiLeadsRoute,
   ApiPublicEstimateRoute: ApiPublicEstimateRoute,

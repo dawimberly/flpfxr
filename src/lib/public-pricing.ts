@@ -7,6 +7,8 @@ import {
   type ProjectInputs, type ScopeAreas,
 } from "./public-estimate-options.ts";
 import { priceOffList, CUSTOMER_LIST_DISCOUNT, FILLER_STRIPS, INCLUDED_FILLER_SKU, VANITY_LIST_PRICES } from "./public-estimate-costs.server.ts";
+import { formatEstimateRange, PRELIMINARY_ESTIMATE_WORDING } from "./public-estimate-display.ts";
+export { formatEstimateRange, PRELIMINARY_ESTIMATE_WORDING };
 
 export const CREW_DAY_RATE = 650;
 export const ALLOWANCE_CAP = 50000;
@@ -303,15 +305,6 @@ export function projectPlanningEstimate(input: ProjectInputs) {
   }
   return result;
 }
-
-const dollars = (n: number) => new Intl.NumberFormat("en-US", {
-  style: "currency", currency: "USD", maximumFractionDigits: 0,
-}).format(n);
-export const formatEstimateRange = (result: { low: number; high: number }) =>
-  `between ${dollars(result.low)} and ${dollars(result.high)}`;
-
-export const PRELIMINARY_ESTIMATE_WORDING =
-  "Preliminary estimate only — not a quote. Final prices set after onsite inspection.";
 
 export function projectEstimateLeadMessage(input: ProjectInputs): string {
   const result = projectPlanningEstimate(input);

@@ -365,7 +365,7 @@ describe("labor pdf", () => {
     assert.doesNotMatch(text, /\blabor\b/i);
     assert.match(text, /NOTES/);
     assert.match(text, /50% deposit schedules the work\. Balance due on completion\. Price good 30 days\./);
-    assert.match(text, /Final prices set after onsite inspection/);
+    assert.match(text, /Final price is confirmed after an on-site review/);
     assert.match(text, /Ready when you are/);
     assert.match(text, /Materials named for this job/);
     assert.doesNotMatch(text, /Per unit|168 sq ft|8 boxes|Qty/);

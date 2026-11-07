@@ -4,7 +4,9 @@ import { pathToFileURL } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { PRELIMINARY_ESTIMATE_WORDING } from "../src/lib/public-estimate-display.ts";
 
-/** Rounded combined total for the default medium quartz kitchen without flooring. */
+/** Default medium quartz kitchen without flooring — established low–high range. */
+export const DEFAULT_PUBLIC_RANGE = "between $12,000 and $15,000";
+/** @deprecated Prefer DEFAULT_PUBLIC_RANGE; low end of the default kitchen. */
 export const DEFAULT_PUBLIC_TOTAL = "$12,000";
 const PUBLISHED_RANGE = /between \$[\d,]+ and \$[\d,]+/;
 
@@ -15,8 +17,8 @@ export function liveEstimateGaps(text) {
   const gaps = [];
   if (!text.includes("Plan your next project.")) gaps.push("heading");
   if (!text.includes(PRELIMINARY_ESTIMATE_WORDING)) gaps.push("disclaimer");
-  if (!text.includes(DEFAULT_PUBLIC_TOTAL)) gaps.push("default total " + DEFAULT_PUBLIC_TOTAL);
-  if (PUBLISHED_RANGE.test(text)) gaps.push("published range");
+  if (!text.includes(DEFAULT_PUBLIC_RANGE)) gaps.push("default range " + DEFAULT_PUBLIC_RANGE);
+  if (!PUBLISHED_RANGE.test(text)) gaps.push("published range");
   if (!text.includes("Request an on-site estimate")) gaps.push("call to action");
   return gaps;
 }
