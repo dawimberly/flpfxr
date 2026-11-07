@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { CabinetCatalogGate } from "@/components/cabinet-catalog-gate";
 import { LeadForm } from "@/components/lead-form";
@@ -17,13 +18,13 @@ export const Route = createFileRoute("/bathroom")({
   },
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/bathroom` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Bathroom Remodeling in San Antonio | ${SITE.legalName}` },
       {
         name: "description",
         content: `Bathroom remodeling in San Antonio. Call or text ${SITE.phoneDisplay} to schedule a walkthrough. ${AREA_LINE}`,
       },
-    ],
+    ]),
   }),
 });
 

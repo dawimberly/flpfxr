@@ -5,7 +5,8 @@
       "fix/public-estimator-ad-safety": false,
       "fix/public-documents-crew-access": false,
       "fix/public-sample-one-total": false,
-      "feat/owner-cabinet-pricing": false
+      "feat/owner-cabinet-pricing": false,
+      "fix/public-site-cleanup": false
     }
   },
   "redirects": [

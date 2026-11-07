@@ -432,6 +432,16 @@ export function injectGrokPwaHead(html, ctx = {}) {
     host,
     documentTitle,
   );
+  // A complete route-owned social text set takes precedence over site identity.
+  // Legacy/app surfaces without it keep their existing behavior.
+  const routeTags = new Map();
+  for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
+    const key = tag.match(/\b(?:property|name)\s*=\s*["']([^"']+)["']/i)?.[1]?.toLowerCase();
+    if (SHARE_META_KEYS.has(key)) routeTags.set(key, tag);
+  }
+  const hasPageText = ['og:title', 'og:description', 'twitter:title', 'twitter:description']
+    .every(key => routeTags.has(key));
+  const keptTags = hasPageText ? new Map([...routeTags].filter(([key]) => key !== 'twitter:card')) : new Map();
   let next = stripShareMetaTags(html);
 
   const missing = grokPwaHeadTags(appName)
@@ -444,7 +454,10 @@ export function injectGrokPwaHead(html, ctx = {}) {
 
   next = insertAfterHeadOpen(
     next,
-    grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
+    [...grokOgHeadTags({ host, appName, site, documentTitle, cwd }).filter(tag => {
+      const key = tag.match(/(?:property|name)="([^"]+)"/)?.[1];
+      return !keptTags.has(key);
+    }), ...keptTags.values()].join(""),
   );
 
   if (!next.includes("/grok-app-builder/extensions.js")) {

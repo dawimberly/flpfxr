@@ -131,7 +131,7 @@ export const AREA_PAGES: readonly AreaPage[] = [
     description: `Remodeling in The Dominion. Call ${phone}. The Dominion is named on the site. No review is placed there.`,
     paragraphs: [
       `The Dominion is named in the short area line: ${AREA_LINE} No review on this site is placed in The Dominion.`,
-      "A Nextdoor review from Elieen Doctor describes a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements. Those words are hers, from the review on the reviews page. The review does not name a neighborhood. It is not a Dominion project on this page.",
+      "A Nextdoor review from Eileen Doctor describes a custom fireplace, built in bookshelves, a bathroom remodel, fence replacements. Those words are hers, from the review on the reviews page. The review does not name a neighborhood. It is not a Dominion project on this page.",
       "In The Dominion, we handle residential remodeling and construction, including kitchens and baths with in-house design, flooring, painting, repairs, and outdoor work such as fences, decks, patios, and lighting.",
     ],
     links: [

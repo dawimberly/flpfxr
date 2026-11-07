@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { CallLink, CallNumber } from "@/components/call-link";
 import { loadPaidEstimate } from "@/lib/estimate-offer";
@@ -12,11 +13,11 @@ export const Route = createFileRoute("/estimate/paid")({
   loaderDeps: ({ search }) => ({ sessionId: search.session_id }),
   loader: ({ deps }) => loadPaidEstimate({ data: deps }),
   head: () => ({
-    meta: [
+    meta: publicPageMeta([
       { title: `Estimate payment | ${SITE.name}` },
       { name: "robots", content: "noindex" },
       { name: "description", content: "Payment status for a Flip Fixer job estimate." },
-    ],
+    ]),
   }),
 });
 

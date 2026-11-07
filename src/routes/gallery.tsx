@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { GalleryGrid } from "@/components/gallery-lightbox";
 import { CtaBand, PageIntro } from "@/components/site-shell";
@@ -29,14 +30,14 @@ export const Route = createFileRoute("/gallery")({
   }),
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/gallery` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Gallery | ${SITE.legalName}` },
       {
         name: "description",
         content:
           "Kitchens, baths, patios, and repairs from The Flip Fixer in San Antonio. Real jobs, finished.",
       },
-    ],
+    ]),
   }),
 });
 

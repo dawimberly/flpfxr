@@ -83,8 +83,8 @@ export const BLOG_POSTS: BlogPost[] = [
         body: "A room does not have to be picture-perfect before a contractor visits. Show us what is not working: the layout, worn finishes, storage, damage, or the repairs that keep getting pushed back. Tell us how you use the space and what a successful project would look like.",
       },
       {
-        title: "Bring your priorities and a realistic budget",
-        body: "A few inspiration photos help explain your taste. Separate must-haves from nice-to-haves, and share the budget range you are comfortable discussing. That helps us talk through practical options instead of designing a project that does not fit.",
+        title: "Bring your priorities and inspiration photos",
+        body: "A few inspiration photos help explain your taste. Separate must-haves from nice-to-haves, and tell us what you want to change. That helps us talk through practical options for your space.",
       },
       {
         title: "Walk the space together",

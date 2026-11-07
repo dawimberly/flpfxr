@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
@@ -7,14 +8,14 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/about` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `About | ${SITE.legalName}` },
       {
         name: "description",
         content:
           `The Flip Fixer handles residential remodeling, construction, and home repairs. Design in-house. 30+ years on the tools. ${AREA_LINE}`,
       },
-    ],
+    ]),
   }),
 });
 

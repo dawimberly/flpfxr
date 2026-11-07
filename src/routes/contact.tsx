@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink, CallNumber } from "@/components/call-link";
@@ -165,10 +166,10 @@ export const Route = createFileRoute("/contact")({
     const copy = contactCopy(search?.service, search?.side) ?? GENERAL_CONTACT;
     return {
       links: [{ rel: "canonical", href: `${SITE.url}/contact` }],
-      meta: [
+      meta: publicPageMeta([
         { title: `${copy.documentTitle} | ${SITE.legalName}` },
         { name: "description", content: copy.description },
-      ],
+      ]),
     };
   },
 });

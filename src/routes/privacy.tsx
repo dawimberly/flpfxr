@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "@/components/site-shell";
 import { SITE } from "@/lib/site";
@@ -6,10 +7,10 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
   head: () => ({
     links: [{ rel: "canonical", href: `${SITE.url}/privacy` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Privacy | ${SITE.legalName}` },
       { name: "description", content: "How The Flip Fixer uses website inquiries, analytics, and advertising measurement." },
-    ],
+    ]),
   }),
 });
 

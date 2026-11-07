@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
@@ -7,14 +8,14 @@ import { SITE } from "@/lib/site";
 export const Route = createFileRoute("/blog/")({
   component: BlogPage,
   head: () => ({
-    meta: [
+    meta: publicPageMeta([
       { title: `Remodeling Resources | ${SITE.name}` },
       {
         name: "description",
         content:
           "Plan your San Antonio remodel with practical guides to appointments, estimates, quotes, and the building process from The Flip Fixer.",
       },
-    ],
+    ]),
     links: [{ rel: "canonical", href: `${SITE.url}/blog` }],
   }),
 });

@@ -1,3 +1,4 @@
+import { publicPageMeta } from "@/lib/public-page-meta";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallTextActions } from "@/components/call-text-actions";
 import { CallLink, CallNumber } from "@/components/call-link";
@@ -20,14 +21,14 @@ export const Route = createFileRoute("/")({
   head: () => ({
     scripts: [{ type: "application/ld+json", children: JSON.stringify(businessJsonLd()).replace(/</g, "\\u003c") }],
     links: [{ rel: "canonical", href: `${SITE.url}/` }],
-    meta: [
+    meta: publicPageMeta([
       { title: `Full-Home Remodeling and Construction in San Antonio | ${SITE.name}` },
       {
         name: "description",
         content:
           `${SITE.tagline} Kitchens, baths, flooring, painting, outdoor projects, make-ready, and home repairs. Call or text ${SITE.phoneDisplay}.`,
       },
-    ],
+    ]),
   }),
 });
 
