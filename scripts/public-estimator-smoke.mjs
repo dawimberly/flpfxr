@@ -267,18 +267,23 @@ try {
     await page.getByText("Partial overlay, standard hinges and slides.",{exact:true}).waitFor();
     await page.getByLabel("Cabinet finish").selectOption("ew");
     await total.getByText("$12,000",{exact:true}).waitFor();
-    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Flooring not included");
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Keeping existing flooring");
     assert.equal(await page.locator("#estimate-floor").count(),0);
-    assert.equal(await page.getByTestId("estimate-include-flooring").count(),1);
+    assert.equal(await page.getByTestId("estimate-keep-flooring").getAttribute("aria-pressed"),"true");
+    assert.equal(await page.getByTestId("estimate-replace-flooring").getAttribute("aria-pressed"),"false");
+    await page.getByTestId("estimate-flooring-choice").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(artifacts, "flooring-ux-keep-1280.png"), fullPage: false });
     // Shared/older links: flooring off by default; includeFlooring=1 restores bundled flooring.
     await page.goto(base+"/estimate?service=kitchen&size=medium&includeFlooring=1&floor=lvp",{waitUntil:"domcontentloaded"});
     await total.getByText("$13,300",{exact:true}).waitFor();
-    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Flooring included");
-    assert.equal(await page.getByTestId("estimate-include-flooring").isChecked(),true);
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Replacing flooring");
+    assert.equal(await page.getByTestId("estimate-replace-flooring").getAttribute("aria-pressed"),"true");
     await page.locator("#estimate-floor").waitFor();
+    await page.getByTestId("estimate-flooring-choice").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(artifacts, "flooring-ux-replace-1280.png"), fullPage: false });
     await page.goto(base+"/estimate?service=flooring&size=medium&floor=lvp",{waitUntil:"domcontentloaded"});
     await total.getByText("$3,600",{exact:true}).waitFor();
-    assert.equal(await page.getByTestId("estimate-include-flooring").count(),0);
+    assert.equal(await page.getByTestId("estimate-flooring-choice").count(),0);
     await page.locator("#estimate-floor").waitFor();
     await page.goto(base+"/estimate?service=kitchen&size=medium",{waitUntil:"domcontentloaded"});
     await total.getByText("$12,000",{exact:true}).waitFor();
@@ -290,10 +295,27 @@ try {
     }
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await total.getByText("$12,000",{exact:true}).waitFor();
-    await page.getByTestId("estimate-include-flooring").check();
-    await total.getByText("$13,300",{exact:true}).waitFor();
-    assert.equal(await page.getByTestId("estimate-include-flooring").isChecked(),true);
-    await page.getByTestId("estimate-include-flooring").uncheck();
+    const room=page.locator("#estimate-floor-sqft");
+    await room.fill("180");
+    await total.getByText("$12,700",{exact:true}).waitFor();
+    assert.equal(await room.inputValue(),"180");
+    await page.getByTestId("estimate-replace-flooring").click();
+    await total.getByText("$13,400",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-replace-flooring").getAttribute("aria-pressed"),"true");
+    assert.equal(await room.inputValue(),"180","Room size must survive replace flooring");
+    await page.getByTestId("estimate-keep-flooring").click();
+    await total.getByText("$12,700",{exact:true}).waitFor();
+    assert.equal(await room.inputValue(),"180","Room size must survive keep existing flooring");
+    assert.equal(await page.locator("#estimate-floor").count(),0);
+    // Blank room size with flooring excluded still prices the Medium starting point.
+    await room.fill("");
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-area-error").count(),0);
+    // Zero is not a silent zero-size remodel.
+    await room.fill("0");
+    await page.getByTestId("estimate-area-error").waitFor();
+    assert.equal(await room.getAttribute("aria-invalid"),"true");
+    await room.fill("168");
     await total.getByText("$12,000",{exact:true}).waitFor();
     const bodyText=async()=>page.locator("body").innerText();
     assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
@@ -302,7 +324,7 @@ try {
     assert.equal(await page.getByTestId("estimate-summary").getByTestId("sample-estimate").count(), 0, "The example stays outside the live total");
     await page.getByText("Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage.",{exact:true}).waitFor();
 
-    const floor=page.getByLabel("Kitchen floor (sq ft)",{exact:true});
+    const floor=page.getByLabel(/Kitchen size \(sq ft\)/);
     for(const bad of ["abc","10"]) {
       await floor.fill(bad);
       await page.getByTestId("estimate-area-error").waitFor();
@@ -347,6 +369,21 @@ try {
     assert.equal(await page.getByTestId("estimate-northville-cabinets").count(), 0, "Northville link is kitchen-only");
     await page.getByTestId("estimate-included").getByText("Demolition",{exact:true}).waitFor();
     await page.getByText("$8,000",{exact:true}).waitFor();
+    const bathRoom=page.locator("#estimate-floor-sqft");
+    await bathRoom.fill("95");
+    assert.equal(await bathRoom.inputValue(),"95");
+    // Preserve typed bathroom room size across keep/replace (do not require a specific total race).
+    await page.getByTestId("estimate-replace-flooring").click();
+    await page.locator("#estimate-floor").waitFor();
+    assert.equal(await bathRoom.inputValue(),"95","Bathroom room size must survive replace flooring");
+    assert.equal(await page.getByTestId("estimate-replace-flooring").getAttribute("aria-pressed"),"true");
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Replacing flooring");
+    await page.getByTestId("estimate-keep-flooring").click();
+    assert.equal(await bathRoom.inputValue(),"95","Bathroom room size must survive keep existing flooring");
+    assert.equal(await page.getByTestId("estimate-keep-flooring").getAttribute("aria-pressed"),"true");
+    assert.equal(await page.locator("#estimate-floor").count(),0);
+    await bathRoom.fill("80");
+    await total.getByText("$8,000",{exact:true}).waitFor();
     await page.getByLabel("Shower wall").selectOption("stone");
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
     assert.match(await total.innerText(),/^\$[\d,]+$/);

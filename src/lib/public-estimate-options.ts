@@ -92,9 +92,10 @@ export const BOX_LIMITS = {
   xlFridgeBoxes: { min: 0, max: 6, label: "XL fridge boxes" },
 } as const;
 export const AREA_LIMITS = {
-  bathroomFloor: { min: 20, max: 300, label: "a bathroom floor" },
+  /** Room size for kitchen/bath remodel scaling (walls, trim, cabinets). Also used as flooring install area when replacing flooring. */
+  bathroomFloor: { min: 20, max: 300, label: "a bathroom room size" },
   bathroomShower: { min: 0, max: 200, label: "a shower or tub surround" },
-  kitchenFloor: { min: 60, max: 600, label: "a kitchen floor" },
+  kitchenFloor: { min: 60, max: 600, label: "a kitchen room size" },
   kitchenCounter: { min: 1, max: 200, label: "countertops" },
   flooring: { min: 20, max: 2500, label: "a floor area" },
   interiorPaint: { min: 50, max: 5000, label: "an interior area to paint" },
@@ -104,6 +105,7 @@ const rangeMessage = (limit: { min: number; max: number; label: string }) =>
   `Enter ${limit.label} between ${limit.min} and ${limit.max} sq ft.`;
 function outOfRange(value: number | null | undefined, limit: { min: number; max: number; label: string }, optional: boolean) {
   if (value == null) return optional ? null : rangeMessage(limit);
+  // Zero is never a valid substitute for "use the size example" — reject it explicitly.
   if (!Number.isFinite(value) || value < limit.min || value > limit.max) return rangeMessage(limit);
   return null;
 }
@@ -125,11 +127,13 @@ export function scopeAreaError(service: ProjectService, areas: ScopeAreas = {}):
   const mentioned = (["floorSqft", "showerSqft", "counterSqft", "roomSqft"] as const).some(key => Object.hasOwn(areas, key));
   if (!mentioned) return null;
   if (service === "bathroom") {
-    return outOfRange(areas.floorSqft, AREA_LIMITS.bathroomFloor, false) ??
+    // Blank room size → size example. Flooring opt-out must not require a flooring-work quantity;
+    // the same field is remodel room size, so blank stays allowed and 0/out-of-range stay invalid.
+    return outOfRange(areas.floorSqft, AREA_LIMITS.bathroomFloor, true) ??
       outOfRange(areas.showerSqft, AREA_LIMITS.bathroomShower, true);
   }
   if (service === "kitchen") {
-    return outOfRange(areas.floorSqft, AREA_LIMITS.kitchenFloor, false) ??
+    return outOfRange(areas.floorSqft, AREA_LIMITS.kitchenFloor, true) ??
       outOfRange(areas.counterSqft, AREA_LIMITS.kitchenCounter, true);
   }
   if (service === "flooring") return outOfRange(areas.roomSqft, AREA_LIMITS.flooring, false);

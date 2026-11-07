@@ -329,7 +329,7 @@ export function projectEstimateLeadMessage(input: ProjectInputs): string {
     input.service === "exterior-paint" ? (input.exteriorCoats === 2 ? "2 coats" : "1 coat (standard)") : "",
   ].filter(Boolean).join(", ");
   const flooringStatus = input.service === "kitchen" || input.service === "bathroom"
-    ? (includeFloor ? "Flooring included." : "Flooring not included.")
+    ? (includeFloor ? "Replacing flooring." : "Keeping existing flooring.")
     : "";
   return [
     `Project: ${service}. Size: ${input.size}. Materials: ${selections || "To be selected"}.`,

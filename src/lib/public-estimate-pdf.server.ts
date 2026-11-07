@@ -72,7 +72,7 @@ export function publicEstimateMaterialSummary(input: ProjectInputs): string {
 
 export function flooringInclusionLabel(input: ProjectInputs): string | null {
   if (!flooringIsOptional(input.service)) return null;
-  return effectiveIncludeFlooring(input) ? "Flooring included" : "Flooring not included";
+  return effectiveIncludeFlooring(input) ? "Replacing flooring" : "Keeping existing flooring";
 }
 
 export async function renderPublicEstimatePdf(args: {
