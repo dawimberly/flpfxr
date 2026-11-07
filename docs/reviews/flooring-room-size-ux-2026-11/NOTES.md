@@ -16,6 +16,8 @@
 
 ## Screenshots
 
-- `flooring-ux-keep-1280.png` — keep existing selected
-- `flooring-ux-replace-1280.png` — replace selected + flooring type
+- `flooring-ux-keep-390.png` / `flooring-ux-keep-1280.png` — keep existing (phone stacked / desktop side-by-side)
+- `flooring-ux-replace-390.png` / `flooring-ux-replace-1280.png` — replace + flooring type
 - `public-estimator-smoke-1280.png` / `public-estimator-smoke-390.png` — full smoke viewports
+
+Phone checks (390): no horizontal overflow; Keep/Replace full-width stacked taps ≥44px; room size preserved across toggles; blank OK / zero invalid with flooring excluded.
