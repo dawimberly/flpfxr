@@ -63,7 +63,16 @@ const enabledEnv = {
   ESTIMATE_FOLLOWUP_ENABLED: "1",
   RESEND_API_KEY: "re_test_key",
   LEAD_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
-  DATABASE_URL: "postgres://integration-test",
+  // Isolated test path: explicit ephemeral opt-in (no durable URL), never set on Vercel.
+  ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE: "1",
+};
+
+const vercelBlockedEnv = {
+  ESTIMATE_FOLLOWUP_ENABLED: "1",
+  VERCEL: "1",
+  ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE: "1",
+  RESEND_API_KEY: "re_test_key",
+  LEAD_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
 };
 
 describe("estimate follow-up PGLite integration", () => {
@@ -247,5 +256,33 @@ describe("estimate follow-up PGLite integration", () => {
     );
     assert.equal(leads.length, 0);
     assert.equal(body.leadSaved, false);
+  });
+
+  it("blocks Vercel/serverless without DATABASE_URL even when ephemeral opt-in is set", async () => {
+    const submissionId = randomUUID();
+    let sends = 0;
+    const response = await handleEstimateEmailRequest(postRequest({
+      submissionId,
+      name: "Alex Sample",
+      email: "vercel-block@example.com",
+      phone: "",
+      zip: "78209",
+      selections: JSON.stringify({ ...DEFAULT_PROJECT_INPUTS, includeFlooring: false }),
+    }, "198.51.100.50"), {
+      sql,
+      withTransaction,
+      env: vercelBlockedEnv,
+      sendMail: async () => {
+        sends += 1;
+        return { ok: true, id: "blocked" };
+      },
+    });
+    assert.equal(response.status, 503);
+    assert.equal(sends, 0);
+    const leads = await sql.query(
+      `select submission_id from contact_leads where submission_id = $1`,
+      [submissionId],
+    );
+    assert.equal(leads.length, 0);
   });
 });

@@ -2,7 +2,7 @@
 
 ## Release gate (default OFF)
 
-`ESTIMATE_FOLLOWUP_ENABLED` must be explicitly set to `1`/`true`/`yes` before the download/follow-up form is offered. Leave it unset in production until owner approval. Availability GET and submission POST both require the flag plus a usable database.
+`ESTIMATE_FOLLOWUP_ENABLED` must be explicitly set to `1`/`true`/`yes` before the download/follow-up form is offered. Leave it unset in production until owner approval. Availability GET and submission POST both require the flag plus **durable** storage (`DATABASE_URL`). On Vercel/serverless, in-memory PGLite is never accepted for this feature. Local/smoke may set `ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE=1` (never on Vercel).
 
 ## Flow
 
@@ -34,8 +34,9 @@ Optional flooring calculations and tests preserved. Sample $12,800 example PDF f
 
 1. Owner approval of privacy wording above
 2. `ESTIMATE_FOLLOWUP_ENABLED=1` only after approval
-3. Usable database (`DATABASE_URL` / Neon in production)
+3. Production `DATABASE_URL` / Neon (required; ephemeral PGLite is blocked on Vercel)
 4. `RESEND_API_KEY` + verified `LEAD_FROM_EMAIL` for Jon notification (lead/PDF can succeed without it; UI reports pending)
+5. Do **not** set `ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE` in production
 
 ## Northville link
 

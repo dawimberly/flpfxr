@@ -31,6 +31,11 @@ export const ESTIMATE_STAFF_NOTIFY_TO = "jon@theflipfixer.com";
  * Default OFF. Do not enable without owner approval and usable DB + Resend config.
  */
 export const ESTIMATE_FOLLOWUP_FLAG = "ESTIMATE_FOLLOWUP_ENABLED";
+/**
+ * Explicit local/test opt-in to use in-memory PGLite for follow-up storage.
+ * Never honored on Vercel/serverless hosts — those require DATABASE_URL.
+ */
+export const ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG = "ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE";
 export const DOWNLOAD_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_PDF_DOWNLOADS = 25;
 export const ABUSE_LIMITS = {
@@ -123,6 +128,44 @@ async function defaultWithTransaction(): Promise<WithTransaction | null> {
 
 export function isEstimateFollowUpEnabled(env: NodeJS.ProcessEnv = process.env) {
   return /^(1|true|yes)$/i.test(env[ESTIMATE_FOLLOWUP_FLAG]?.trim() || "");
+}
+
+/** Hosts where in-memory PGLite cannot retain leads across instances. */
+export function isEstimateFollowUpServerlessHost(env: NodeJS.ProcessEnv = process.env) {
+  return Boolean(
+    env.VERCEL?.trim()
+    || env.AWS_LAMBDA_FUNCTION_NAME?.trim()
+    || env.NETLIFY?.trim(),
+  );
+}
+
+export function hasConfiguredDurableDatabase(env: NodeJS.ProcessEnv = process.env) {
+  return Boolean(env.DATABASE_URL?.trim());
+}
+
+/**
+ * Ephemeral PGLite for follow-up is opt-in only and never allowed on serverless.
+ * App-wide PGLite fallback for the rest of the site is unchanged.
+ */
+export function allowsEstimateFollowUpEphemeralStorage(env: NodeJS.ProcessEnv = process.env) {
+  if (isEstimateFollowUpServerlessHost(env)) return false;
+  return /^(1|true|yes)$/i.test(env[ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG]?.trim() || "");
+}
+
+export type EstimateFollowUpStorageMode = "durable" | "ephemeral" | "none";
+
+/** Whether this feature may open storage (before collecting contact details). */
+export function estimateFollowUpStoragePolicy(env: NodeJS.ProcessEnv = process.env): {
+  allowed: boolean;
+  mode: EstimateFollowUpStorageMode;
+} {
+  if (hasConfiguredDurableDatabase(env)) {
+    return { allowed: true, mode: "durable" };
+  }
+  if (allowsEstimateFollowUpEphemeralStorage(env)) {
+    return { allowed: true, mode: "ephemeral" };
+  }
+  return { allowed: false, mode: "none" };
 }
 
 function nameHasDisallowedControls(raw: string) {
@@ -487,6 +530,7 @@ export function estimateFollowUpAvailability(
 ): {
   enabled: boolean;
   storageReady: boolean;
+  storageMode: EstimateFollowUpStorageMode;
   notifyReady: boolean;
   available: boolean;
   message: string;
@@ -494,30 +538,35 @@ export function estimateFollowUpAvailability(
   const enabled = isEstimateFollowUpEnabled(env);
   const mail = leadMailConfigFromEnv(env);
   const notifyReady = Boolean(mail.apiKey);
-  const storageReady = opts.databaseReady ?? Boolean(env.DATABASE_URL?.trim());
+  const policy = estimateFollowUpStoragePolicy(env);
+  const storageReady = opts.databaseReady ?? policy.allowed;
+  const storageMode = storageReady ? policy.mode : "none";
   if (!enabled) {
     return {
       enabled: false,
       storageReady,
+      storageMode,
       notifyReady,
       available: false,
       message:
         "Estimate download and follow-up are not available right now. Call or text — we still want the job.",
     };
   }
-  if (!storageReady) {
+  if (!policy.allowed || !storageReady) {
     return {
       enabled: true,
       storageReady: false,
+      storageMode: "none",
       notifyReady,
       available: false,
       message:
-        "Estimate download and follow-up are temporarily unavailable because lead storage is offline. Call or text — we still want the job.",
+        "Estimate download and follow-up are temporarily unavailable. Call or text — we still want the job.",
     };
   }
   return {
     enabled: true,
     storageReady: true,
+    storageMode: policy.mode,
     notifyReady,
     available: true,
     message: notifyReady
@@ -563,11 +612,21 @@ export async function handleEstimateEmailAvailability(
       message: availability.message,
     } satisfies EstimateFollowUpResult);
   }
-  let databaseReady = Boolean(env.DATABASE_URL?.trim());
+  const policy = estimateFollowUpStoragePolicy(env);
+  if (!policy.allowed) {
+    const availability = estimateFollowUpAvailability(env, { databaseReady: false });
+    return Response.json({
+      ok: false,
+      state: "unavailable",
+      available: false,
+      message: availability.message,
+    } satisfies EstimateFollowUpResult);
+  }
+  let databaseReady: boolean;
   if (deps.sql !== undefined) {
     databaseReady = Boolean(deps.sql);
-  } else if (!databaseReady) {
-    // Preview/PGLite path: probe whether a SQL client can be opened.
+  } else {
+    // Open only after the durable/ephemeral policy allows it — never probe PGLite on Vercel.
     databaseReady = Boolean(await defaultSql());
   }
   const availability = estimateFollowUpAvailability(env, { databaseReady });
@@ -659,6 +718,31 @@ export async function handleEstimateEmailRequest(
     } satisfies EstimateFollowUpResult, { status: 503 });
   }
 
+  // Fail closed on storage policy before reading contact details or issuing tokens.
+  const policy = estimateFollowUpStoragePolicy(env);
+  if (!policy.allowed) {
+    const availability = estimateFollowUpAvailability(env, { databaseReady: false });
+    return Response.json({
+      ok: false,
+      state: "unavailable",
+      available: false,
+      leadSaved: false,
+      message: availability.message,
+    } satisfies EstimateFollowUpResult, { status: 503 });
+  }
+
+  const sql = deps.sql !== undefined ? deps.sql : await defaultSql();
+  const availability = estimateFollowUpAvailability(env, { databaseReady: Boolean(sql) });
+  if (!sql || !availability.available) {
+    return Response.json({
+      ok: false,
+      state: "unavailable",
+      available: false,
+      leadSaved: false,
+      message: availability.message,
+    } satisfies EstimateFollowUpResult, { status: 503 });
+  }
+
   const contactResult = validateEstimateFollowUpContact({
     name: formString(form, "name"),
     email: formString(form, "email"),
@@ -684,18 +768,6 @@ export async function handleEstimateEmailRequest(
     return Response.json({
       ok: false, state: "validation", message: "Finish your project selections before downloading the PDF.",
     } satisfies EstimateFollowUpResult, { status: 400 });
-  }
-
-  const sql = deps.sql !== undefined ? deps.sql : await defaultSql();
-  const availability = estimateFollowUpAvailability(env, { databaseReady: Boolean(sql) });
-  if (!sql || !availability.available) {
-    return Response.json({
-      ok: false,
-      state: "unavailable",
-      available: false,
-      leadSaved: false,
-      message: availability.message,
-    } satisfies EstimateFollowUpResult, { status: 503 });
   }
 
   const ip = clientIp(request);

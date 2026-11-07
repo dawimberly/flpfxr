@@ -10,19 +10,38 @@ import { chromium } from "playwright";
 import { toJSONAsync } from "seroval";
 import { compareAuthInvariant, probeDevAuthEnabled, buildAuthEnabled } from "./check-auth-invariant.mjs";
 import { mergeAppEnv, readAppEnv } from "./with-app-env.mjs";
+import {
+  allowsEstimateFollowUpEphemeralStorage,
+  estimateFollowUpStoragePolicy,
+  isEstimateFollowUpServerlessHost,
+} from "../src/lib/estimate-email.server.ts";
 
 const base = "http://127.0.0.1:8080";
 const artifacts = process.env.GITHUB_ACTIONS ? process.cwd() : mkdtempSync(join(tmpdir(), "flipfixer-estimator-smoke-"));
+const smokeServerEnv = mergeAppEnv(readAppEnv(process.cwd()), {
+  ...process.env,
+  CI: "1",
+  // Local/smoke only: feature on + explicit ephemeral PGLite for follow-up storage.
+  // Do not set these on Vercel. Unset VERCEL so this cannot weaken the production guard.
+  ESTIMATE_FOLLOWUP_ENABLED: "1",
+  ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE: "1",
+  VERCEL: "",
+  AWS_LAMBDA_FUNCTION_NAME: "",
+  NETLIFY: "",
+});
+// Guard: this smoke env must stay off serverless markers; Vercel + ephemeral must remain blocked.
+assert.equal(isEstimateFollowUpServerlessHost(smokeServerEnv), false);
+assert.equal(allowsEstimateFollowUpEphemeralStorage(smokeServerEnv), true);
+assert.equal(estimateFollowUpStoragePolicy({
+  ESTIMATE_FOLLOWUP_ENABLED: "1",
+  VERCEL: "1",
+  ESTIMATE_FOLLOWUP_ALLOW_EPHEMERAL_STORAGE: "1",
+}).allowed, false, "smoke must not weaken the Vercel durable-storage guard");
 const server = spawn(process.execPath, [
   "node_modules/vite/bin/vite.js",
   "dev", "--host", "127.0.0.1", "--port", "8080", "--strictPort",
 ], { detached: process.platform !== "win32", windowsHide: true,
-  stdio: ["ignore", "pipe", "pipe"], env: mergeAppEnv(readAppEnv(process.cwd()), {
-    ...process.env,
-    CI: "1",
-    // Exercise the gated follow-up form locally with PGLite; leave unset in production.
-    ESTIMATE_FOLLOWUP_ENABLED: "1",
-  }) });
+  stdio: ["ignore", "pipe", "pipe"], env: smokeServerEnv });
 let logs = "";
 for (const stream of [server.stdout, server.stderr]) stream.on("data", c => { logs=(logs+String(c)).slice(-12000); });
 server.on("error", error => { logs += String(error); });

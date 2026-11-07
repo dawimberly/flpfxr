@@ -7,11 +7,16 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   ABUSE_LIMITS,
   DOWNLOAD_TTL_MS,
+  ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG,
   ESTIMATE_STAFF_NOTIFY_TO,
+  allowsEstimateFollowUpEphemeralStorage,
   estimateCustomerMailConfig,
   estimateEmailAvailability,
+  estimateFollowUpStoragePolicy,
+  handleEstimateEmailAvailability,
   handleEstimateEmailRequest,
   handleEstimatePdfDownload,
+  isEstimateFollowUpServerlessHost,
   revokeEstimatePdfToken,
   validateEstimateFollowUpContact,
 } from "./estimate-email.server.ts";
@@ -229,7 +234,38 @@ describe("estimate follow-up download", () => {
     }).available, true);
     const down = estimateEmailAvailability({ ESTIMATE_FOLLOWUP_ENABLED: "1" });
     assert.equal(down.available, false);
-    assert.doesNotMatch(down.message, /RESEND|ESTIMATE_FOLLOWUP|onboarding@/i);
+    assert.doesNotMatch(down.message, /RESEND|ESTIMATE_FOLLOWUP|DATABASE_URL|PGLite|onboarding@/i);
+  });
+
+  it("requires durable DATABASE_URL on Vercel/serverless and never honors ephemeral opt-in there", () => {
+    const vercelNoDb = {
+      ESTIMATE_FOLLOWUP_ENABLED: "1",
+      VERCEL: "1",
+      [ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG]: "1",
+    };
+    assert.equal(isEstimateFollowUpServerlessHost(vercelNoDb), true);
+    assert.equal(allowsEstimateFollowUpEphemeralStorage(vercelNoDb), false);
+    assert.deepEqual(estimateFollowUpStoragePolicy(vercelNoDb), { allowed: false, mode: "none" });
+    assert.equal(estimateEmailAvailability(vercelNoDb).available, false);
+    assert.doesNotMatch(
+      estimateEmailAvailability(vercelNoDb).message,
+      /DATABASE_URL|PGLite|VERCEL|ESTIMATE_FOLLOWUP|ephemeral/i,
+    );
+  });
+
+  it("allows explicit local ephemeral PGLite only off serverless hosts", () => {
+    const local = {
+      ESTIMATE_FOLLOWUP_ENABLED: "1",
+      [ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG]: "1",
+    };
+    assert.equal(isEstimateFollowUpServerlessHost(local), false);
+    assert.equal(allowsEstimateFollowUpEphemeralStorage(local), true);
+    assert.deepEqual(estimateFollowUpStoragePolicy(local), { allowed: true, mode: "ephemeral" });
+    assert.equal(estimateEmailAvailability(local).available, true);
+
+    const withoutOptIn = { ESTIMATE_FOLLOWUP_ENABLED: "1" };
+    assert.deepEqual(estimateFollowUpStoragePolicy(withoutOptIn), { allowed: false, mode: "none" });
+    assert.equal(estimateEmailAvailability(withoutOptIn).available, false);
   });
 
   it("accepts email-only, phone-only, and both; notifies Jon only; never emails the customer", async () => {
@@ -419,6 +455,65 @@ describe("estimate follow-up download", () => {
     assert.equal(body.state, "unavailable");
     assert.equal(body.leadSaved, false);
     assert.equal(body.setupNeeded, undefined);
+  });
+
+  it("fails closed on Vercel without DATABASE_URL before collecting contact or notifying", async () => {
+    const sql = createMemorySql();
+    let sends = 0;
+    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom(baseFields()),
+    }), {
+      sql,
+      env: {
+        ESTIMATE_FOLLOWUP_ENABLED: "1",
+        VERCEL: "1",
+        DATABASE_URL: "",
+        [ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG]: "1",
+        RESEND_API_KEY: "re_test_key",
+        LEAD_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
+      },
+      sendMail: async () => {
+        sends += 1;
+        return { ok: true, id: "x" };
+      },
+    });
+    assert.equal(response.status, 503);
+    assert.equal(sql.leads.size, 0);
+    assert.equal(sql.downloads.size, 0);
+    assert.equal(sends, 0);
+    const avail = await handleEstimateEmailAvailability({
+      env: {
+        ESTIMATE_FOLLOWUP_ENABLED: "1",
+        VERCEL: "1",
+        DATABASE_URL: "",
+        [ESTIMATE_FOLLOWUP_EPHEMERAL_FLAG]: "1",
+      },
+      sql,
+    });
+    const availBody = await avail.json() as { available?: boolean };
+    assert.equal(availBody.available, false);
+  });
+
+  it("fails closed when durable storage is configured but the client is unavailable", async () => {
+    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom(baseFields()),
+    }), {
+      sql: null,
+      env: {
+        ESTIMATE_FOLLOWUP_ENABLED: "1",
+        VERCEL: "1",
+        DATABASE_URL: "postgres://configured-but-down",
+        RESEND_API_KEY: "re_test_key",
+        LEAD_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
+      },
+      sendMail: async () => ({ ok: true, id: "x" }),
+    });
+    assert.equal(response.status, 503);
+    const body = await response.json() as { leadSaved?: boolean; available?: boolean };
+    assert.equal(body.leadSaved, false);
+    assert.equal(body.available, false);
   });
 
   it("does not collect when the release gate is disabled", async () => {
