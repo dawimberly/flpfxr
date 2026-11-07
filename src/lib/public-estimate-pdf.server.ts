@@ -1,9 +1,9 @@
 /**
  * Personalized preliminary-estimate PDF for visitors.
- * One combined total only — never SKUs, unit prices, or itemization.
+ * One combined low–high range only — never SKUs, unit prices, or itemization.
  */
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
-import { PRELIMINARY_ESTIMATE_WORDING, formatPublicEstimate } from "./public-estimate-display.ts";
+import { PRELIMINARY_ESTIMATE_WORDING, formatEstimateRange } from "./public-estimate-display.ts";
 import {
   COUNTER_MATERIALS, FLOOR_MATERIALS, PROJECT_SERVICES, SHOWER_MATERIALS,
   effectiveIncludeFlooring, flooringIsOptional, selectedVanity,
@@ -77,8 +77,11 @@ export function flooringInclusionLabel(input: ProjectInputs): string | null {
 
 export async function renderPublicEstimatePdf(args: {
   input: ProjectInputs;
-  /** Server-recalculated combined preliminary total (already rounded). */
-  total: number;
+  /** Server-calculated combined preliminary range (already rounded). */
+  low: number;
+  high: number;
+  /** @deprecated Prefer low/high. Kept for older callers that only pass total (= low). */
+  total?: number;
   name: string;
   issued?: Date;
 }): Promise<Uint8Array> {
@@ -89,7 +92,9 @@ export async function renderPublicEstimatePdf(args: {
   const service = PROJECT_SERVICES.find(row => row.id === args.input.service)?.label ?? args.input.service;
   const materials = publicEstimateMaterialSummary(args.input) || "To be selected";
   const flooring = flooringInclusionLabel(args.input);
-  const totalLabel = formatPublicEstimate(args.total);
+  const low = Number.isFinite(args.low) ? args.low : (args.total ?? 0);
+  const high = Number.isFinite(args.high) ? args.high : low;
+  const rangeLabel = formatEstimateRange({ low, high });
 
   const doc = await PDFDocument.create();
   doc.setTitle(`The Flip Fixer | Preliminary estimate for ${ascii(args.name)}`);
@@ -125,8 +130,9 @@ export async function renderPublicEstimatePdf(args: {
   }
 
   page.drawRectangle({ x: 36, y: y - 120, width: 540, height: 100, color: rgb(0.93, 0.96, 0.95) });
-  draw("COMBINED PRELIMINARY TOTAL", 48, y - 48, 11, true);
-  draw(totalLabel, 48, y - 92, 36, true);
+  draw("COMBINED PRELIMINARY RANGE", 48, y - 48, 11, true);
+  // Slightly smaller type so "between $X and $Y" fits one line on letter width.
+  draw(rangeLabel, 48, y - 92, rangeLabel.length > 28 ? 22 : 28, true);
   y -= 140;
 
   y = drawWrapped(PRELIMINARY_ESTIMATE_WORDING, 48, y, 11, 516, true);

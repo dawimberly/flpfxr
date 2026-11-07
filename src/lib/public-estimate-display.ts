@@ -6,3 +6,12 @@ export function formatPublicEstimate(total: number): string {
     style: "currency", currency: "USD", maximumFractionDigits: 0,
   }).format(total);
 }
+
+/**
+ * Established public range from projectPlanningEstimate finalize():
+ * low = round(total to $100), high = round(total * 1.25 to $100).
+ * Source: commit 3f92fa7 (Harden public estimator labor, ranges and allowance validation).
+ */
+export function formatEstimateRange(result: { low: number; high: number }): string {
+  return `between ${formatPublicEstimate(result.low)} and ${formatPublicEstimate(result.high)}`;
+}

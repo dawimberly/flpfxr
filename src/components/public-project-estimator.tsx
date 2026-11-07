@@ -10,7 +10,7 @@ import {
   type ExteriorCoats, type ProjectInputs, type ProjectService, type ProjectSize, type ScopeAreas,
 } from "@/lib/public-estimate-options";
 import { loadPublicEstimate } from "@/lib/public-estimate";
-import { formatPublicEstimate, PRELIMINARY_ESTIMATE_WORDING } from "@/lib/public-estimate-display";
+import { formatEstimateRange, PRELIMINARY_ESTIMATE_WORDING } from "@/lib/public-estimate-display";
 import { SERVICE_AREAS, saveLeadDraft, type ServiceId } from "@/lib/site";
 import {
   DEFAULT_ESTIMATE_HEADLINE, ESTIMATE_INTRO, estimateHandoffSearch, estimateLandingUrl,
@@ -206,7 +206,7 @@ export function PublicProjectEstimator({
         estimate_service: inputs.service,
         estimate_size: inputs.size,
         estimate_materials: scope ? materialText(inputs, scope) : undefined,
-        estimate_range: estimate ? formatPublicEstimate(estimate.total) : undefined,
+        estimate_range: estimate ? formatEstimateRange(estimate) : undefined,
       },
     });
   };
@@ -265,7 +265,7 @@ export function PublicProjectEstimator({
             {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
             {scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary" style={{ minHeight: "7rem" }} aria-busy={valid && !estimate && failedKey !== requestKey}>
               <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
-              <div className="flow-root min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatPublicEstimate(estimate.total)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Try again or call Jon." : "Updating…"}{valid && failedKey === requestKey ? <button type="button" className="ml-2 min-h-11 underline" onClick={() => setRetryAttempt(value => value + 1)}>Retry estimate</button> : null}</p>}</div>
+              <div className="flow-root min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatEstimateRange(estimate)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Try again or call Jon." : "Updating…"}{valid && failedKey === requestKey ? <button type="button" className="ml-2 min-h-11 underline" onClick={() => setRetryAttempt(value => value + 1)}>Retry estimate</button> : null}</p>}</div>
               <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
             </div> : null}
           </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
@@ -279,7 +279,8 @@ export function PublicProjectEstimator({
         <div className="mx-auto mt-3 max-w-3xl px-0 md:mt-4">
           <EmailMyEstimate
             selections={current}
-            displayedTotal={estimate.total}
+            displayedLow={estimate.low}
+            displayedHigh={estimate.high}
             plannerPath={publicPlannerPath(current)}
             disabled={!ready}
           />

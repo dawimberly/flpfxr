@@ -177,13 +177,14 @@ describe("raw allowance validation and limited customer handoff", () => {
     const message=projectEstimateLeadMessage(input({service:"bathroom",floor:"tile",delivery:300,specialist:750}));
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials: Tile, Quartz counters, Ceramic tile shower wall, 30-inch vanity, New toilet, Primer and paint/);
     assert.match(message,/between \$10,400 and \$13,000/);
-    assert.match(message,/Preliminary estimate only — not a quote\. Final prices set after onsite inspection\./);
+    assert.match(message,/Preliminary estimate only — not a quote\. Final price is confirmed after an on-site review\./);
     assert.equal(message.includes(PRELIMINARY_ESTIMATE_WORDING),true);
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|demolition|sq ft|allowance/i);
   });
   it("preserves accessibility and blocks invalid navigation without adding scripts", () => {
     const ui=readFileSync("src/components/public-project-estimator.tsx","utf8");
     const pricing=readFileSync("src/lib/public-pricing.ts","utf8");
+    const display=readFileSync("src/lib/public-estimate-display.ts","utf8");
     assert.match(ui,/aria-live="polite"/);
     assert.match(ui,/min-h-11/);
     assert.match(ui,/aria-invalid/);
@@ -212,7 +213,8 @@ describe("raw allowance validation and limited customer handoff", () => {
     assert.match(ui,/What's included/);
     assert.match(ui,/Not included: appliances, layout or plumbing moves, electrical, permits, and hidden damage\./);
     assert.match(ui,/PRELIMINARY_ESTIMATE_WORDING/);
-    assert.match(pricing,/Preliminary estimate only — not a quote\. Final prices set after onsite inspection\./);
+    assert.match(display,/Preliminary estimate only — not a quote\. Final price is confirmed after an on-site review\./);
+    assert.match(pricing,/export \{ formatEstimateRange, PRELIMINARY_ESTIMATE_WORDING \}/);
     assert.doesNotMatch(ui,/fabrication|10% off|cabinet list|remnant|slab|allowance|market pricing|licensed|insured|filler strip|person-hours|personHours/i);
     assert.doesNotMatch(ui,/Base crew days|CREW_DAY_RATE|adjustedCrewDays|\$650|crew days/);
     assert.doesNotMatch(ui,/gtag|dataLayer|fbq|fetch\(/);

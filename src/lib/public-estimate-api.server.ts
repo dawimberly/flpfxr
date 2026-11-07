@@ -349,9 +349,8 @@ export function visitorPublicEstimate(input: ProjectInputs, context: PublicEstim
     ok: true as const,
     preliminary: true as const,
     total: priced.total,
-    // Preserve the legacy keys for integrations while kitchen estimates use one amount.
-    low: input.service === "kitchen" ? priced.total : built.low,
-    high: input.service === "kitchen" ? priced.total : built.high,
+    low: priced.low,
+    high: priced.high,
     leadMessage: priced.leadMessage,
     disclaimer: PRELIMINARY_ESTIMATE_WORDING,
     exclusions: notes.removalNote ? `${built.scope.exclusions} ${notes.removalNote}` : built.scope.exclusions,

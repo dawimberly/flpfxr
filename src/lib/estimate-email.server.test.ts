@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
@@ -213,14 +213,20 @@ describe("estimate follow-up download", () => {
     }).ok, false);
   });
 
-  it("keeps customer email delivery retired even when Resend is configured", () => {
+  it("keeps customer email delivery off by default even when Resend is configured", () => {
     const cfg = estimateCustomerMailConfig({
       RESEND_API_KEY: "re_test",
-      ESTIMATE_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
-      ESTIMATE_EMAIL_DELIVERY: "1",
+      LEAD_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
     });
     assert.equal(cfg.configured, false);
-    assert.equal(cfg.staffTo, ESTIMATE_STAFF_NOTIFY_TO);
+    assert.equal(cfg.deliveryFlag, false);
+    const on = estimateCustomerMailConfig({
+      RESEND_API_KEY: "re_test",
+      LEAD_FROM_EMAIL: "The Flip Fixer <leads@theflipfixer.com>",
+      ESTIMATE_CUSTOMER_EMAIL_ENABLED: "1",
+    });
+    assert.equal(on.configured, true);
+    assert.equal(on.deliveryFlag, true);
   });
 
   it("keeps the follow-up feature unavailable when the release gate is off", () => {
@@ -299,7 +305,8 @@ describe("estimate follow-up download", () => {
       assert.equal(sent[0].to.toLowerCase(), ESTIMATE_STAFF_NOTIFY_TO);
       assert.notEqual(sent[0].to.toLowerCase(), "alex.sample@example.com");
       assert.equal(sent[0].attachments, undefined);
-      assert.match(sent[0].text, /No customer email was sent/i);
+      assert.match(sent[0].text, /No customer email copy was requested/i);
+      assert.match(sent[0].text, /between \$12,000 and \$15,000/);
       assert.match(sent[0].text, /ZIP: 78209/);
     }
   });
@@ -327,7 +334,7 @@ describe("estimate follow-up download", () => {
     }), {
       sql,
       sendMail: async (input) => {
-        assert.match(input.text, /\$12,000/);
+        assert.match(input.text, /between \$12,000 and \$15,000/);
         return { ok: true, id: "ok" };
       },
     });
@@ -611,7 +618,8 @@ describe("estimate follow-up download", () => {
   it("writes a fictitious personalized PDF without example-only labeling", async () => {
     const bytes = await renderPublicEstimatePdf({
       input: { ...DEFAULT_PROJECT_INPUTS, includeFlooring: false },
-      total: 12000,
+      low: 12000,
+      high: 15000,
       name: "Alex Sample",
       issued: new Date("2026-11-06T18:00:00Z"),
     });
@@ -624,6 +632,11 @@ describe("estimate follow-up download", () => {
       assert.match(doc.getTitle() ?? "", /Alex Sample/);
       assert.doesNotMatch(doc.getTitle() ?? "", /example only/i);
       try {
+        mkdirSync(join("docs", "reviews", "estimate-range-customer-email-2026-11"), { recursive: true });
+        writeFileSync(
+          join("docs", "reviews", "estimate-range-customer-email-2026-11", "fictitious-personalized-estimate.pdf"),
+          bytes,
+        );
         writeFileSync(
           join("docs", "reviews", "estimator-flooring-pdf-2026-11", "fictitious-personalized-estimate.pdf"),
           bytes,

@@ -29,8 +29,8 @@ describe("public estimate API", () => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.total, 11600);
-    assert.equal(body.low, body.total);
-    assert.equal(body.high, body.total);
+    assert.equal(body.low, 11600);
+    assert.equal(body.high, 14500);
     assert.equal(new URL(body.plannerUrl).searchParams.get("cabinetFinish"), "ve");
     assert.equal((await post({ service: "kitchen", cabinetFinish: "honey" })).status, 400);
   });
@@ -58,7 +58,7 @@ describe("public estimate API", () => {
     assert.equal(body.preliminary, true);
     assert.deepEqual(Object.keys(body).sort(), [...VISITOR_KEYS].sort());
     assert.equal(body.disclaimer, PRELIMINARY_ESTIMATE_WORDING);
-    assert.match(body.leadMessage, /Preliminary estimate: \$3,600\./);
+    assert.match(body.leadMessage, /Preliminary estimate: between \$3,600 and \$4,500\./);
     assert.match(body.leadMessage, /Preliminary estimate only — not a quote/);
     assert.match(body.exclusions, /Floor demolition/);
     assert.match(body.removalNote, /snap-together/);
@@ -74,7 +74,7 @@ describe("public estimate API", () => {
     const raw = JSON.stringify(body);
     assert.doesNotMatch(raw, /personHours|materialsAtCost|CREW_DAY_RATE|unitCost|lines|adjustedDays|"support"|"labor"/);
     assert.doesNotMatch(raw, /\binsured\b|licensed and insured/i);
-    assert.equal(body.leadMessage, "Project: Flooring. Size: Medium. Materials: Luxury vinyl plank. Preliminary estimate: $3,600. Preliminary estimate only — not a quote. Final price is confirmed after an on-site review.");
+    assert.equal(body.leadMessage, "Project: Flooring. Size: Medium. Materials: Luxury vinyl plank. Preliminary estimate: between $3,600 and $4,500. Preliminary estimate only — not a quote. Final price is confirmed after an on-site review.");
   });
 
   it("accepts PepoChat text inputs and derives Medium for 400 sq ft", async () => {

@@ -9,7 +9,7 @@ import {
 } from "./public-estimate-options.ts";
 import { projectPlanningEstimate, projectEstimateLeadMessage } from "./public-pricing.ts";
 import { publicEstimateResult } from "./public-estimate-result.server.ts";
-import { formatPublicEstimate } from "./public-estimate-display.ts";
+import { formatEstimateRange, formatPublicEstimate } from "./public-estimate-display.ts";
 import { flooringInclusionLabel } from "./public-estimate-pdf.server.ts";
 import { validatePublicEstimateInput } from "./public-estimate-input.ts";
 import {
@@ -39,8 +39,8 @@ describe("optional flooring", () => {
     assert.equal(off.lines.some(row => row.id === "floor"), false);
     assert.ok(on.lines.some(row => row.id === "floor"));
     assert.ok(on.total > off.total);
-    assert.equal(formatPublicEstimate(publicEstimateResult(kitchen({ includeFlooring: false }))!.total), "$12,000");
-    assert.equal(formatPublicEstimate(publicEstimateResult(kitchen({ includeFlooring: true }))!.total), "$13,300");
+    assert.equal(formatEstimateRange(publicEstimateResult(kitchen({ includeFlooring: false }))!), "between $12,000 and $15,000");
+    assert.equal(formatEstimateRange(publicEstimateResult(kitchen({ includeFlooring: true }))!), "between $13,300 and $16,700");
   });
 
   it("explains the Large bathroom flooring delta without exposing internal rates", () => {
@@ -125,7 +125,7 @@ describe("optional flooring", () => {
       floorSqft: null,
     });
     assert.equal(blankExcluded.includeFlooring, false);
-    assert.equal(formatPublicEstimate(publicEstimateResult(blankExcluded)!.total), "$12,000");
+    assert.equal(formatEstimateRange(publicEstimateResult(blankExcluded)!), "between $12,000 and $15,000");
     assert.throws(() => validatePublicEstimateInput({
       ...kitchen({ includeFlooring: false }),
       floorSqft: 0,
@@ -146,7 +146,7 @@ describe("optional flooring", () => {
       ...kitchen({ includeFlooring: true, floor: "lvp" }),
       floorSqft: 168,
     });
-    assert.equal(formatPublicEstimate(publicEstimateResult(ok)!.total), "$13,300");
+    assert.equal(formatEstimateRange(publicEstimateResult(ok)!), "between $13,300 and $16,700");
   });
 
   it("keeps the same room size when flooring is toggled in shared planner URLs", () => {
