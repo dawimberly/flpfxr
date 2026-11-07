@@ -5,13 +5,14 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { provisionEmployee } from "./employee-admin.mjs";
+import { REQUIRED_PGLITE_RUNTIME_FILES } from "./package-pglite-runtime.mjs";
 import { chromium } from "playwright";
 import { toJSONAsync } from "seroval";
 process.env.DATABASE_URL = "";
 process.env.VITE_AUTH_ENABLED = "true";
 process.env.BETTER_AUTH_SECRET = "isolated-fixture-secret-not-used-in-production";
 const functionRoot = resolve(".vercel/output/functions/__server.func"), staticRoot = resolve(".vercel/output/static");
-for (const name of ["pglite.data", "pglite.wasm"]) {
+for (const name of REQUIRED_PGLITE_RUNTIME_FILES) {
   assert.ok((await stat(resolve(functionRoot, name))).size > 0, "Build must package " + name);
 }
 const app = (await import(pathToFileURL(functionRoot+"/index.mjs").href)).default;

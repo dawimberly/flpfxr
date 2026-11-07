@@ -3,7 +3,12 @@ on:
   pull_request:
     paths:
       - "src/**"
+      - "package.json"
+      - "package-lock.json"
       - "scripts/public-estimator-smoke.mjs"
+      - "scripts/package-pglite-runtime.mjs"
+      - "scripts/package-pglite-runtime.test.mjs"
+      - "scripts/employee-access-smoke.mjs"
       - ".github/workflows/public-estimator.yml"
   push:
     branches: ["main"]
@@ -12,7 +17,12 @@ on:
       - "src/lib/public-pricing.ts"
       - "src/routes/estimate.tsx"
       - "src/routes/index.tsx"
+      - "package.json"
+      - "package-lock.json"
       - "scripts/verify-public-estimator-live.mjs"
+      - "scripts/package-pglite-runtime.mjs"
+      - "scripts/package-pglite-runtime.test.mjs"
+      - "scripts/employee-access-smoke.mjs"
       - ".github/workflows/public-estimator.yml"
   workflow_dispatch:
 jobs:
