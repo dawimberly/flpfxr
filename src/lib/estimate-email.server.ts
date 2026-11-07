@@ -1005,7 +1005,7 @@ export async function handleEstimateEmailRequest(
       : persistResult.winning.customer_email_ok
         ? "sent"
         : "confirm_pending";
-  let customerEmailed = Boolean(persistResult.winning.customer_email_ok);
+  const customerEmailed = Boolean(persistResult.winning.customer_email_ok);
 
   if (
     snapshot.customerEmailRequested
