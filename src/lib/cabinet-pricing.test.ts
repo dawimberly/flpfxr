@@ -53,7 +53,9 @@ test("the public estimator returns only its combined price and handoff message",
   const premium = publicEstimateResult({ ...DEFAULT_PROJECT_INPUTS, cabinetFinish: "ew" })!;
   const builder = publicEstimateResult({ ...DEFAULT_PROJECT_INPUTS, cabinetFinish: "ve" })!;
   assert.deepEqual(Object.keys(builder).sort(), ["leadMessage", "total"]);
-  assert.equal(builder.total, 12900);
+  // Default kitchen excludes optional flooring; Value Espresso stays below Elegant White.
+  assert.equal(builder.total, 11600);
+  assert.equal(premium.total, 12000);
   assert.ok(builder.total < premium.total);
   assert.match(builder.leadMessage, /Value Espresso/);
 });

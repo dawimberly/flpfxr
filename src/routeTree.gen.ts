@@ -26,6 +26,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as ApiCatalogSignupRouteImport } from './routes/api/catalog-signup'
 import { Route as ApiEstimateCheckoutRouteImport } from './routes/api/estimate-checkout'
+import { Route as ApiEstimateEmailRouteImport } from './routes/api/estimate-email'
 import { Route as ApiEstimateInquiryRouteImport } from './routes/api/estimate-inquiry'
 import { Route as ApiLeadsRouteImport } from './routes/api/leads'
 import { Route as ApiPublicEstimateRouteImport } from './routes/api/public-estimate'
@@ -38,6 +39,7 @@ import { Route as EstimatorIndexRouteImport } from './routes/estimator.index'
 import { Route as EstimatorRoofRouteImport } from './routes/estimator.roof'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiEmployeeAssetsSplatRouteImport } from './routes/api/employee-assets/$'
+import { Route as ApiEstimatePdfTokenRouteImport } from './routes/api/estimate-pdf.$token'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -125,6 +127,11 @@ const ApiEstimateCheckoutRoute = ApiEstimateCheckoutRouteImport.update({
   path: '/api/estimate-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEstimateEmailRoute = ApiEstimateEmailRouteImport.update({
+  id: '/api/estimate-email',
+  path: '/api/estimate-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiEstimateInquiryRoute = ApiEstimateInquiryRouteImport.update({
   id: '/api/estimate-inquiry',
   path: '/api/estimate-inquiry',
@@ -185,6 +192,11 @@ const ApiEmployeeAssetsSplatRoute = ApiEmployeeAssetsSplatRouteImport.update({
   path: '/api/employee-assets/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEstimatePdfTokenRoute = ApiEstimatePdfTokenRouteImport.update({
+  id: '/api/estimate-pdf/$token',
+  path: '/api/estimate-pdf/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
@@ -209,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/testimonials': typeof TestimonialsRoute
   '/api/catalog-signup': typeof ApiCatalogSignupRoute
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
+  '/api/estimate-email': typeof ApiEstimateEmailRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/api/public-estimate': typeof ApiPublicEstimateRoute
@@ -221,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
+  '/api/estimate-pdf/$token': typeof ApiEstimatePdfTokenRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -240,6 +254,7 @@ export interface FileRoutesByTo {
   '/testimonials': typeof TestimonialsRoute
   '/api/catalog-signup': typeof ApiCatalogSignupRoute
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
+  '/api/estimate-email': typeof ApiEstimateEmailRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/api/public-estimate': typeof ApiPublicEstimateRoute
@@ -252,6 +267,7 @@ export interface FileRoutesByTo {
   '/estimator': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
+  '/api/estimate-pdf/$token': typeof ApiEstimatePdfTokenRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
@@ -273,6 +289,7 @@ export interface FileRoutesById {
   '/testimonials': typeof TestimonialsRoute
   '/api/catalog-signup': typeof ApiCatalogSignupRoute
   '/api/estimate-checkout': typeof ApiEstimateCheckoutRoute
+  '/api/estimate-email': typeof ApiEstimateEmailRoute
   '/api/estimate-inquiry': typeof ApiEstimateInquiryRoute
   '/api/leads': typeof ApiLeadsRoute
   '/api/public-estimate': typeof ApiPublicEstimateRoute
@@ -285,6 +302,7 @@ export interface FileRoutesById {
   '/estimator/': typeof EstimatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/employee-assets/$': typeof ApiEmployeeAssetsSplatRoute
+  '/api/estimate-pdf/$token': typeof ApiEstimatePdfTokenRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
@@ -307,6 +325,7 @@ export interface FileRouteTypes {
     | '/testimonials'
     | '/api/catalog-signup'
     | '/api/estimate-checkout'
+    | '/api/estimate-email'
     | '/api/estimate-inquiry'
     | '/api/leads'
     | '/api/public-estimate'
@@ -319,6 +338,7 @@ export interface FileRouteTypes {
     | '/estimator/'
     | '/api/auth/$'
     | '/api/employee-assets/$'
+    | '/api/estimate-pdf/$token'
     | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -338,6 +358,7 @@ export interface FileRouteTypes {
     | '/testimonials'
     | '/api/catalog-signup'
     | '/api/estimate-checkout'
+    | '/api/estimate-email'
     | '/api/estimate-inquiry'
     | '/api/leads'
     | '/api/public-estimate'
@@ -350,6 +371,7 @@ export interface FileRouteTypes {
     | '/estimator'
     | '/api/auth/$'
     | '/api/employee-assets/$'
+    | '/api/estimate-pdf/$token'
     | '/api/stripe/webhook'
   id:
     | '__root__'
@@ -370,6 +392,7 @@ export interface FileRouteTypes {
     | '/testimonials'
     | '/api/catalog-signup'
     | '/api/estimate-checkout'
+    | '/api/estimate-email'
     | '/api/estimate-inquiry'
     | '/api/leads'
     | '/api/public-estimate'
@@ -382,6 +405,7 @@ export interface FileRouteTypes {
     | '/estimator/'
     | '/api/auth/$'
     | '/api/employee-assets/$'
+    | '/api/estimate-pdf/$token'
     | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -403,6 +427,7 @@ export interface RootRouteChildren {
   TestimonialsRoute: typeof TestimonialsRoute
   ApiCatalogSignupRoute: typeof ApiCatalogSignupRoute
   ApiEstimateCheckoutRoute: typeof ApiEstimateCheckoutRoute
+  ApiEstimateEmailRoute: typeof ApiEstimateEmailRoute
   ApiEstimateInquiryRoute: typeof ApiEstimateInquiryRoute
   ApiLeadsRoute: typeof ApiLeadsRoute
   ApiPublicEstimateRoute: typeof ApiPublicEstimateRoute
@@ -412,6 +437,7 @@ export interface RootRouteChildren {
   BlogIndexRoute: typeof BlogIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiEmployeeAssetsSplatRoute: typeof ApiEmployeeAssetsSplatRoute
+  ApiEstimatePdfTokenRoute: typeof ApiEstimatePdfTokenRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
@@ -536,6 +562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEstimateCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/estimate-email': {
+      id: '/api/estimate-email'
+      path: '/api/estimate-email'
+      fullPath: '/api/estimate-email'
+      preLoaderRoute: typeof ApiEstimateEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/estimate-inquiry': {
       id: '/api/estimate-inquiry'
       path: '/api/estimate-inquiry'
@@ -620,6 +653,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEmployeeAssetsSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/estimate-pdf/$token': {
+      id: '/api/estimate-pdf/$token'
+      path: '/api/estimate-pdf/$token'
+      fullPath: '/api/estimate-pdf/$token'
+      preLoaderRoute: typeof ApiEstimatePdfTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
@@ -674,6 +714,7 @@ const rootRouteChildren: RootRouteChildren = {
   TestimonialsRoute: TestimonialsRoute,
   ApiCatalogSignupRoute: ApiCatalogSignupRoute,
   ApiEstimateCheckoutRoute: ApiEstimateCheckoutRoute,
+  ApiEstimateEmailRoute: ApiEstimateEmailRoute,
   ApiEstimateInquiryRoute: ApiEstimateInquiryRoute,
   ApiLeadsRoute: ApiLeadsRoute,
   ApiPublicEstimateRoute: ApiPublicEstimateRoute,
@@ -683,6 +724,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogIndexRoute: BlogIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiEmployeeAssetsSplatRoute: ApiEmployeeAssetsSplatRoute,
+  ApiEstimatePdfTokenRoute: ApiEstimatePdfTokenRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport

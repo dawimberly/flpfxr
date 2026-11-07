@@ -28,7 +28,7 @@ describe("public estimate API", () => {
     const response = await post({ service: "kitchen", cabinetFinish: "VE" });
     assert.equal(response.status, 200);
     const body = await response.json();
-    assert.equal(body.total, 12900);
+    assert.equal(body.total, 11600);
     assert.equal(body.low, body.total);
     assert.equal(body.high, body.total);
     assert.equal(new URL(body.plannerUrl).searchParams.get("cabinetFinish"), "ve");
@@ -127,7 +127,7 @@ describe("public estimate API", () => {
     assert.doesNotMatch(JSON.stringify(custom), /\$\d/);
     assert.match(custom.nextStep, /walkthrough with Jon/);
     const kitchen = await (await post({ service: "kitchen", room_sqft: "n/a", floor: "n/a" })).json();
-    assert.equal(kitchen.total, 13300);
+    assert.equal(kitchen.total, 12000);
     assert.equal(kitchen.removalNote, null);
     assert.equal(kitchen.removalPriced, null);
     assert.match(kitchen.exclusions, /Appliances/);

@@ -78,7 +78,7 @@ try {
     await page.getByTestId("estimate-total").waitFor();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.waitForURL(url=>url.searchParams.get("size")==="medium");
-    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,000",{exact:true}).waitFor();
     let blocked=0;
     await page.route("**/_serverFn/**",route=>{
       blocked++;
@@ -126,7 +126,7 @@ try {
     await page.waitForURL(url=>url.searchParams.get("size")==="medium");
     assert.equal(await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
-    await page.getByTestId("estimate-total").getByText("$9,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$8,000",{exact:true}).waitFor();
     assert.equal(await page.getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).count(),1);
     await page.evaluate(()=>document.fonts?.ready);
     const fold=await page.locator("#estimate-fold").boundingBox();
@@ -145,7 +145,7 @@ try {
     await page.getByRole("heading",{name:"Plan your next project.",exact:true}).waitFor();
     assert.equal(await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).getAttribute("aria-pressed"),"true");
     assert.equal(await page.getByRole("button",{name:"Medium",exact:true}).getAttribute("aria-pressed"),"true");
-    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,000",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Large",exact:true}).click();
@@ -218,7 +218,7 @@ try {
     const response=await page.goto(base+"/estimate",{waitUntil:"domcontentloaded"});
     assert.equal(response.status(),200);
     await page.getByTestId("estimate-disclaimer").getByText(PRELIMINARY_ESTIMATE_WORDING,{exact:true}).waitFor();
-    await page.getByTestId("estimate-total").getByText("$13,300",{exact:true}).waitFor();
+    await page.getByTestId("estimate-total").getByText("$12,000",{exact:true}).waitFor();
     let interactive=false;
     for(let i=0;i<30;i++) {
       await page.getByRole("button",{name:"Small",exact:true}).click();
@@ -228,12 +228,40 @@ try {
     assert.ok(interactive,"Estimator hydration failed");
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     const total=page.getByTestId("estimate-total");
-    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByText("$12,000",{exact:true}).waitFor();
     await page.getByLabel("Cabinet finish").selectOption("ve");
-    await total.getByText("$12,900",{exact:true}).waitFor();
+    await total.getByText("$11,600",{exact:true}).waitFor();
     await page.getByText("Partial overlay, standard hinges and slides.",{exact:true}).waitFor();
     await page.getByLabel("Cabinet finish").selectOption("ew");
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Flooring not included");
+    assert.equal(await page.locator("#estimate-floor").count(),0);
+    assert.equal(await page.getByTestId("estimate-include-flooring").count(),1);
+    // Shared/older links: flooring off by default; includeFlooring=1 restores bundled flooring.
+    await page.goto(base+"/estimate?service=kitchen&size=medium&includeFlooring=1&floor=lvp",{waitUntil:"domcontentloaded"});
     await total.getByText("$13,300",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-flooring-summary").innerText(),"Flooring included");
+    assert.equal(await page.getByTestId("estimate-include-flooring").isChecked(),true);
+    await page.locator("#estimate-floor").waitFor();
+    await page.goto(base+"/estimate?service=flooring&size=medium&floor=lvp",{waitUntil:"domcontentloaded"});
+    await total.getByText("$3,600",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-include-flooring").count(),0);
+    await page.locator("#estimate-floor").waitFor();
+    await page.goto(base+"/estimate?service=kitchen&size=medium",{waitUntil:"domcontentloaded"});
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    // Wait for hydration before toggling — same pattern as size buttons above.
+    for(let i=0;i<30;i++) {
+      await page.getByRole("button",{name:"Small",exact:true}).click();
+      if(await page.getByRole("button",{name:"Small",exact:true}).getAttribute("aria-pressed")==="true") break;
+      await delay(100);
+    }
+    await page.getByRole("button",{name:"Medium",exact:true}).click();
+    await total.getByText("$12,000",{exact:true}).waitFor();
+    await page.getByTestId("estimate-include-flooring").check();
+    await total.getByText("$13,300",{exact:true}).waitFor();
+    assert.equal(await page.getByTestId("estimate-include-flooring").isChecked(),true);
+    await page.getByTestId("estimate-include-flooring").uncheck();
+    await total.getByText("$12,000",{exact:true}).waitFor();
     const bodyText=async()=>page.locator("body").innerText();
     assert.doesNotMatch(await bodyText(),/\$650|crew.?days?|per day|\/day|10% off|remnant|allowance|slab|licensed|insured|waterfall/i);
     await page.getByTestId("estimate-included").waitFor();
@@ -251,20 +279,20 @@ try {
       assert.ok(page.url().includes("/estimate"),"Invalid inputs must not navigate");
     }
     await floor.fill("168");
-    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByText("$12,000",{exact:true}).waitFor();
 
     await page.getByRole("button",{name:"Kitchen remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
-    await page.getByText("$13,300",{exact:true}).waitFor();
+    await page.getByText("$12,000",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("laminate");
-    await page.getByText("$11,200",{exact:true}).waitFor();
+    await page.getByText("$10,600",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("quartz");
 
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     await page.getByTestId("estimate-included").getByText("Demolition",{exact:true}).waitFor();
-    await page.getByText("$9,300",{exact:true}).waitFor();
+    await page.getByText("$8,000",{exact:true}).waitFor();
     await page.getByLabel("Shower wall").selectOption("stone");
     assert.equal(await page.getByLabel("Fabrication / installation allowance ($)",{exact:true}).count(),0);
     assert.match(await total.innerText(),/^\$[\d,]+$/);
@@ -278,7 +306,7 @@ try {
     await page.getByText("$8,600",{exact:true}).waitFor();
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
-    await page.getByText("$9,300",{exact:true}).waitFor();
+    await page.getByText("$8,000",{exact:true}).waitFor();
     const undersized=await page.locator("main select, main input, main button, main summary, main a").evaluateAll(elements=>
       elements.filter(el=>el.getBoundingClientRect().width>0 && el.getBoundingClientRect().height>0)
         .filter(el=>el.getBoundingClientRect().height<44).map(el=>el.id||el.textContent));
@@ -295,7 +323,7 @@ try {
     await page.waitForURL(/\/contact/);
     await page.waitForFunction(()=>document.querySelector('textarea[name="message"]')?.value.includes("Preliminary estimate:"));
     const message=await page.locator('textarea[name="message"]').inputValue();
-    assert.match(message,/\$9,300/);
+    assert.match(message,/\$8,000/);
     assert.match(message,/Project: Bathroom remodeling. Size: Medium. Materials:/);
     assert.ok(message.includes(PRELIMINARY_ESTIMATE_WORDING));
     assert.doesNotMatch(message,/crew|hours|days|650|shipping|specialist|sq ft|allowance/i);
@@ -318,7 +346,7 @@ try {
     assert.equal(leadRequests[0].Source,"estimate");
     assert.equal(leadRequests[0].estimate_service,"bathroom");
     assert.equal(leadRequests[0].estimate_size,"Medium");
-    assert.equal(leadRequests[0].estimate_range,"$9,300");
+    assert.equal(leadRequests[0].estimate_range,"$8,000");
     assert.equal(leadRequests[0].landing_page,"/estimate");
     assert.equal(leadRequests[0].submitting_page,"/contact");
     assert.equal(leadRequests[0].first_landing_path,undefined);

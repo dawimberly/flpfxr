@@ -1,11 +1,12 @@
 import { SampleEstimate } from "@/components/sample-estimate";
+import { EmailMyEstimate } from "@/components/email-my-estimate";
 import { CABINET_FINISHES, cabinetTier, type CabinetFinishId } from "@/lib/public-cabinet-finishes";
 import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS,
   COUNTER_MATERIALS, SHOWER_MATERIALS, VANITY_SIZES, projectScope, presetAreas, parseSqft, parseBoxCount, scopeAreaError,
-  vanityForSize, selectedVanity,
+  vanityForSize, selectedVanity, flooringIsOptional, effectiveIncludeFlooring,
   type ExteriorCoats, type ProjectInputs, type ProjectService, type ProjectSize, type ScopeAreas,
 } from "@/lib/public-estimate-options";
 import { loadPublicEstimate } from "@/lib/public-estimate";
@@ -13,7 +14,7 @@ import { formatPublicEstimate, PRELIMINARY_ESTIMATE_WORDING } from "@/lib/public
 import { SERVICE_AREAS, saveLeadDraft, type ServiceId } from "@/lib/site";
 import {
   DEFAULT_ESTIMATE_HEADLINE, ESTIMATE_INTRO, estimateHandoffSearch, estimateLandingUrl,
-  estimateTrustLine, headlineFor, inputsFromLanding, areasFromLanding,
+  estimateTrustLine, headlineFor, inputsFromLanding, areasFromLanding, publicPlannerPath,
   type EstimateLanding,
 } from "@/lib/estimate-landing";
 import {
@@ -42,8 +43,9 @@ function sizeText(service: ProjectInputs["service"], scope: NonNullable<ReturnTy
   return `${sqftText(scope.wall)} sq ft`;
 }
 function materialText(inputs: ProjectInputs, scope: NonNullable<ReturnType<typeof projectScope>>) {
+  const includeFloor = effectiveIncludeFlooring(inputs);
   return [
-    scope.floor ? FLOOR_MATERIALS.find(m => m.id === inputs.floor)!.label : "",
+    includeFloor && scope.floor ? FLOOR_MATERIALS.find(m => m.id === inputs.floor)!.label : "",
     inputs.service === "kitchen" || inputs.service === "bathroom" ? COUNTER_MATERIALS.find(m => m.id === inputs.counter)!.label : "",
     inputs.service === "bathroom" ? SHOWER_MATERIALS.find(m => m.id === inputs.shower)!.label : "",
     inputs.service === "bathroom" ? selectedVanity(inputs.size, inputs.vanity).label : "",
@@ -52,11 +54,24 @@ function materialText(inputs: ProjectInputs, scope: NonNullable<ReturnType<typeo
     inputs.service === "exterior-paint" ? (inputs.exteriorCoats === 2 ? "2 coats" : "1 coat") : "",
   ].filter(Boolean).join(", ");
 }
-function includedItems(service: ProjectInputs["service"], floor: ProjectInputs["floor"]): string[] {
-  if (service === "bathroom") return ["Demolition", floor === "tile" ? "Tile" : "Flooring", "Vanity", "Countertop", "Fixtures", "Installation"];
-  if (service === "kitchen") return ["Demolition", "Cabinets", "Countertops", "Flooring", "Installation"];
-  if (service === "flooring") return ["Flooring", "Installation"];
-  if (service === "interior-paint" || service === "exterior-paint") return ["Paint", "Installation"];
+function flooringStatusText(inputs: ProjectInputs): string | null {
+  if (!flooringIsOptional(inputs.service)) return null;
+  return effectiveIncludeFlooring(inputs) ? "Flooring included" : "Flooring not included";
+}
+function includedItems(inputs: ProjectInputs): string[] {
+  const includeFloor = effectiveIncludeFlooring(inputs);
+  if (inputs.service === "bathroom") {
+    const items = ["Demolition", "Vanity", "Countertop", "Fixtures", "Installation"];
+    if (includeFloor) items.splice(1, 0, inputs.floor === "tile" ? "Tile" : "Flooring");
+    return items;
+  }
+  if (inputs.service === "kitchen") {
+    const items = ["Demolition", "Cabinets", "Countertops", "Installation"];
+    if (includeFloor) items.splice(3, 0, "Flooring");
+    return items;
+  }
+  if (inputs.service === "flooring") return ["Flooring", "Installation"];
+  if (inputs.service === "interior-paint" || inputs.service === "exterior-paint") return ["Paint", "Installation"];
   return [];
 }
 const choiceClass = (selected: boolean) =>
@@ -134,15 +149,35 @@ export function PublicProjectEstimator({
   useEffect(() => {
     if (areaError) trackEstimateOutOfRange(inputs.service);
   }, [areaError, inputs.service]);
-  const publish = (service: ProjectService, size: ProjectSize) => {
+  const publish = (service: ProjectService, size: ProjectSize, nextInputs?: ProjectInputs) => {
     setExplicitService(true);
     if (typeof window === "undefined") return;
-    const next = estimateLandingUrl(window.location.href, service, size);
+    let next = estimateLandingUrl(window.location.href, service, size);
+    const source = nextInputs ?? inputs;
+    if (flooringIsOptional(service)) {
+      const url = new URL(next, "https://theflipfixer.com");
+      if (source.includeFlooring) {
+        url.searchParams.set("includeFlooring", "1");
+        url.searchParams.set("floor", source.floor);
+      } else {
+        url.searchParams.delete("includeFlooring");
+        url.searchParams.delete("floor");
+      }
+      next = `${url.pathname}${url.search}${url.hash}`;
+    }
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (next !== currentUrl) window.history.replaceState(window.history.state, "", next);
   };
-  const patch = <K extends keyof ProjectInputs>(key: K, value: ProjectInputs[K]) =>
-    setInputs(prev => ({ ...prev, [key]: value }));
+  const patch = <K extends keyof ProjectInputs>(key: K, value: ProjectInputs[K]) => {
+    setInputs(prev => {
+      const next = { ...prev, [key]: value };
+      if (key === "includeFlooring" || key === "floor") {
+        // Keep shared URL state in sync with flooring selection for retries/shares.
+        queueMicrotask(() => publish(next.service, next.size, next));
+      }
+      return next;
+    });
+  };
   const handOff = (event: MouseEvent<HTMLAnchorElement>) => {
     if (!current || (scope && !estimate)) { event.preventDefault(); return; }
     trackEstimateHandoffClick(inputs);
@@ -182,11 +217,15 @@ export function PublicProjectEstimator({
               {PROJECT_SERVICES.map(service => <button key={service.id} type="button" aria-pressed={inputs.service === service.id}
                 onClick={() => {
                   setAreas(presetAreas(service.id, inputs.size));
-                  setInputs(prev => ({
-                    ...prev, service: service.id, floor: service.id === "bathroom" ? "tile" : "lvp",
-                    vanity: service.id === "bathroom" ? vanityForSize(inputs.size) : prev.vanity,
-                  }));
-                  publish(service.id, inputs.size);
+                  const next: ProjectInputs = {
+                    ...inputs,
+                    service: service.id,
+                    floor: service.id === "bathroom" ? "tile" : "lvp",
+                    includeFlooring: service.id === "flooring" ? true : flooringIsOptional(service.id) ? inputs.includeFlooring : false,
+                    vanity: service.id === "bathroom" ? vanityForSize(inputs.size) : inputs.vanity,
+                  };
+                  setInputs(next);
+                  publish(service.id, inputs.size, next);
                 }}
                 className={choiceClass(inputs.service === service.id)}>{service.label}</button>)}
             </div>
@@ -218,6 +257,16 @@ export function PublicProjectEstimator({
           {trust ? <p className="mt-1.5 text-sm leading-snug text-muted" data-testid="estimate-trust">{trust}</p> : null}
         </div>
       </div>
+      {estimate && current ? (
+        <div className="mx-auto mt-3 max-w-3xl px-0 md:mt-4">
+          <EmailMyEstimate
+            selections={current}
+            displayedTotal={estimate.total}
+            plannerPath={publicPlannerPath(current)}
+            disabled={!ready}
+          />
+        </div>
+      ) : null}
       {scope ? <div className="mt-4 rounded-2xl bg-surface p-3 shadow-[var(--shadow-border)] md:p-8">
         <div className="grid gap-4 sm:grid-cols-2">
           {inputs.service === "bathroom" || inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor-sqft">{inputs.service === "bathroom" ? "Bathroom floor (sq ft)" : "Kitchen floor (sq ft)"}
@@ -252,11 +301,29 @@ export function PublicProjectEstimator({
           </label> : null}
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {scope.floor ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring type
-            <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
-              {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </label> : null}
+          {flooringIsOptional(inputs.service) ? (
+            <label className="flex min-h-11 items-start gap-3 text-sm font-semibold text-fg sm:col-span-2">
+              <input
+                id="estimate-include-flooring"
+                type="checkbox"
+                className="mt-0.5 size-11 shrink-0 rounded border-border"
+                checked={inputs.includeFlooring}
+                onChange={e => patch("includeFlooring", e.target.checked)}
+                data-testid="estimate-include-flooring"
+              />
+              <span>
+                Include flooring
+                <span className="mt-1 block font-normal text-muted">Adds floor covering materials and installation to the combined preliminary total.</span>
+              </span>
+            </label>
+          ) : null}
+          {(inputs.service === "flooring" || (flooringIsOptional(inputs.service) && inputs.includeFlooring)) && scope.floor ? (
+            <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring type
+              <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
+                {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </label>
+          ) : null}
           {inputs.service === "kitchen" || inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop type
             <select id="estimate-counter" value={inputs.counter} onChange={e => patch("counter", e.target.value as ProjectInputs["counter"])} className={fieldClass}>
               {COUNTER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -300,9 +367,10 @@ export function PublicProjectEstimator({
         </div>
         <p className="mt-4 text-sm text-fg" data-testid="estimate-size">{sizeText(inputs.service, scope)}</p>
         <p className="mt-2 text-sm text-fg" data-testid="estimate-materials">{materialText(inputs, scope)}</p>
+        {flooringStatusText(inputs) ? <p className="mt-2 text-sm font-semibold text-fg" data-testid="estimate-flooring-summary">{flooringStatusText(inputs)}</p> : null}
         <h3 className="mt-4 text-sm font-semibold text-fg">What's included</h3>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg" data-testid="estimate-included">
-          {includedItems(inputs.service, inputs.floor).map(item => <li key={item}>{item}</li>)}
+          {includedItems(inputs).map(item => <li key={item}>{item}</li>)}
         </ul>
         <p className="mt-2 text-sm text-muted" data-testid="estimate-exclusions">{EXCLUSIONS}</p>
       </div> : null}

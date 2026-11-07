@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Photo } from "@/components/photo";
 import { CtaBand, PageIntro } from "@/components/site-shell";
-import { BLOG_POSTS } from "@/lib/blog";
+import { BLOG_POSTS, type BlogPost } from "@/lib/blog";
 import { SITE } from "@/lib/site";
 
 export const Route = createFileRoute("/blog/$slug")({
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/blog/$slug")({
 });
 
 function BlogArticle() {
-  const post = Route.useLoaderData();
+  const post: BlogPost = Route.useLoaderData();
   const related = BLOG_POSTS.filter((item) => item.slug !== post.slug);
   return (
     <div>

@@ -1,7 +1,7 @@
 import { CABINET_FINISHES } from "./public-cabinet-finishes.ts";
 import {
   COUNTER_MATERIALS, DEFAULT_PROJECT_INPUTS, FLOOR_MATERIALS, SHOWER_MATERIALS,
-  presetAreas, scopeAreaError, vanityForSize,
+  flooringIsOptional, presetAreas, scopeAreaError, vanityForSize,
   type ProjectInputs, type ProjectService, type ProjectSize,
 } from "./public-estimate-options.ts";
 
@@ -46,6 +46,11 @@ export type EstimateLanding = {
   counter?: ProjectInputs["counter"];
   cabinetFinish?: ProjectInputs["cabinetFinish"];
   shower?: ProjectInputs["shower"];
+  /**
+   * Kitchen/bathroom only. Absent on older links → flooring excluded.
+   * Explicit true/1/yes includes flooring; false/0/no excludes it.
+   */
+  includeFlooring?: boolean;
   /** Measured areas copied only when they sit inside the planner's range. */
   roomSqft?: number;
   floorSqft?: number;
@@ -73,7 +78,17 @@ function text(value: unknown): string {
 const FLOOR_IDS = FLOOR_MATERIALS.map(row => row.id);
 const COUNTER_IDS = COUNTER_MATERIALS.map(row => row.id);
 const SHOWER_IDS = SHOWER_MATERIALS.map(row => row.id);
-const MEASUREMENT_KEYS = ["floor", "counter", "shower", "cabinetFinish", "roomSqft", "floorSqft", "showerSqft", "counterSqft"];
+const MEASUREMENT_KEYS = ["floor", "counter", "shower", "cabinetFinish", "includeFlooring", "roomSqft", "floorSqft", "showerSqft", "counterSqft"];
+
+function queryBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  // Router JSON-parses bare 1/0 query values into numbers.
+  if (value === 1 || value === 0) return value === 1;
+  const token = text(value);
+  if (token === "1" || token === "true" || token === "yes") return true;
+  if (token === "0" || token === "false" || token === "no") return false;
+  return undefined;
+}
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   const token = text(value);
@@ -132,6 +147,7 @@ export function estimateLandingFromSearch(search: URLSearchParams | Record<strin
   const counter = oneOf(raw.counter, COUNTER_IDS);
   const shower = oneOf(raw.shower, SHOWER_IDS);
   const cabinetFinish = oneOf(raw.cabinetFinish, CABINET_FINISHES.map(finish => finish.id));
+  const includeFlooring = flooringIsOptional(resolved) ? queryBoolean(raw.includeFlooring) : undefined;
   return {
     service: resolved,
     size: size ?? "Medium",
@@ -141,6 +157,7 @@ export function estimateLandingFromSearch(search: URLSearchParams | Record<strin
     ...(counter && (resolved === "kitchen" || resolved === "bathroom") ? { counter } : {}),
     ...(shower && resolved === "bathroom" ? { shower } : {}),
     ...(cabinetFinish && resolved === "kitchen" ? { cabinetFinish } : {}),
+    ...(includeFlooring != null ? { includeFlooring } : {}),
     ...measuredFromSearch(resolved, raw),
   };
 }
@@ -176,6 +193,11 @@ export function inputsFromLanding(landing: EstimateLanding): ProjectInputs {
     floor: landing.floor ?? (bathroom ? "tile" : "lvp"),
     counter: landing.counter ?? DEFAULT_PROJECT_INPUTS.counter,
     shower: landing.shower ?? DEFAULT_PROJECT_INPUTS.shower,
+    includeFlooring: landing.service === "flooring"
+      ? true
+      : flooringIsOptional(landing.service)
+        ? Boolean(landing.includeFlooring)
+        : false,
     ...(landing.cabinetFinish ? { cabinetFinish: landing.cabinetFinish } : {}),
     vanity: bathroom ? vanityForSize(landing.size) : DEFAULT_PROJECT_INPUTS.vanity,
     ...(landing.roomSqft != null ? { roomSqft: landing.roomSqft } : {}),
@@ -190,7 +212,10 @@ export function publicPlannerPath(input: ProjectInputs): string {
   const params = new URLSearchParams();
   params.set("service", serviceToQuery(input.service));
   params.set("size", input.size.toLowerCase());
-  if (floorAllowed(input.service, input.floor)) params.set("floor", input.floor);
+  if (floorAllowed(input.service, input.floor) && (input.service === "flooring" || input.includeFlooring)) {
+    params.set("floor", input.floor);
+  }
+  if (flooringIsOptional(input.service) && input.includeFlooring) params.set("includeFlooring", "1");
   if (input.service === "kitchen" || input.service === "bathroom") params.set("counter", input.counter);
   if (input.service === "bathroom") params.set("shower", input.shower);
   if (input.service === "kitchen" && input.cabinetFinish) params.set("cabinetFinish", input.cabinetFinish);
@@ -220,6 +245,8 @@ export function estimateRouteSearch(search: Record<string, unknown>): Record<str
   if (landing.counter) next.counter = landing.counter;
   if (landing.shower) next.shower = landing.shower;
   if (landing.cabinetFinish) next.cabinetFinish = landing.cabinetFinish;
+  if (landing.includeFlooring === true) next.includeFlooring = "1";
+  if (landing.includeFlooring === false) next.includeFlooring = "0";
   // Keep measurements as numbers. The router JSON-parses an unquoted query
   // number, and writing it back as a string redirects to a quoted value.
   if (landing.roomSqft != null) next.roomSqft = landing.roomSqft;
@@ -236,6 +263,10 @@ export function estimateLandingUrl(href: string, service: ProjectService, size: 
   url.searchParams.set("size", size.toLowerCase());
   // A size or project click refills the example areas, so a deep-linked measurement must not stick.
   for (const key of ["roomSqft", "floorSqft", "showerSqft", "counterSqft"]) url.searchParams.delete(key);
+  if (!flooringIsOptional(service)) {
+    url.searchParams.delete("includeFlooring");
+    if (service !== "flooring") url.searchParams.delete("floor");
+  }
   return `${url.pathname}${url.search}${url.hash}`;
 }
 

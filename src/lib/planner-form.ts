@@ -136,6 +136,10 @@ export function parsePlannerProject(
   const rangeError = scopeAreaError(service, areas);
   if (rangeError) return { ok: false, message: rangeError };
 
+  const includeRaw = str(form, "include_flooring").trim().toLowerCase();
+  const includeFlooring = service === "flooring"
+    ? true
+    : includeRaw === "1" || includeRaw === "true" || includeRaw === "yes";
   const project: ProjectInputs = {
     service,
     size,
@@ -147,6 +151,7 @@ export function parsePlannerProject(
     delivery: 0,
     specialist: 0,
     newToilet: str(form, "new_toilet") !== "0",
+    includeFlooring,
     ...(vanityRaw ? { vanity: vanityRaw } : {}),
     ...areas,
   };
