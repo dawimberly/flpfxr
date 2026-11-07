@@ -44,6 +44,8 @@ export function EmailMyEstimate({
 }) {
   const formId = useId();
   const [state, setState] = useState<DeliveryState>("checking");
+  const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
+  const [availabilityFailed, setAvailabilityFailed] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -59,40 +61,60 @@ export function EmailMyEstimate({
   );
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
+    const controller = new AbortController();
+    setState("checking");
+    setAvailabilityFailed(false);
+    const fail = () => {
+      if (!active) return;
+      setAvailabilityFailed(true);
+      setUnavailableMessage("Could not check PDF availability. Please try again.");
+      setState("unavailable");
+    };
+    const timeout = setTimeout(() => {
+      fail();
+      active = false;
+      controller.abort();
+    }, 10_000);
     (async () => {
       try {
-        const response = await fetch("/api/estimate-email", { method: "GET" });
+        const response = await fetch("/api/estimate-email", { method: "GET", signal: controller.signal });
+        if (!response.ok) throw new Error("Availability check failed");
         const body = (await response.json()) as ApiResult;
-        if (cancelled) return;
+        if (!active) return;
         if (body.available === true) {
           setState("idle");
-        } else {
+        } else if (body.available === false) {
           setUnavailableMessage(
             body.message
               || "Estimate download and follow-up are temporarily unavailable. Call or text — we still want the job.",
           );
           setState("unavailable");
+        } else {
+          fail();
         }
       } catch {
-        if (cancelled) return;
-        setState("unavailable");
+        fail();
+      } finally {
+        clearTimeout(timeout);
       }
     })();
     return () => {
-      cancelled = true;
+      active = false;
+      clearTimeout(timeout);
+      controller.abort();
     };
-  }, []);
+  }, [availabilityAttempt]);
 
   const open = () => {
-    if (state !== "idle") return;
+    if (disabled || state !== "idle") return;
     setState("open");
     setError(null);
   };
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (state === "submitting") return;
+    if (disabled || state === "submitting") return;
     setState("submitting");
     setError(null);
     const form = new FormData();
@@ -145,42 +167,6 @@ export function EmailMyEstimate({
     }
   };
 
-  if (state === "checking") {
-    return (
-      <p className="text-sm text-muted" data-testid="email-my-estimate-checking" role="status">
-        Checking whether estimate download is available…
-      </p>
-    );
-  }
-
-  if (state === "unavailable") {
-    return (
-      <div
-        className="w-full rounded-lg border border-border bg-bg p-3 text-sm text-fg"
-        data-testid="email-my-estimate-unavailable"
-        role="status"
-      >
-        <p className="font-semibold">Estimate download unavailable</p>
-        <p className="mt-1 text-muted">{unavailableMessage}</p>
-        <p className="mt-2 text-xs text-muted">Your on-screen preliminary estimate is unchanged.</p>
-      </div>
-    );
-  }
-
-  if (state === "idle") {
-    return (
-      <button
-        type="button"
-        data-testid="email-my-estimate-open"
-        disabled={disabled}
-        onClick={open}
-        className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-bg px-5 py-2.5 font-semibold text-fg md:py-3 ${disabled ? "opacity-60" : ""}`}
-      >
-        Download estimate &amp; request follow-up
-      </button>
-    );
-  }
-
   if (state === "accepted") {
     return (
       <div
@@ -218,8 +204,33 @@ export function EmailMyEstimate({
     );
   }
 
+  const formVisible = state === "open" || state === "submitting" || state === "failed";
   return (
-    <form
+    <div className="mt-3 w-full scroll-mb-28" data-testid="estimate-pdf-action">
+      <button
+        type="button"
+        data-testid="email-my-estimate-open"
+        disabled={disabled || state !== "idle"}
+        aria-busy={state === "checking"}
+        aria-describedby={`${formId}-availability`}
+        aria-controls={formVisible ? formId : undefined}
+        aria-expanded={formVisible}
+        onClick={open}
+        className="inline-flex min-h-12 w-full scroll-mb-28 items-center justify-center rounded-lg border-2 border-primary bg-surface px-5 py-3 font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Download estimate PDF
+      </button>
+      <div id={`${formId}-availability`} role="status" aria-live="polite" aria-atomic="true" className="mt-2 text-sm text-muted">
+        {state === "checking" ? <span data-testid="email-my-estimate-checking">Checking PDF availability…</span> : null}
+        {state === "unavailable" ? <div data-testid="email-my-estimate-unavailable">
+          <p className="font-semibold text-fg">{availabilityFailed ? "PDF availability check failed" : "Estimate download unavailable"}</p>
+          <p>{unavailableMessage}</p>
+          <p className="mt-1 text-xs">Your on-screen preliminary estimate is unchanged.</p>
+        </div> : null}
+        {state === "idle" || formVisible ? <p>Downloading requires your contact details and requests follow-up from The Flip Fixer. No estimate email is sent to you.</p> : null}
+      </div>
+      {state === "unavailable" ? <button type="button" onClick={() => setAvailabilityAttempt(value => value + 1)} className="mt-2 min-h-11 rounded-md px-2 font-semibold text-primary underline" data-testid="estimate-pdf-retry">Retry PDF availability</button> : null}
+      {formVisible ? <form
       id={formId}
       onSubmit={onSubmit}
       className="w-full rounded-lg border border-border bg-bg p-3"
@@ -292,7 +303,7 @@ export function EmailMyEstimate({
       {error ? <p role="alert" className="mt-3 text-sm text-fg" data-testid="email-my-estimate-error">{error}</p> : null}
       <button
         type="submit"
-        disabled={state === "submitting"}
+        disabled={disabled || state === "submitting"}
         className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg disabled:opacity-60"
         data-testid="email-my-estimate-submit"
       >
@@ -301,6 +312,7 @@ export function EmailMyEstimate({
       {state === "failed" ? (
         <p className="mt-2 text-xs text-muted">Your project selections are still on this page for another try.</p>
       ) : null}
-    </form>
+    </form> : null}
+    </div>
   );
 }

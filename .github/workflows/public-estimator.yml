@@ -6,6 +6,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/public-estimator-smoke.mjs"
+      - "scripts/estimate-pdf-action-smoke.mjs"
       - "scripts/package-pglite-runtime.mjs"
       - "scripts/package-pglite-runtime.test.mjs"
       - "scripts/employee-access-smoke.mjs"
@@ -52,6 +53,7 @@ jobs:
       - run: node scripts/employee-access-smoke.mjs
       - run: node scripts/public-estimator-smoke.mjs
       - run: npm run test:public-cleanup
+      - run: node scripts/estimate-pdf-action-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -60,6 +62,7 @@ jobs:
             public-estimator-smoke-*.png
             employee-access-smoke.png
             after-*.png
+            pdf-action-*.png
             smoke-results.json
           if-no-files-found: ignore
 

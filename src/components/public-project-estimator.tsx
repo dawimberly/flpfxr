@@ -249,6 +249,25 @@ export function PublicProjectEstimator({
             </div>
           </fieldset>
           {scope ? <>
+            {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
+            {scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary" style={{ minHeight: "7rem" }} aria-busy={valid && !estimate && failedKey !== requestKey}>
+              <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
+              <div className="flow-root min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatPublicEstimate(estimate.total)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Try again or call Jon." : "Updating…"}{valid && failedKey === requestKey ? <button type="button" className="ml-2 min-h-11 underline" onClick={() => setRetryAttempt(value => value + 1)}>Retry estimate</button> : null}</p>}</div>
+              <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
+            </div> : null}
+          </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
+          {scope ? <EmailMyEstimate
+            key={JSON.stringify(current ?? inputs)}
+            selections={current ?? inputs}
+            displayedTotal={estimate?.total ?? 0}
+            plannerPath={publicPlannerPath(current ?? inputs)}
+            disabled={!ready}
+          /> : null}
+          <Link to="/contact" search={handoff}
+            onClick={handOff} aria-disabled={!ready}
+            className={`mt-2 inline-flex min-h-11 w-full scroll-mb-28 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg md:mt-6 md:py-3 ${ready ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
+          {trust ? <p className="mt-1.5 text-sm leading-snug text-muted" data-testid="estimate-trust">{trust}</p> : null}
+          {scope ? <>
             <fieldset className="mt-2 md:mt-6">
               <legend className="text-sm font-semibold text-fg">Starting point</legend>
               <p className="mt-1 hidden text-xs text-muted md:block">Fills the square footage. Then choose the materials.</p>
@@ -262,29 +281,9 @@ export function PublicProjectEstimator({
                   className={choiceClass(inputs.size === size)}>{size}</button>)}
               </div>
             </fieldset>
-            {areaError ? <p role="alert" data-testid="estimate-area-error" className="mt-3 text-sm text-fg">{areaError}</p> : null}
-            {scope ? <div ref={summaryRef} id="estimate-range" className="mt-2 scroll-mb-28 rounded-xl border border-primary/40 bg-bg p-2.5 md:mt-3 md:p-5" data-testid="estimate-summary" style={{ minHeight: "7rem" }} aria-busy={valid && !estimate && failedKey !== requestKey}>
-              <p className="text-sm font-semibold text-fg" data-testid="estimate-project">{serviceLabel}</p>
-              <div className="flow-root min-h-12 sm:min-h-10" aria-live="polite" aria-atomic="true">{estimate ? <p className="mt-0.5 break-words font-display text-xl leading-tight text-fg sm:text-3xl" data-testid="estimate-total">{formatPublicEstimate(estimate.total)}</p> : <p role="status" className="mt-1 text-sm text-muted">{!valid ? "Check your project selections." : failedKey === requestKey ? "Unable to load your estimate. Try again or call Jon." : "Updating…"}{valid && failedKey === requestKey ? <button type="button" className="ml-2 min-h-11 underline" onClick={() => setRetryAttempt(value => value + 1)}>Retry estimate</button> : null}</p>}</div>
-              <p className="mt-1 text-sm font-semibold leading-snug text-fg" data-testid="estimate-disclaimer">{PRELIMINARY_ESTIMATE_WORDING}</p>
-            </div> : null}
-          </> : <p className="mt-3 text-sm text-muted">Tell us about your project so we can assess the work and prepare a preliminary estimate.</p>}
-          <Link to="/contact" search={handoff}
-            onClick={handOff} aria-disabled={!ready}
-            className={`mt-2 inline-flex min-h-11 w-full scroll-mb-28 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-fg md:mt-6 md:py-3 ${ready ? "" : "opacity-60"}`}>Request an on-site estimate</Link>
-          {trust ? <p className="mt-1.5 text-sm leading-snug text-muted" data-testid="estimate-trust">{trust}</p> : null}
+          </> : null}
         </div>
       </div>
-      {estimate && current ? (
-        <div className="mx-auto mt-3 max-w-3xl px-0 md:mt-4">
-          <EmailMyEstimate
-            selections={current}
-            displayedTotal={estimate.total}
-            plannerPath={publicPlannerPath(current)}
-            disabled={!ready}
-          />
-        </div>
-      ) : null}
       {scope ? <div className="mt-4 rounded-2xl bg-surface p-3 shadow-[var(--shadow-border)] md:p-8">
         <div className="grid gap-4 sm:grid-cols-2">
           {inputs.service === "bathroom" || inputs.service === "kitchen" ? (
