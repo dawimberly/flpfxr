@@ -1,39 +1,42 @@
 # Optional flooring + estimate download / follow-up
 
-## Flow (simplified)
+## Release gate (default OFF)
 
-Visitors keep the on-screen preliminary estimate without contact details. “Download estimate & request follow-up” collects optional name, email **or** phone (at least one), and a required five-digit ZIP. Submission:
+`ESTIMATE_FOLLOWUP_ENABLED` must be explicitly set to `1`/`true`/`yes` before the download/follow-up form is offered. Leave it unset in production until owner approval. Availability GET and submission POST both require the flag plus a usable database.
 
-1. Saves the lead (validated selections + server total + ZIP/contact)
-2. Issues a gated personalized PDF download (snapshot bytes; not the example PDF)
-3. Notifies **only** `jon@theflipfixer.com` via the existing Resend contact-form path
+## Flow
+
+Visitors keep the on-screen preliminary estimate without contact details. When the feature is enabled, **Download estimate & request follow-up** collects optional name, email **or** phone (at least one), and a required five-digit ZIP. Submission:
+
+1. Atomically claims the submission ID (unique constraint)
+2. Persists lead + immutable PDF snapshot (transaction when available)
+3. Issues a gated personalized PDF download
+4. Notifies **only** `jon@theflipfixer.com` via the existing Resend path (outside the DB transaction; durable idempotency key)
 
 No customer email. No marketing opt-in on this form.
 
-## Updated default totals (flooring excluded by default)
+## Proposed privacy wording (for owner approval — not an approval by itself)
 
-| Project | Size | Without flooring (new default) | With flooring |
+> When you choose “Download estimate & request follow-up,” we collect a five-digit ZIP code and at least one of email or phone (name is optional). We store your project selections with the server-calculated preliminary total, provide a private personalized PDF download for those selections, and notify The Flip Fixer so we can contact you about that project. We do not email the estimate PDF to you and we do not subscribe you to marketing from that form. A private download link expires after a limited time and is not meant to be shared.
+
+This text is what `/privacy` currently shows (without internal review notes). Owner should confirm before relying on it for live traffic with the feature enabled.
+
+## Flooring defaults
+
+| Project | Size | Without flooring | With flooring |
 | --- | --- | ---: | ---: |
-| Kitchen | Small | $9,600 | $11,000 |
 | Kitchen | Medium | $12,000 | $13,300 |
-| Kitchen | Large | $17,500 | $19,100 |
-| Bathroom | Small | $5,900 | $6,100 (LVP) / $6,900 (tile) |
-| Bathroom | Medium | $8,000 | $8,300 (LVP) / $9,300 (tile) |
 | Bathroom | Large | $10,300 | $10,700 (LVP) / $13,300 (tile) |
-| Flooring | Medium | n/a (always included) | $3,600 |
 
-**Large bathroom $10,300 → $13,300:** flooring checked + ceramic tile on the Large preset floor area (+$3,000 combined). Public output never shows a separate flooring price.
+Optional flooring calculations and tests preserved. Sample $12,800 example PDF fingerprint unchanged.
 
-## Configuration still needed
+## Configuration still needed (do not flip in this PR)
 
-1. `DATABASE_URL` — required to save leads and issue PDF tokens (fails closed without it)
-2. `RESEND_API_KEY` + usable `LEAD_FROM_EMAIL` — required for Jon’s notification (lead/PDF can still succeed without it; UI reports notification pending)
-3. Owner review of `/privacy` wording for this flow
+1. Owner approval of privacy wording above
+2. `ESTIMATE_FOLLOWUP_ENABLED=1` only after approval
+3. Usable database (`DATABASE_URL` / Neon in production)
+4. `RESEND_API_KEY` + verified `LEAD_FROM_EMAIL` for Jon notification (lead/PDF can succeed without it; UI reports pending)
 
-Do **not** enable retired `ESTIMATE_EMAIL_DELIVERY`. Recipient is hardcoded to Jon; browser cannot set it.
+## Northville link
 
-## Evidence
-
-- `fictitious-personalized-estimate.pdf` — Alex Sample, $12,000, flooring not included
-- Phone/desktop smoke screenshots
-- Sample $12,800 example PDF/PNG fingerprints unchanged
+Kitchen cabinet finish selector shows “Browse Northville cabinet styles” → `https://www.northvillecabinetry.com/` (`target=_blank`, `rel=noopener noreferrer`, accessible new-tab indication). No imported pricing, logos, or certification claims.

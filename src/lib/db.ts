@@ -46,6 +46,7 @@ export interface Sql {
  */
 const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
+  __pgPool__?: import("pg").Pool;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
 };
@@ -94,12 +95,14 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({ connectionString: databaseUrl });
+    globalRef.__pgPool__ = pool;
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
     });
   })().catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
+    globalRef.__pgPool__ = undefined;
     throw err;
   });
   return globalRef.__pgSqlPromise__;
@@ -192,6 +195,50 @@ export function getSql(): Promise<Sql> {
     throw err;
   });
   return sqlPromise;
+}
+
+/**
+ * Run work on a single DB connection/transaction (Neon pool client or PGLite).
+ * Callers get the shared `Sql` surface scoped to that transaction.
+ */
+export async function withDbTransaction<T>(
+  fn: (sql: Sql) => Promise<T>,
+): Promise<T> {
+  await getSql();
+  if (dbSource === "pglite") {
+    const pg = await getPglite();
+    return pg.transaction(async (tx) => {
+      const txSql = toSql(async <TRow>(text: string, params: unknown[]) => {
+        const result = await tx.query<TRow>(text, params);
+        return result.rows;
+      });
+      return fn(txSql);
+    });
+  }
+  const pool = globalRef.__pgPool__;
+  if (!pool) {
+    throw new Error("Neon pool is not initialized");
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    const txSql = toSql(async <TRow>(text: string, params: unknown[]) => {
+      const res = await client.query(text, params);
+      return res.rows as TRow[];
+    });
+    const result = await fn(txSql);
+    await client.query("commit");
+    return result;
+  } catch (err) {
+    try {
+      await client.query("rollback");
+    } catch {
+      /* connection may already be aborted */
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /**

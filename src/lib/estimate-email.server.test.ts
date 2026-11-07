@@ -79,11 +79,8 @@ function createMemorySql() {
 
       if (/insert into contact_leads/i.test(sqlText)) {
         const submissionId = String(params[0]);
-        const existing = leads.get(submissionId);
-        if (existing) {
-          existing.staff_email_ok = existing.staff_email_ok || Boolean(params[12]);
-          existing.delivered_email = existing.delivered_email || Boolean(params[8]);
-          return [] as T[];
+        if (leads.has(submissionId)) {
+          return [] as T[]; // on conflict do nothing
         }
         leads.set(submissionId, {
           submission_id: submissionId,
@@ -91,14 +88,14 @@ function createMemorySql() {
           email: params[2] == null ? null : String(params[2]),
           phone: params[3] == null ? null : String(params[3]),
           marketing_consent: false,
-          estimate_total_cents: Number(params[10]),
-          planner_inputs: JSON.parse(String(params[11])),
-          estimate_snapshot: JSON.parse(String(params[13])),
+          estimate_total_cents: Number(params[9]),
+          planner_inputs: JSON.parse(String(params[10])),
+          estimate_snapshot: JSON.parse(String(params[11])),
           customer_email_ok: false,
-          staff_email_ok: Boolean(params[12]),
-          delivered_email: Boolean(params[8]),
+          staff_email_ok: false,
+          delivered_email: false,
         });
-        return [] as T[];
+        return [{ submission_id: submissionId }] as T[];
       }
 
       if (/update contact_leads set/i.test(sqlText) && /staff_email_ok = true/i.test(sqlText)) {
@@ -181,6 +178,7 @@ describe("estimate follow-up download", () => {
     process.env.RESEND_API_KEY = "re_test_key";
     process.env.LEAD_FROM_EMAIL = "The Flip Fixer <leads@theflipfixer.com>";
     process.env.DATABASE_URL = "postgres://test";
+    process.env.ESTIMATE_FOLLOWUP_ENABLED = "1";
     delete process.env.ESTIMATE_EMAIL_DELIVERY;
   });
 
@@ -194,12 +192,20 @@ describe("estimate follow-up download", () => {
     assert.equal(validateEstimateFollowUpContact({
       name: "", email: "alex@example.com", phone: "", zip: "78209",
     }).ok, true);
-    assert.equal(validateEstimateFollowUpContact({
-      name: "", email: "", phone: "2104369117", zip: "78209",
-    }).ok, true);
+    const phoneOnly = validateEstimateFollowUpContact({
+      name: "", email: "", phone: "(210) 436-9117", zip: "78209",
+    });
+    assert.equal(phoneOnly.ok, true);
+    if (phoneOnly.ok) {
+      assert.equal(phoneOnly.contact.phoneDigits, "2104369117");
+      assert.equal(phoneOnly.contact.phone, "(210) 436-9117");
+    }
     assert.equal(validateEstimateFollowUpContact({
       name: "Alex Sample", email: "alex@example.com", phone: "(210) 436-9117", zip: "78209",
     }).ok, true);
+    assert.equal(validateEstimateFollowUpContact({
+      name: "", email: "", phone: "https://evil.example/x", zip: "78209",
+    }).ok, false);
   });
 
   it("keeps customer email delivery retired even when Resend is configured", () => {
@@ -212,11 +218,18 @@ describe("estimate follow-up download", () => {
     assert.equal(cfg.staffTo, ESTIMATE_STAFF_NOTIFY_TO);
   });
 
-  it("reports storage availability without exposing setup instructions", () => {
-    assert.equal(estimateEmailAvailability({ DATABASE_URL: "postgres://x" }).available, true);
-    const down = estimateEmailAvailability({});
+  it("keeps the follow-up feature unavailable when the release gate is off", () => {
+    assert.equal(estimateEmailAvailability({
+      DATABASE_URL: "postgres://x",
+      ESTIMATE_FOLLOWUP_ENABLED: undefined,
+    }).available, false);
+    assert.equal(estimateEmailAvailability({
+      DATABASE_URL: "postgres://x",
+      ESTIMATE_FOLLOWUP_ENABLED: "1",
+    }).available, true);
+    const down = estimateEmailAvailability({ ESTIMATE_FOLLOWUP_ENABLED: "1" });
     assert.equal(down.available, false);
-    assert.doesNotMatch(down.message, /RESEND|ESTIMATE_EMAIL_DELIVERY|onboarding@/i);
+    assert.doesNotMatch(down.message, /RESEND|ESTIMATE_FOLLOWUP|onboarding@/i);
   });
 
   it("accepts email-only, phone-only, and both; notifies Jon only; never emails the customer", async () => {
@@ -398,7 +411,7 @@ describe("estimate follow-up download", () => {
       body: formFrom(baseFields()),
     }), {
       sql: null,
-      env: { ...process.env, DATABASE_URL: "" },
+      env: { ...process.env, DATABASE_URL: "", ESTIMATE_FOLLOWUP_ENABLED: "1" },
       sendMail: async () => ({ ok: true, id: "x" }),
     });
     const body = await response.json() as { state: string; leadSaved?: boolean; setupNeeded?: unknown };
@@ -406,6 +419,22 @@ describe("estimate follow-up download", () => {
     assert.equal(body.state, "unavailable");
     assert.equal(body.leadSaved, false);
     assert.equal(body.setupNeeded, undefined);
+  });
+
+  it("does not collect when the release gate is disabled", async () => {
+    const sql = createMemorySql();
+    const response = await handleEstimateEmailRequest(new Request("https://theflipfixer.com/api/estimate-email", {
+      method: "POST",
+      body: formFrom(baseFields()),
+    }), {
+      sql,
+      env: { ...process.env, ESTIMATE_FOLLOWUP_ENABLED: "0" },
+      sendMail: async () => {
+        throw new Error("should not send");
+      },
+    });
+    assert.equal(response.status, 503);
+    assert.equal(sql.leads.size, 0);
   });
 
   it("serves the stored PDF snapshot and ignores later pricing changes", async () => {

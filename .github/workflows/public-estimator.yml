@@ -9,6 +9,7 @@ on:
       - "scripts/package-pglite-runtime.mjs"
       - "scripts/package-pglite-runtime.test.mjs"
       - "scripts/employee-access-smoke.mjs"
+      - "migrations/**"
       - ".github/workflows/public-estimator.yml"
   push:
     branches: ["main"]
@@ -38,6 +39,7 @@ jobs:
       - run: npm ci
       - run: node --experimental-strip-types --test src/components/public-project-estimator.test.ts src/lib/estimate-landing.test.ts
       - run: npm run test:app
+      - run: node --experimental-strip-types --test src/lib/estimate-email.server.test.ts src/lib/estimate-followup-phone.test.ts src/lib/estimate-followup.integration.test.ts src/lib/optional-flooring.test.ts
       - run: npm run lint
       - run: npm run build
       - run: npm run typecheck

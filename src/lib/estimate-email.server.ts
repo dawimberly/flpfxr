@@ -8,7 +8,6 @@ import {
   buildLeadEmailText,
   isValidSubmissionId,
   leadEmailProblem,
-  normalizePhoneDigits,
   type LeadAdIds,
 } from "./lead-delivery.ts";
 import { clientIp, formString, isHoneypot, readAdIds } from "./lead-request.ts";
@@ -21,11 +20,17 @@ import {
 } from "./public-estimate-pdf.server.ts";
 import { formatPublicEstimate, PRELIMINARY_ESTIMATE_WORDING } from "./public-estimate-display.ts";
 import { PROJECT_SERVICES, type ProjectInputs } from "./public-estimate-options.ts";
+import { normalizeEstimatePhone } from "./estimate-followup-phone.ts";
 import { SITE } from "./site.ts";
 
 export const ESTIMATE_EMAIL_SOURCE = "estimate_pdf_followup";
 /** Hardcoded staff recipient — never taken from the browser. */
 export const ESTIMATE_STAFF_NOTIFY_TO = "jon@theflipfixer.com";
+/**
+ * Explicit release gate for estimate PDF download + Jon follow-up.
+ * Default OFF. Do not enable without owner approval and usable DB + Resend config.
+ */
+export const ESTIMATE_FOLLOWUP_FLAG = "ESTIMATE_FOLLOWUP_ENABLED";
 export const DOWNLOAD_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_PDF_DOWNLOADS = 25;
 export const ABUSE_LIMITS = {
@@ -60,6 +65,8 @@ export type EstimateFollowUpResult = {
 };
 
 type Sql = { query<T>(text: string, params?: unknown[]): Promise<T[]> };
+/** Optional transaction runner — lead + PDF snapshot commit together when provided. */
+export type WithTransaction = <T>(fn: (sql: Sql) => Promise<T>) => Promise<T>;
 
 type StoredLead = {
   submission_id: string;
@@ -97,9 +104,25 @@ export type EstimateFollowUpContact = {
 };
 
 async function defaultSql(): Promise<Sql | null> {
-  if (!process.env.DATABASE_URL?.trim()) return null;
-  const { getSql } = await import("@/lib/db");
-  return getSql();
+  try {
+    const { getSql } = await import("@/lib/db");
+    return await getSql();
+  } catch {
+    return null;
+  }
+}
+
+async function defaultWithTransaction(): Promise<WithTransaction | null> {
+  try {
+    const { withDbTransaction } = await import("@/lib/db");
+    return withDbTransaction;
+  } catch {
+    return null;
+  }
+}
+
+export function isEstimateFollowUpEnabled(env: NodeJS.ProcessEnv = process.env) {
+  return /^(1|true|yes)$/i.test(env[ESTIMATE_FOLLOWUP_FLAG]?.trim() || "");
 }
 
 function nameHasDisallowedControls(raw: string) {
@@ -150,11 +173,20 @@ export function validateEstimateFollowUpContact(input: {
   }
 
   const emailRaw = input.email.trim();
-  const phoneDigits = normalizePhoneDigits(input.phone);
   const hasEmail = Boolean(emailRaw);
-  const hasPhone = phoneDigits.length >= 10;
+  const phoneRaw = input.phone;
+  const hasPhoneInput = Boolean(phoneRaw.trim());
 
-  if (!hasEmail && !hasPhone) {
+  let phone = "";
+  let phoneDigits = "";
+  if (hasPhoneInput) {
+    const normalized = normalizeEstimatePhone(phoneRaw);
+    if (!normalized.ok) return { ok: false, message: normalized.message };
+    phone = normalized.display;
+    phoneDigits = normalized.digits;
+  }
+
+  if (!hasEmail && !phoneDigits) {
     return { ok: false, message: "Add an email or a 10-digit phone so we can reach you." };
   }
   if (hasEmail) {
@@ -163,20 +195,14 @@ export function validateEstimateFollowUpContact(input: {
       return { ok: false, message: "Add a valid email, or leave email blank and use phone instead." };
     }
   }
-  if (input.phone.trim() && !hasPhone) {
-    return { ok: false, message: "Add a 10-digit phone, or leave phone blank and use email instead." };
-  }
-  if (phoneDigits.length > 15) {
-    return { ok: false, message: "Phone number looks invalid." };
-  }
 
   return {
     ok: true,
     contact: {
       name,
       email: hasEmail ? emailRaw.toLowerCase() : "",
-      phone: hasPhone ? input.phone.trim() : "",
-      phoneDigits: hasPhone ? phoneDigits : "",
+      phone,
+      phoneDigits,
       zip,
     },
   };
@@ -328,7 +354,8 @@ async function findExisting(sql: Sql, submissionId: string): Promise<StoredLead 
   return rows[0] ?? null;
 }
 
-async function persistEstimateLead(args: {
+/** Atomically claim a submission id. Returns whether this caller won the insert. */
+async function claimEstimateLead(args: {
   sql: Sql;
   submissionId: string;
   contact: EstimateFollowUpContact;
@@ -338,33 +365,26 @@ async function persistEstimateLead(args: {
   selections: ProjectInputs;
   snapshot: EstimateSnapshot;
   adIds: LeadAdIds;
-  staffNotified: boolean;
   clientIp: string;
-}) {
-  await args.sql.query(
+}): Promise<"claimed" | "exists"> {
+  const rows = await args.sql.query<{ submission_id: string }>(
     `insert into contact_leads (
        submission_id, name, email, phone, message, service, source, affiliation,
        ad_ids, has_photo, delivered_email, client_ip, is_test,
        marketing_consent, estimate_total_cents, planner_inputs,
        customer_email_ok, staff_email_ok, estimate_snapshot
      ) values (
-       $1,$2,$3,$4,$5,$6,$7,null,$8::jsonb,false,$9,$10,
+       $1,$2,$3,$4,$5,$6,$7,null,$8::jsonb,false,false,$9,
        EXISTS (SELECT 1 FROM lead_test_exclusions WHERE submission_id = $1),
-       false,$11,$12::jsonb,false,$13,$14::jsonb
+       false,$10,$11::jsonb,false,false,$12::jsonb
      )
-     on conflict (submission_id) do update set
-       staff_email_ok = contact_leads.staff_email_ok OR excluded.staff_email_ok,
-       delivered_email = contact_leads.delivered_email OR excluded.delivered_email,
-       marketing_consent = contact_leads.marketing_consent,
-       estimate_total_cents = contact_leads.estimate_total_cents,
-       planner_inputs = contact_leads.planner_inputs,
-       estimate_snapshot = contact_leads.estimate_snapshot,
-       updated_at = now()`,
+     on conflict (submission_id) do nothing
+     returning submission_id`,
     [
       args.submissionId,
       args.contact.name || "Estimate visitor",
       args.contact.email || null,
-      args.contact.phoneDigits || args.contact.phone || "",
+      args.contact.phoneDigits || "",
       args.message,
       args.service,
       ESTIMATE_EMAIL_SOURCE,
@@ -379,14 +399,13 @@ async function persistEstimateLead(args: {
         origin: "estimate",
         submitted_at: args.snapshot.issuedAt,
       }),
-      args.staffNotified,
       args.clientIp || null,
       Math.round(args.total * 100),
       JSON.stringify({ v: 1, project: args.selections }),
-      args.staffNotified,
       JSON.stringify(args.snapshot),
     ],
   );
+  return rows.length > 0 ? "claimed" : "exists";
 }
 
 async function markStaffNotified(sql: Sql, submissionId: string) {
@@ -427,8 +446,14 @@ async function storeDownloadSnapshot(args: {
 }
 
 async function findDownloadBySubmission(sql: Sql, submissionId: string) {
-  const rows = await sql.query<{ token_hash: string; expires_at: string | Date; revoked_at: string | Date | null }>(
-    `select token_hash, expires_at, revoked_at
+  const rows = await sql.query<{
+    token_hash: string;
+    expires_at: string | Date;
+    revoked_at: string | Date | null;
+    pdf_bytes: Buffer | Uint8Array | null;
+    snapshot_total_cents: number | null;
+  }>(
+    `select token_hash, expires_at, revoked_at, pdf_bytes, snapshot_total_cents
      from estimate_pdf_downloads
      where submission_id = $1
      order by created_at desc
@@ -455,26 +480,46 @@ export async function revokeEstimatePdfToken(
   return rows.length > 0;
 }
 
-/** Availability of lead storage + staff notification (honest; no setup dump). */
-export function estimateFollowUpAvailability(env: NodeJS.ProcessEnv = process.env): {
+/** Availability of the gated follow-up flow (honest; no setup dump). Feature flag default OFF. */
+export function estimateFollowUpAvailability(
+  env: NodeJS.ProcessEnv = process.env,
+  opts: { databaseReady?: boolean } = {},
+): {
+  enabled: boolean;
   storageReady: boolean;
   notifyReady: boolean;
+  available: boolean;
   message: string;
 } {
-  const storageReady = Boolean(env.DATABASE_URL?.trim());
+  const enabled = isEstimateFollowUpEnabled(env);
   const mail = leadMailConfigFromEnv(env);
   const notifyReady = Boolean(mail.apiKey);
+  const storageReady = opts.databaseReady ?? Boolean(env.DATABASE_URL?.trim());
+  if (!enabled) {
+    return {
+      enabled: false,
+      storageReady,
+      notifyReady,
+      available: false,
+      message:
+        "Estimate download and follow-up are not available right now. Call or text — we still want the job.",
+    };
+  }
   if (!storageReady) {
     return {
+      enabled: true,
       storageReady: false,
       notifyReady,
+      available: false,
       message:
         "Estimate download and follow-up are temporarily unavailable because lead storage is offline. Call or text — we still want the job.",
     };
   }
   return {
+    enabled: true,
     storageReady: true,
     notifyReady,
+    available: true,
     message: notifyReady
       ? "You can download your preliminary estimate and request follow-up."
       : "You can save your request and download the PDF. Shop notification may be delayed until email delivery is available.",
@@ -484,8 +529,8 @@ export function estimateFollowUpAvailability(env: NodeJS.ProcessEnv = process.en
 export function estimateEmailAvailability(env: NodeJS.ProcessEnv = process.env) {
   const avail = estimateFollowUpAvailability(env);
   return {
-    available: avail.storageReady,
-    state: avail.storageReady ? ("available" as const) : ("unavailable" as const),
+    available: avail.available,
+    state: avail.available ? ("available" as const) : ("unavailable" as const),
     message: avail.message,
   };
 }
@@ -506,9 +551,26 @@ export function estimateCustomerMailConfig(env: NodeJS.ProcessEnv = process.env)
 }
 
 export async function handleEstimateEmailAvailability(
-  deps: { env?: NodeJS.ProcessEnv } = {},
+  deps: { env?: NodeJS.ProcessEnv; sql?: Sql | null } = {},
 ): Promise<Response> {
-  const availability = estimateEmailAvailability(deps.env ?? process.env);
+  const env = deps.env ?? process.env;
+  if (!isEstimateFollowUpEnabled(env)) {
+    const availability = estimateFollowUpAvailability(env, { databaseReady: false });
+    return Response.json({
+      ok: false,
+      state: "unavailable",
+      available: false,
+      message: availability.message,
+    } satisfies EstimateFollowUpResult);
+  }
+  let databaseReady = Boolean(env.DATABASE_URL?.trim());
+  if (deps.sql !== undefined) {
+    databaseReady = Boolean(deps.sql);
+  } else if (!databaseReady) {
+    // Preview/PGLite path: probe whether a SQL client can be opened.
+    databaseReady = Boolean(await defaultSql());
+  }
+  const availability = estimateFollowUpAvailability(env, { databaseReady });
   return Response.json({
     ok: availability.available,
     state: availability.available ? "accepted" : "unavailable",
@@ -517,10 +579,45 @@ export async function handleEstimateEmailAvailability(
   } satisfies EstimateFollowUpResult);
 }
 
+async function renderSnapshotPdf(snapshot: EstimateSnapshot): Promise<Uint8Array> {
+  return renderPublicEstimatePdf({
+    input: snapshot.selections,
+    total: snapshot.totalCents / 100,
+    name: snapshot.name || "Visitor",
+    issued: new Date(snapshot.issuedAt),
+  });
+}
+
+async function issueDownloadForSnapshot(args: {
+  sql: Sql;
+  submissionId: string;
+  snapshot: EstimateSnapshot;
+  now: number;
+  expiresAt?: Date;
+  /** Prefer pre-rendered bytes so DB transactions do not hold locks during PDF generation. */
+  pdfBytes?: Uint8Array;
+}): Promise<{ downloadToken: string; expiresAt: Date; pdfBytes: Uint8Array }> {
+  const pdfBytes = args.pdfBytes ?? await renderSnapshotPdf(args.snapshot);
+  const downloadToken = randomBytes(32).toString("base64url");
+  const expiresAt = args.expiresAt && args.expiresAt.getTime() > args.now
+    ? args.expiresAt
+    : new Date(args.now + DOWNLOAD_TTL_MS);
+  await storeDownloadSnapshot({
+    sql: args.sql,
+    submissionId: args.submissionId,
+    token: downloadToken,
+    expiresAt,
+    pdfBytes,
+    snapshot: args.snapshot,
+  });
+  return { downloadToken, expiresAt, pdfBytes };
+}
+
 export async function handleEstimateEmailRequest(
   request: Request,
   deps: {
     sql?: Sql | null;
+    withTransaction?: WithTransaction;
     sendMail?: typeof sendLeadEmail;
     now?: number;
     env?: NodeJS.ProcessEnv;
@@ -528,7 +625,6 @@ export async function handleEstimateEmailRequest(
 ): Promise<Response> {
   const now = deps.now ?? Date.now();
   const env = deps.env ?? process.env;
-  const availability = estimateFollowUpAvailability(env);
 
   let form: FormData;
   try {
@@ -550,6 +646,17 @@ export async function handleEstimateEmailRequest(
     return Response.json({
       ok: true, state: "discarded", submissionId, message: "Accepted.",
     } as EstimateFollowUpResult);
+  }
+
+  if (!isEstimateFollowUpEnabled(env)) {
+    const availability = estimateFollowUpAvailability(env, { databaseReady: false });
+    return Response.json({
+      ok: false,
+      state: "unavailable",
+      available: false,
+      leadSaved: false,
+      message: availability.message,
+    } satisfies EstimateFollowUpResult, { status: 503 });
   }
 
   const contactResult = validateEstimateFollowUpContact({
@@ -580,7 +687,8 @@ export async function handleEstimateEmailRequest(
   }
 
   const sql = deps.sql !== undefined ? deps.sql : await defaultSql();
-  if (!sql || !availability.storageReady) {
+  const availability = estimateFollowUpAvailability(env, { databaseReady: Boolean(sql) });
+  if (!sql || !availability.available) {
     return Response.json({
       ok: false,
       state: "unavailable",
@@ -609,7 +717,7 @@ export async function handleEstimateEmailRequest(
     totalCents,
     selections,
   });
-  let snapshot: EstimateSnapshot = {
+  const candidate: EstimateSnapshot = {
     v: 2,
     name: contact.name,
     email: contact.email,
@@ -622,152 +730,148 @@ export async function handleEstimateEmailRequest(
     fingerprint,
   };
 
-  let existing: StoredLead | null;
+  const adIds = readAdIds(form);
+  // Render outside any DB transaction so claim + PDF row stay short and atomic.
+  let pdfBytes: Uint8Array;
   try {
-    existing = await findExisting(sql, submissionId);
-  } catch {
-    return Response.json({
-      ok: false,
-      state: "server_error",
-      message: "Could not process the estimate request. Call or text instead.",
-    } satisfies EstimateFollowUpResult, { status: 500 });
-  }
-
-  if (existing) {
-    const prior = asSnapshot(existing.estimate_snapshot);
-    if (!prior || prior.fingerprint !== fingerprint) {
-      return Response.json({
-        ok: false,
-        state: "conflict",
-        submissionId,
-        message: "This request was already saved with different details. Refresh and submit again as a new request.",
-      } satisfies EstimateFollowUpResult, { status: 409 });
-    }
-    snapshot = prior;
-
-    const existingDownload = await findDownloadBySubmission(sql, submissionId);
-    if (existingDownload && !existingDownload.revoked_at) {
-      // Lead already saved. Re-issue a fresh download token bound to the same snapshot bytes.
-      const downloadToken = randomBytes(32).toString("base64url");
-      let expiresAt = new Date(existingDownload.expires_at);
-      if (expiresAt.getTime() < now) expiresAt = new Date(now + DOWNLOAD_TTL_MS);
-      const pdfBytes = await renderPublicEstimatePdf({
-        input: snapshot.selections,
-        total: snapshot.totalCents / 100,
-        name: snapshot.name || "Visitor",
-        issued: new Date(snapshot.issuedAt),
-      });
-      try {
-        await storeDownloadSnapshot({
-          sql,
-          submissionId,
-          token: downloadToken,
-          expiresAt,
-          pdfBytes,
-          snapshot,
-        });
-      } catch {
-        return Response.json({
-          ok: false,
-          state: "server_error",
-          leadSaved: true,
-          staffNotified: existing.staff_email_ok,
-          message: "Your request was saved, but the PDF download could not be prepared. Call or text.",
-          submissionId,
-          total: snapshot.totalCents / 100,
-        } satisfies EstimateFollowUpResult, { status: 500 });
-      }
-
-      if (!existing.staff_email_ok) {
-        const notified = await notifyJon({
-          sql,
-          submissionId,
-          snapshot,
-          env,
-          sendMail: deps.sendMail,
-          adIds: readAdIds(form),
-        });
-        return Response.json({
-          ok: true,
-          state: existing.staff_email_ok || notified ? "duplicate" : "accepted",
-          submissionId,
-          downloadToken,
-          downloadExpiresAt: expiresAt.toISOString(),
-          total: snapshot.totalCents / 100,
-          leadSaved: true,
-          staffNotified: existing.staff_email_ok || notified,
-          message: notified || existing.staff_email_ok
-            ? "Your request was already saved. Download your personalized preliminary estimate PDF below."
-            : "Your request was already saved. Download your PDF below. Shop notification is still pending — try again or call.",
-        } satisfies EstimateFollowUpResult);
-      }
-
-      return Response.json({
-        ok: true,
-        state: "duplicate",
-        submissionId,
-        downloadToken,
-        downloadExpiresAt: expiresAt.toISOString(),
-        total: snapshot.totalCents / 100,
-        leadSaved: true,
-        staffNotified: true,
-        message: "Your request was already saved. Download your personalized preliminary estimate PDF below.",
-      } satisfies EstimateFollowUpResult);
-    }
-  }
-
-  const pdfBytes = await renderPublicEstimatePdf({
-    input: snapshot.selections,
-    total: snapshot.totalCents / 100,
-    name: snapshot.name || "Visitor",
-    issued: new Date(snapshot.issuedAt),
-  });
-  const downloadToken = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(now + DOWNLOAD_TTL_MS);
-
-  try {
-    await persistEstimateLead({
-      sql,
-      submissionId,
-      contact,
-      message: staffMessage(snapshot),
-      service: snapshot.selections.service,
-      total: snapshot.totalCents / 100,
-      selections: snapshot.selections,
-      snapshot,
-      adIds: readAdIds(form),
-      staffNotified: false,
-      clientIp: ip,
-    });
-    await storeDownloadSnapshot({
-      sql,
-      submissionId,
-      token: downloadToken,
-      expiresAt,
-      pdfBytes,
-      snapshot,
-    });
+    pdfBytes = await renderSnapshotPdf(candidate);
   } catch {
     return Response.json({
       ok: false,
       state: "server_error",
       leadSaved: false,
-      message: "Could not save your estimate request. Call or text instead.",
+      message: "Could not prepare the estimate PDF. Call or text instead.",
     } satisfies EstimateFollowUpResult, { status: 500 });
   }
 
-  const staffNotified = await notifyJon({
-    sql,
-    submissionId,
-    snapshot,
-    env,
-    sendMail: deps.sendMail,
-    adIds: readAdIds(form),
-  });
+  const runPersist = async (txSql: Sql) => {
+    const claim = await claimEstimateLead({
+      sql: txSql,
+      submissionId,
+      contact,
+      message: staffMessage(candidate),
+      service: candidate.selections.service,
+      total: candidate.totalCents / 100,
+      selections: candidate.selections,
+      snapshot: candidate,
+      adIds,
+      clientIp: ip,
+    });
+    const winning = await findExisting(txSql, submissionId);
+    if (!winning) {
+      throw new Error("claim_missing_row");
+    }
+    const prior = asSnapshot(winning.estimate_snapshot);
+    if (!prior || prior.fingerprint !== fingerprint) {
+      return { kind: "conflict" as const, winning };
+    }
+    if (claim === "exists") {
+      return { kind: "existing" as const, snapshot: prior, winning };
+    }
+    const issued = await issueDownloadForSnapshot({
+      sql: txSql,
+      submissionId,
+      snapshot: prior,
+      now,
+      pdfBytes,
+    });
+    return { kind: "claimed" as const, snapshot: prior, winning, ...issued };
+  };
+
+  const withTransaction = deps.withTransaction
+    ?? (await defaultWithTransaction())
+    ?? undefined;
+
+  let persistResult: Awaited<ReturnType<typeof runPersist>>;
+  try {
+    persistResult = withTransaction
+      ? await withTransaction(runPersist)
+      : await runPersist(sql);
+  } catch {
+    const existingAfter = await findExisting(sql, submissionId).catch(() => null);
+    return Response.json({
+      ok: false,
+      state: "server_error",
+      leadSaved: Boolean(existingAfter),
+      staffNotified: Boolean(existingAfter?.staff_email_ok),
+      submissionId: existingAfter ? submissionId : undefined,
+      total: existingAfter?.estimate_total_cents != null
+        ? Math.round(existingAfter.estimate_total_cents / 100)
+        : undefined,
+      message: existingAfter
+        ? "Your request was saved, but the PDF download could not be prepared. Call or text."
+        : "Could not save your estimate request. Call or text instead.",
+    } satisfies EstimateFollowUpResult, { status: 500 });
+  }
+
+  if (persistResult.kind === "conflict") {
+    return Response.json({
+      ok: false,
+      state: "conflict",
+      submissionId,
+      leadSaved: true,
+      message: "This request was already saved with different details. Refresh and submit again as a new request.",
+    } satisfies EstimateFollowUpResult, { status: 409 });
+  }
+
+  const snapshot = persistResult.snapshot;
+  let downloadToken: string;
+  let expiresAt: Date;
+  const isDuplicate = persistResult.kind === "existing";
+
+  if (persistResult.kind === "existing") {
+    const existingDownload = await findDownloadBySubmission(sql, submissionId);
+    const expires = existingDownload && !existingDownload.revoked_at
+      ? new Date(existingDownload.expires_at)
+      : new Date(now + DOWNLOAD_TTL_MS);
+    // Reuse immutable snapshot bytes when present — do not regenerate alternate totals.
+    const reuseBytes = existingDownload?.pdf_bytes && !existingDownload.revoked_at
+      ? (existingDownload.pdf_bytes instanceof Uint8Array
+        ? existingDownload.pdf_bytes
+        : new Uint8Array(existingDownload.pdf_bytes))
+      : pdfBytes;
+    try {
+      const issued = await issueDownloadForSnapshot({
+        sql,
+        submissionId,
+        snapshot,
+        now,
+        expiresAt: expires,
+        pdfBytes: reuseBytes,
+      });
+      downloadToken = issued.downloadToken;
+      expiresAt = issued.expiresAt;
+    } catch {
+      return Response.json({
+        ok: false,
+        state: "server_error",
+        leadSaved: true,
+        staffNotified: persistResult.winning.staff_email_ok,
+        message: "Your request was saved, but the PDF download could not be prepared. Call or text.",
+        submissionId,
+        total: snapshot.totalCents / 100,
+      } satisfies EstimateFollowUpResult, { status: 500 });
+    }
+  } else {
+    downloadToken = persistResult.downloadToken;
+    expiresAt = persistResult.expiresAt;
+  }
+
+  const alreadyNotified = persistResult.winning.staff_email_ok;
+  const staffNotified = alreadyNotified
+    ? true
+    : await notifyJon({
+      sql,
+      submissionId,
+      snapshot,
+      env,
+      sendMail: deps.sendMail,
+      adIds,
+    });
 
   return Response.json({
     ok: true,
-    state: "accepted",
+    state: isDuplicate ? "duplicate" : "accepted",
     submissionId,
     downloadToken,
     downloadExpiresAt: expiresAt.toISOString(),
@@ -775,8 +879,12 @@ export async function handleEstimateEmailRequest(
     leadSaved: true,
     staffNotified,
     message: staffNotified
-      ? "Request saved. Your personalized preliminary estimate PDF is ready. The Flip Fixer was notified to follow up."
-      : "Request saved and your PDF is ready. We could not notify the shop by email yet — your details are saved; call or retry if you need a faster response.",
+      ? (isDuplicate
+        ? "Your request was already saved. Download your personalized preliminary estimate PDF below."
+        : "Request saved. Your personalized preliminary estimate PDF is ready. The Flip Fixer was notified to follow up.")
+      : (isDuplicate
+        ? "Your request was already saved. Download your PDF below. Shop notification is still pending — try again or call."
+        : "Request saved and your PDF is ready. We could not notify the shop by email yet — your details are saved; call or retry if you need a faster response."),
   } satisfies EstimateFollowUpResult);
 }
 
@@ -797,7 +905,7 @@ async function notifyJon(args: {
       to: ESTIMATE_STAFF_NOTIFY_TO,
       from: mailCfg.from,
       replyTo: args.snapshot.email || undefined,
-      subject: `Estimate PDF follow-up — ${args.snapshot.name || args.snapshot.email || args.snapshot.phone || "visitor"}`,
+      subject: `Estimate PDF follow-up — ${args.snapshot.name || "visitor"}`,
       text: buildLeadEmailText({
         submissionId: args.submissionId,
         name: args.snapshot.name || "Estimate visitor",

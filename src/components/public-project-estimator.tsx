@@ -329,13 +329,34 @@ export function PublicProjectEstimator({
               {COUNTER_MATERIALS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label> : null}
-          {inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-cabinet-finish">Cabinet finish
-            <select id="estimate-cabinet-finish" value={inputs.cabinetFinish ?? "ew"}
-              onChange={e => patch("cabinetFinish", e.target.value as CabinetFinishId)} className={fieldClass}>
-              {CABINET_FINISHES.map(finish => <option key={finish.id} value={finish.id}>{finish.name} · {cabinetTier(finish.id).label}</option>)}
-            </select>
-            <span className="mt-1 block font-normal text-muted">{cabinetTier(inputs.cabinetFinish ?? "ew").details}</span>
-          </label> : null}
+          {inputs.service === "kitchen" ? (
+            <div>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <label className="text-sm font-semibold text-fg" htmlFor="estimate-cabinet-finish">Cabinet finish</label>
+                <a
+                  href="https://www.northvillecabinetry.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-primary underline underline-offset-2"
+                  data-testid="estimate-northville-cabinets"
+                >
+                  Browse Northville cabinet styles
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </div>
+              <select
+                id="estimate-cabinet-finish"
+                value={inputs.cabinetFinish ?? "ew"}
+                onChange={e => patch("cabinetFinish", e.target.value as CabinetFinishId)}
+                className={fieldClass}
+              >
+                {CABINET_FINISHES.map(finish => (
+                  <option key={finish.id} value={finish.id}>{finish.name} · {cabinetTier(finish.id).label}</option>
+                ))}
+              </select>
+              <span className="mt-1 block text-sm font-normal text-muted">{cabinetTier(inputs.cabinetFinish ?? "ew").details}</span>
+            </div>
+          ) : null}
           {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-vanity">Vanity size
             <select id="estimate-vanity" value={inputs.vanity ?? vanityForSize(inputs.size)} onChange={e => patch("vanity", e.target.value)} className={fieldClass}>
               {VANITY_SIZES.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}

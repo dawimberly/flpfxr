@@ -17,7 +17,12 @@ const server = spawn(process.execPath, [
   "node_modules/vite/bin/vite.js",
   "dev", "--host", "127.0.0.1", "--port", "8080", "--strictPort",
 ], { detached: process.platform !== "win32", windowsHide: true,
-  stdio: ["ignore", "pipe", "pipe"], env: mergeAppEnv(readAppEnv(process.cwd()), { ...process.env, CI: "1" }) });
+  stdio: ["ignore", "pipe", "pipe"], env: mergeAppEnv(readAppEnv(process.cwd()), {
+    ...process.env,
+    CI: "1",
+    // Exercise the gated follow-up form locally with PGLite; leave unset in production.
+    ESTIMATE_FOLLOWUP_ENABLED: "1",
+  }) });
 let logs = "";
 for (const stream of [server.stdout, server.stderr]) stream.on("data", c => { logs=(logs+String(c)).slice(-12000); });
 server.on("error", error => { logs += String(error); });
@@ -229,8 +234,17 @@ try {
     await page.getByRole("button",{name:"Medium",exact:true}).click();
     const total=page.getByTestId("estimate-total");
     await page.getByText("$12,000",{exact:true}).waitFor();
+    const northville = page.getByTestId("estimate-northville-cabinets");
+    await northville.waitFor();
+    assert.equal(await northville.getAttribute("href"), "https://www.northvillecabinetry.com/");
+    assert.equal(await northville.getAttribute("target"), "_blank");
+    assert.equal(await northville.getAttribute("rel"), "noopener noreferrer");
+    assert.match(await northville.innerText(), /Browse Northville cabinet styles/);
+    assert.match(await northville.textContent() || "", /opens in a new tab/i);
     await page.getByLabel("Cabinet finish").selectOption("ve");
     await total.getByText("$11,600",{exact:true}).waitFor();
+    // External browse link must not clear estimator selections.
+    assert.equal(await page.getByLabel("Cabinet finish").inputValue(), "ve");
     await page.getByText("Partial overlay, standard hinges and slides.",{exact:true}).waitFor();
     await page.getByLabel("Cabinet finish").selectOption("ew");
     await total.getByText("$12,000",{exact:true}).waitFor();
@@ -289,8 +303,29 @@ try {
     await page.getByText("$10,600",{exact:true}).waitFor();
     await page.getByLabel("Countertop type").selectOption("quartz");
 
+    // Gated follow-up: mock notifications stay off (no RESEND key); PDF download still works.
+    await page.getByRole("button", { name: "Download estimate & request follow-up" }).click();
+    await page.getByTestId("email-my-estimate-form").waitFor();
+    await page.getByLabel(/^Email/).fill("alex.sample@example.com");
+    await page.getByTestId("email-my-estimate-zip").fill("78209");
+    await page.getByTestId("email-my-estimate-submit").click();
+    await page.getByTestId("email-my-estimate-accepted").waitFor();
+    const downloadLink = page.getByTestId("email-my-estimate-download");
+    await downloadLink.waitFor();
+    const pdfHref = await downloadLink.getAttribute("href");
+    assert.ok(pdfHref && pdfHref.startsWith("/api/estimate-pdf/"));
+    const pdfResponse = await page.request.get(base + pdfHref);
+    assert.equal(pdfResponse.status(), 200);
+    assert.match(pdfResponse.headers()["content-type"] || "", /application\/pdf/);
+    assert.match(pdfResponse.headers()["cache-control"] || "", /no-store/);
+    assert.equal(pdfResponse.headers()["referrer-policy"], "no-referrer");
+    assert.ok((await pdfResponse.body()).byteLength > 500);
+    assert.equal(await page.getByLabel("Cabinet finish").inputValue(), "ew");
+    assert.equal(await total.innerText(), "$12,000");
+
     await page.getByRole("button",{name:"Bathroom remodeling",exact:true}).click();
     await page.getByRole("button",{name:"Medium",exact:true}).click();
+    assert.equal(await page.getByTestId("estimate-northville-cabinets").count(), 0, "Northville link is kitchen-only");
     await page.getByTestId("estimate-included").getByText("Demolition",{exact:true}).waitFor();
     await page.getByText("$8,000",{exact:true}).waitFor();
     await page.getByLabel("Shower wall").selectOption("stone");
