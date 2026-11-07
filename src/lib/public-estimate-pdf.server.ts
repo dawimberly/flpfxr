@@ -131,7 +131,7 @@ export async function renderPublicEstimatePdf(args: {
 
   y = drawWrapped(PRELIMINARY_ESTIMATE_WORDING, 48, y, 11, 516, true);
   y = drawWrapped(
-    "This PDF is your personalized preliminary estimate for the selections above. It is not labeled example-only.",
+    "This PDF is your personalized preliminary estimate for the selections above.",
     48,
     y - 12,
     11,

@@ -1,15 +1,16 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import type { ProjectInputs } from "@/lib/public-estimate-options";
 import { formatPublicEstimate } from "@/lib/public-estimate-display";
 
 type DeliveryState =
+  | "checking"
+  | "unavailable"
   | "idle"
   | "open"
   | "submitting"
   | "accepted"
-  | "failed"
-  | "not_configured";
+  | "failed";
 
 type ApiResult = {
   ok: boolean;
@@ -19,7 +20,7 @@ type ApiResult = {
   downloadToken?: string;
   downloadExpiresAt?: string;
   total?: number;
-  setupNeeded?: string[];
+  available?: boolean;
 };
 
 function newSubmissionId() {
@@ -39,7 +40,7 @@ export function EmailMyEstimate({
   disabled?: boolean;
 }) {
   const formId = useId();
-  const [state, setState] = useState<DeliveryState>("idle");
+  const [state, setState] = useState<DeliveryState>("checking");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(false);
@@ -47,9 +48,38 @@ export function EmailMyEstimate({
   const [downloadHref, setDownloadHref] = useState<string | null>(null);
   const [acceptedTotal, setAcceptedTotal] = useState<number | null>(null);
   const [submissionId, setSubmissionId] = useState(() => newSubmissionId());
-  const [setupNeeded, setSetupNeeded] = useState<string[] | null>(null);
+  const [unavailableMessage, setUnavailableMessage] = useState(
+    "Emailing a personalized estimate PDF is not available right now. Call or text — we still want the job.",
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/estimate-email", { method: "GET" });
+        const body = (await response.json()) as ApiResult;
+        if (cancelled) return;
+        if (body.available === true) {
+          setState("idle");
+        } else {
+          setUnavailableMessage(
+            body.message
+              || "Emailing a personalized estimate PDF is not available right now. Call or text — we still want the job.",
+          );
+          setState("unavailable");
+        }
+      } catch {
+        if (cancelled) return;
+        setState("unavailable");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const open = () => {
+    if (state !== "idle") return;
     setState("open");
     setError(null);
   };
@@ -71,30 +101,56 @@ export function EmailMyEstimate({
     try {
       const response = await fetch("/api/estimate-email", { method: "POST", body: form });
       const body = (await response.json()) as ApiResult;
-      if (body.state === "not_configured" || response.status === 503) {
-        setState("not_configured");
-        setSetupNeeded(body.setupNeeded ?? null);
-        setError(body.message ?? "Estimate email delivery is not configured yet.");
+      if (body.state === "unavailable" || body.available === false || response.status === 503) {
+        setState("unavailable");
+        setUnavailableMessage(body.message || unavailableMessage);
         return;
       }
       if (!body.ok && body.state !== "duplicate") {
         setState("failed");
         setError(body.message ?? "Could not send the estimate. Try again or call.");
-        // Keep the same submission id for true duplicates; mint a new one after a failed attempt
-        // so the visitor can retry without being blocked by the short-lived guard.
-        if (body.state !== "rate_limited") setSubmissionId(newSubmissionId());
+        // Keep the same submission id for conflict/rate-limit retries that must match;
+        // mint a new one after validation/delivery failure so visitors can correct and retry.
+        if (body.state !== "rate_limited" && body.state !== "conflict") {
+          setSubmissionId(newSubmissionId());
+        }
         return;
       }
       setState("accepted");
       setAcceptedTotal(typeof body.total === "number" ? body.total : displayedTotal);
-      if (body.downloadToken) setDownloadHref(`/api/estimate-pdf/${body.downloadToken}`);
-      else setDownloadHref(null);
+      if (body.downloadToken) {
+        setDownloadHref(`/api/estimate-pdf/${encodeURIComponent(body.downloadToken)}`);
+      } else {
+        setDownloadHref(null);
+      }
     } catch {
       setState("failed");
       setError("Could not reach the server. Your selections are still here — try again.");
       setSubmissionId(newSubmissionId());
     }
   };
+
+  if (state === "checking") {
+    return (
+      <p className="text-sm text-muted" data-testid="email-my-estimate-checking" role="status">
+        Checking whether estimate email is available…
+      </p>
+    );
+  }
+
+  if (state === "unavailable") {
+    return (
+      <div
+        className="w-full rounded-lg border border-border bg-bg p-3 text-sm text-fg"
+        data-testid="email-my-estimate-unavailable"
+        role="status"
+      >
+        <p className="font-semibold">Estimate email unavailable</p>
+        <p className="mt-1 text-muted">{unavailableMessage}</p>
+        <p className="mt-2 text-xs text-muted">Your on-screen preliminary estimate is unchanged.</p>
+      </div>
+    );
+  }
 
   if (state === "idle") {
     return (
@@ -125,6 +181,8 @@ export function EmailMyEstimate({
         {downloadHref ? (
           <a
             href={downloadHref}
+            rel="noreferrer"
+            referrerPolicy="no-referrer"
             className="mt-3 inline-flex min-h-11 items-center font-semibold text-primary underline"
             data-testid="email-my-estimate-download"
           >
@@ -132,7 +190,7 @@ export function EmailMyEstimate({
           </a>
         ) : null}
         <p className="mt-2 text-xs text-muted">
-          This download is your personalized preliminary estimate — not the example-only sample PDF below.
+          This download is your personalized preliminary estimate — not the example sample PDF below.
         </p>
       </div>
     );
@@ -160,6 +218,7 @@ export function EmailMyEstimate({
             name="name"
             autoComplete="name"
             required
+            maxLength={80}
             value={name}
             onChange={e => setName(e.target.value)}
             className="mt-2 min-h-11 w-full rounded-lg border border-border bg-surface p-3 text-fg"
@@ -199,11 +258,6 @@ export function EmailMyEstimate({
         </div>
       </div>
       {error ? <p role="alert" className="mt-3 text-sm text-fg" data-testid="email-my-estimate-error">{error}</p> : null}
-      {state === "not_configured" && setupNeeded?.length ? (
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted" data-testid="email-my-estimate-setup">
-          {setupNeeded.map(item => <li key={item}>{item}</li>)}
-        </ul>
-      ) : null}
       <button
         type="submit"
         disabled={state === "submitting"}

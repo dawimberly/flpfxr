@@ -40,6 +40,33 @@ describe("optional flooring", () => {
     assert.equal(formatPublicEstimate(publicEstimateResult(kitchen({ includeFlooring: true }))!.total), "$13,300");
   });
 
+  it("explains the Large bathroom flooring delta without exposing internal rates", () => {
+    const without = publicEstimateResult(kitchen({
+      service: "bathroom", size: "Large", vanity: "VA60DD", includeFlooring: false,
+    }))!;
+    // $13,300 is the Large bath combined total when optional flooring is included
+    // with ceramic tile (covering + install + tile setting materials on the larger
+    // Large preset floor area). Default LVP-with-flooring is a smaller combined bump.
+    const withTileFloor = publicEstimateResult(kitchen({
+      service: "bathroom", size: "Large", vanity: "VA60DD", includeFlooring: true, floor: "tile",
+    }))!;
+    const withLvpFloor = publicEstimateResult(kitchen({
+      service: "bathroom", size: "Large", vanity: "VA60DD", includeFlooring: true, floor: "lvp",
+    }))!;
+    assert.equal(formatPublicEstimate(without.total), "$10,300");
+    assert.equal(formatPublicEstimate(withTileFloor.total), "$13,300");
+    assert.equal(formatPublicEstimate(withLvpFloor.total), "$10,700");
+    assert.equal(withTileFloor.total - without.total, 3000);
+    const offLines = projectPlanningEstimate(kitchen({
+      service: "bathroom", size: "Large", vanity: "VA60DD", includeFlooring: false,
+    }))!;
+    const onLines = projectPlanningEstimate(kitchen({
+      service: "bathroom", size: "Large", vanity: "VA60DD", includeFlooring: true, floor: "tile",
+    }))!;
+    assert.equal(offLines.lines.some(row => row.id === "floor"), false);
+    assert.ok(onLines.lines.some(row => row.id === "floor"));
+  });
+
   it("does not invent a flooring deduction for dedicated flooring projects", () => {
     const project = kitchen({ service: "flooring", includeFlooring: false, roomSqft: 400 });
     const result = projectPlanningEstimate(project)!;
