@@ -56,7 +56,7 @@ function materialText(inputs: ProjectInputs, scope: NonNullable<ReturnType<typeo
 }
 function flooringStatusText(inputs: ProjectInputs): string | null {
   if (!flooringIsOptional(inputs.service)) return null;
-  return effectiveIncludeFlooring(inputs) ? "Flooring included" : "Flooring not included";
+  return effectiveIncludeFlooring(inputs) ? "Replacing flooring" : "Keeping existing flooring";
 }
 function includedItems(inputs: ProjectInputs): string[] {
   const includeFloor = effectiveIncludeFlooring(inputs);
@@ -149,13 +149,31 @@ export function PublicProjectEstimator({
   useEffect(() => {
     if (areaError) trackEstimateOutOfRange(inputs.service);
   }, [areaError, inputs.service]);
-  const publish = (service: ProjectService, size: ProjectSize, nextInputs?: ProjectInputs) => {
+  const publish = (
+    service: ProjectService,
+    size: ProjectSize,
+    nextInputs?: ProjectInputs,
+    opts: { preserveMeasurements?: boolean } = {},
+  ) => {
     setExplicitService(true);
     if (typeof window === "undefined") return;
     let next = estimateLandingUrl(window.location.href, service, size);
     const source = nextInputs ?? inputs;
+    const url = new URL(next, "https://theflipfixer.com");
+    if (opts.preserveMeasurements) {
+      // Flooring keep/replace must not wipe typed room size from the share URL.
+      const floor = areas.floor.trim();
+      const shower = areas.shower.trim();
+      const counter = areas.counter.trim();
+      const room = areas.room.trim();
+      if ((service === "kitchen" || service === "bathroom") && floor) url.searchParams.set("floorSqft", floor);
+      if (service === "bathroom" && shower) url.searchParams.set("showerSqft", shower);
+      if (service === "kitchen" && counter) url.searchParams.set("counterSqft", counter);
+      if ((service === "flooring" || service === "interior-paint" || service === "exterior-paint") && room) {
+        url.searchParams.set("roomSqft", room);
+      }
+    }
     if (flooringIsOptional(service)) {
-      const url = new URL(next, "https://theflipfixer.com");
       if (source.includeFlooring) {
         url.searchParams.set("includeFlooring", "1");
         url.searchParams.set("floor", source.floor);
@@ -163,8 +181,8 @@ export function PublicProjectEstimator({
         url.searchParams.delete("includeFlooring");
         url.searchParams.delete("floor");
       }
-      next = `${url.pathname}${url.search}${url.hash}`;
     }
+    next = `${url.pathname}${url.search}${url.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (next !== currentUrl) window.history.replaceState(window.history.state, "", next);
   };
@@ -172,8 +190,8 @@ export function PublicProjectEstimator({
     setInputs(prev => {
       const next = { ...prev, [key]: value };
       if (key === "includeFlooring" || key === "floor") {
-        // Keep shared URL state in sync with flooring selection for retries/shares.
-        queueMicrotask(() => publish(next.service, next.size, next));
+        // Keep shared URL state in sync without resetting room dimensions.
+        queueMicrotask(() => publish(next.service, next.size, next, { preserveMeasurements: true }));
       }
       return next;
     });
@@ -269,11 +287,19 @@ export function PublicProjectEstimator({
       ) : null}
       {scope ? <div className="mt-4 rounded-2xl bg-surface p-3 shadow-[var(--shadow-border)] md:p-8">
         <div className="grid gap-4 sm:grid-cols-2">
-          {inputs.service === "bathroom" || inputs.service === "kitchen" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor-sqft">{inputs.service === "bathroom" ? "Bathroom floor (sq ft)" : "Kitchen floor (sq ft)"}
-            <input id="estimate-floor-sqft" type="text" inputMode="decimal" value={areas.floor}
-              aria-invalid={Boolean(floorParsed.error) || Boolean(areaError && /floor/i.test(areaError))}
-              onChange={e => setAreas(prev => ({ ...prev, floor: e.target.value }))} className={fieldClass} />
-          </label> : null}
+          {inputs.service === "bathroom" || inputs.service === "kitchen" ? (
+            <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor-sqft">
+              {inputs.service === "bathroom" ? "Bathroom size (sq ft)" : "Kitchen size (sq ft)"}
+              <input id="estimate-floor-sqft" type="text" inputMode="decimal" value={areas.floor}
+                aria-invalid={Boolean(floorParsed.error) || Boolean(areaError && /room size/i.test(areaError))}
+                aria-describedby="estimate-room-size-hint"
+                onChange={e => setAreas(prev => ({ ...prev, floor: e.target.value }))} className={fieldClass} />
+              <span id="estimate-room-size-hint" className="mt-1 block text-sm font-normal text-muted">
+                Room size for this remodel (cabinets, counters, paint, and other work). Leave blank to use the starting point above.
+                {inputs.includeFlooring ? " New flooring uses this same area." : ""}
+              </span>
+            </label>
+          ) : null}
           {inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-shower-sqft">Shower or tub surround (sq ft, optional)
             <input id="estimate-shower-sqft" type="text" inputMode="decimal" value={areas.shower} placeholder="Optional"
               aria-invalid={Boolean(showerParsed.error) || Boolean(areaError && /surround/i.test(areaError))}
@@ -302,26 +328,44 @@ export function PublicProjectEstimator({
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {flooringIsOptional(inputs.service) ? (
-            <label className="flex min-h-11 items-start gap-3 text-sm font-semibold text-fg sm:col-span-2">
-              <input
-                id="estimate-include-flooring"
-                type="checkbox"
-                className="mt-0.5 size-11 shrink-0 rounded border-border"
-                checked={inputs.includeFlooring}
-                onChange={e => patch("includeFlooring", e.target.checked)}
-                data-testid="estimate-include-flooring"
-              />
-              <span>
-                Include flooring
-                <span className="mt-1 block font-normal text-muted">Adds floor covering materials and installation to the combined preliminary total.</span>
-              </span>
-            </label>
+            <fieldset className="sm:col-span-2" data-testid="estimate-flooring-choice">
+              <legend className="text-sm font-semibold text-fg">Flooring</legend>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  aria-pressed={!inputs.includeFlooring}
+                  data-testid="estimate-keep-flooring"
+                  onClick={() => patch("includeFlooring", false)}
+                  className={`${choiceClass(!inputs.includeFlooring)} min-h-[4.5rem] px-3 py-3`}
+                >
+                  <span className="block">Keep existing flooring</span>
+                  <span className={`mt-1 block text-xs font-normal leading-snug ${inputs.includeFlooring ? "text-muted" : "text-primary-fg/90"}`}>
+                    Remodel total without new floor covering or installation.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={inputs.includeFlooring}
+                  data-testid="estimate-replace-flooring"
+                  onClick={() => patch("includeFlooring", true)}
+                  className={`${choiceClass(inputs.includeFlooring)} min-h-[4.5rem] px-3 py-3`}
+                >
+                  <span className="block">Replace flooring</span>
+                  <span className={`mt-1 block text-xs font-normal leading-snug ${inputs.includeFlooring ? "text-primary-fg/90" : "text-muted"}`}>
+                    Adds floor covering and installation to the combined preliminary total.
+                  </span>
+                </button>
+              </div>
+            </fieldset>
           ) : null}
           {(inputs.service === "flooring" || (flooringIsOptional(inputs.service) && inputs.includeFlooring)) && scope.floor ? (
             <label className="text-sm font-semibold text-fg" htmlFor="estimate-floor">Flooring type
               <select id="estimate-floor" value={inputs.floor} onChange={e => patch("floor", e.target.value as ProjectInputs["floor"])} className={fieldClass}>
                 {FLOOR_MATERIALS.filter(m => inputs.service === "bathroom" ? m.id === "tile" || m.id === "lvp" : inputs.service === "kitchen" ? m.id !== "carpet" : true).map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
+              {flooringIsOptional(inputs.service) ? (
+                <span className="mt-1 block text-sm font-normal text-muted">Installation area matches the room size above.</span>
+              ) : null}
             </label>
           ) : null}
           {inputs.service === "kitchen" || inputs.service === "bathroom" ? <label className="text-sm font-semibold text-fg" htmlFor="estimate-counter">Countertop type

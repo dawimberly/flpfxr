@@ -4,11 +4,14 @@ import {
   DEFAULT_PROJECT_INPUTS,
   effectiveIncludeFlooring,
   flooringIsOptional,
+  scopeAreaError,
   type ProjectInputs,
 } from "./public-estimate-options.ts";
 import { projectPlanningEstimate, projectEstimateLeadMessage } from "./public-pricing.ts";
 import { publicEstimateResult } from "./public-estimate-result.server.ts";
 import { formatPublicEstimate } from "./public-estimate-display.ts";
+import { flooringInclusionLabel } from "./public-estimate-pdf.server.ts";
+import { validatePublicEstimateInput } from "./public-estimate-input.ts";
 import {
   estimateLandingFromSearch,
   inputsFromLanding,
@@ -104,9 +107,60 @@ describe("optional flooring", () => {
   it("states flooring inclusion in the lead message without a separate flooring price", () => {
     const off = projectEstimateLeadMessage(kitchen({ includeFlooring: false }));
     const on = projectEstimateLeadMessage(kitchen({ includeFlooring: true }));
-    assert.match(off, /Flooring not included/);
-    assert.match(on, /Flooring included/);
+    assert.match(off, /Keeping existing flooring/);
+    assert.match(on, /Replacing flooring/);
     assert.doesNotMatch(off, /Flooring: \$/);
     assert.doesNotMatch(on, /Flooring: \$/);
+    assert.equal(flooringInclusionLabel(kitchen({ includeFlooring: false })), "Keeping existing flooring");
+    assert.equal(flooringInclusionLabel(kitchen({ includeFlooring: true })), "Replacing flooring");
+  });
+
+  it("allows blank room size with flooring excluded, and rejects zero as a remodel size", () => {
+    assert.equal(scopeAreaError("kitchen", { floorSqft: null }), null);
+    assert.equal(scopeAreaError("bathroom", { floorSqft: null }), null);
+    assert.ok(scopeAreaError("kitchen", { floorSqft: 0 }));
+    assert.ok(scopeAreaError("bathroom", { floorSqft: 0 }));
+    const blankExcluded = validatePublicEstimateInput({
+      ...kitchen({ includeFlooring: false }),
+      floorSqft: null,
+    });
+    assert.equal(blankExcluded.includeFlooring, false);
+    assert.equal(formatPublicEstimate(publicEstimateResult(blankExcluded)!.total), "$12,000");
+    assert.throws(() => validatePublicEstimateInput({
+      ...kitchen({ includeFlooring: false }),
+      floorSqft: 0,
+    }));
+    assert.throws(() => validatePublicEstimateInput({
+      ...kitchen({ includeFlooring: true }),
+      floorSqft: 0,
+    }));
+  });
+
+  it("still validates room size when flooring is included", () => {
+    assert.ok(scopeAreaError("kitchen", { floorSqft: 10 }));
+    assert.throws(() => validatePublicEstimateInput({
+      ...kitchen({ includeFlooring: true }),
+      floorSqft: 10,
+    }));
+    const ok = validatePublicEstimateInput({
+      ...kitchen({ includeFlooring: true, floor: "lvp" }),
+      floorSqft: 168,
+    });
+    assert.equal(formatPublicEstimate(publicEstimateResult(ok)!.total), "$13,300");
+  });
+
+  it("keeps the same room size when flooring is toggled in shared planner URLs", () => {
+    const withSize = kitchen({ includeFlooring: false, floorSqft: 200 });
+    const keepPath = publicPlannerPath(withSize);
+    assert.match(keepPath, /floorSqft=200/);
+    assert.doesNotMatch(keepPath, /includeFlooring/);
+    const replacePath = publicPlannerPath({ ...withSize, includeFlooring: true, floor: "lvp" });
+    assert.match(replacePath, /floorSqft=200/);
+    assert.match(replacePath, /includeFlooring=1/);
+    const restored = inputsFromLanding(estimateLandingFromSearch({
+      service: "kitchen", size: "medium", floorSqft: 200, includeFlooring: "1", floor: "lvp",
+    }));
+    assert.equal(restored.floorSqft, 200);
+    assert.equal(restored.includeFlooring, true);
   });
 });

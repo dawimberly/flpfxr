@@ -31,5 +31,17 @@ function EstimatePage() {
   const search = Route.useSearch();
   const landing = estimateLandingFromSearch(search);
   const initialEstimate = Route.useLoaderData();
-  return <PublicProjectEstimator key={JSON.stringify(landing)} landing={landing} search={search} initialEstimate={initialEstimate} />;
+  // Remount on service/size/measurement deep links — not on flooring keep/replace toggles,
+  // which update the URL without resetting typed room dimensions.
+  const remountKey = JSON.stringify({
+    service: landing.service,
+    size: landing.size,
+    explicitService: landing.explicitService,
+    explicitSize: landing.explicitSize,
+    floorSqft: landing.floorSqft,
+    showerSqft: landing.showerSqft,
+    counterSqft: landing.counterSqft,
+    roomSqft: landing.roomSqft,
+  });
+  return <PublicProjectEstimator key={remountKey} landing={landing} search={search} initialEstimate={initialEstimate} />;
 }
