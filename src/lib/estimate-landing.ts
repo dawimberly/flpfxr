@@ -1,4 +1,4 @@
-import { CABINET_FINISHES } from "./cabinets.ts";
+import { CABINET_FINISHES } from "./public-cabinet-finishes.ts";
 import {
   COUNTER_MATERIALS, DEFAULT_PROJECT_INPUTS, FLOOR_MATERIALS, SHOWER_MATERIALS,
   presetAreas, scopeAreaError, vanityForSize,

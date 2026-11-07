@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CABINET_FINISHES, cabinetTier, isClosetRoom, preferredCabinetGroup, resolveCabinetFinish } from "@/lib/cabinets";
+import { CABINET_FINISHES, cabinetTier } from "@/lib/public-cabinet-finishes";
+import { isClosetRoom, preferredCabinetGroup, resolveCabinetFinish } from "@/lib/cabinets";
 import type { loadCabinetCatalog } from "@/lib/cabinet-quote";
 import type { JobRoom } from "@/lib/estimator";
 import { useEstimatorStore } from "@/lib/estimator-store";

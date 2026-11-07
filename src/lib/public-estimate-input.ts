@@ -1,4 +1,4 @@
-import { CABINET_FINISHES } from "./cabinets.ts";
+import { CABINET_FINISHES } from "./public-cabinet-finishes.ts";
 import { z } from "zod";
 import {
   PROJECT_SERVICES, PROJECT_SIZES, FLOOR_MATERIALS, COUNTER_MATERIALS,

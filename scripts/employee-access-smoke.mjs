@@ -1,7 +1,7 @@
 /** Local production-artifact integration; all identities/data are disposable PGLite fixtures. */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { readFile, readdir, copyFile, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { provisionEmployee } from "./employee-admin.mjs";
@@ -11,7 +11,9 @@ process.env.DATABASE_URL = "";
 process.env.VITE_AUTH_ENABLED = "true";
 process.env.BETTER_AUTH_SECRET = "isolated-fixture-secret-not-used-in-production";
 const functionRoot = resolve(".vercel/output/functions/__server.func"), staticRoot = resolve(".vercel/output/static");
-for (const name of (await readdir("node_modules/@electric-sql/pglite/dist")).filter(name=>/\.(?:wasm|data)$/.test(name))) await copyFile("node_modules/@electric-sql/pglite/dist/"+name,functionRoot+"/"+name);
+for (const name of ["pglite.data", "pglite.wasm"]) {
+  assert.ok((await stat(resolve(functionRoot, name))).size > 0, "Build must package " + name);
+}
 const app = (await import(pathToFileURL(functionRoot+"/index.mjs").href)).default;
 const base = "http://localhost:8080";
 await app.fetch(new Request(base+"/login"));
@@ -65,6 +67,56 @@ await new Promise(r=>server.listen(8080,"127.0.0.1",r));
 let browser;
 try {
   browser=await chromium.launch({headless:true});
+  const visitor = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  // Keep this hydration regression independent of third-party availability.
+  await visitor.route("https://**/*", route => route.fulfill({ status: 200, body: "", contentType: route.request().resourceType() === "stylesheet" ? "text/css" : "text/javascript" }));
+  const blockedImports = [];
+  const pageErrors = [];
+  visitor.on("pageerror", error => pageErrors.push(error.message));
+  visitor.on("request", request => {
+    if (new URL(request.url()).pathname.startsWith("/api/employee-assets/")) blockedImports.push(request.url());
+  });
+  await visitor.goto(base + "/", { waitUntil: "networkidle" });
+  await visitor.getByRole("button", { name: "Open menu", exact: true }).click();
+  await visitor.getByRole("dialog", { name: "Menu" }).waitFor();
+  await visitor.goto(base + "/estimate", { waitUntil: "networkidle" });
+
+  const total = visitor.getByTestId("estimate-total");
+  const sizeButton = name => visitor.getByRole("button", { name, exact: true });
+  async function readTotal() {
+    await total.waitFor();
+    const text = (await total.innerText()).trim();
+    assert.match(text, /^\$\d{1,3}(?:,\d{3})*$/, "Expected one formatted preliminary total");
+    const value = Number(text.replace(/[$,]/g, ""));
+    assert.ok(value > 0, "Preliminary total must be positive");
+    return value;
+  }
+
+  assert.equal(await sizeButton("Medium").getAttribute("aria-pressed"), "true");
+  const mediumTotal = await readTotal();
+  const totals = { Medium: mediumTotal };
+  let previousTotal = mediumTotal;
+  for (const size of ["Small", "Large"]) {
+    const button = sizeButton(size);
+    await button.click();
+    await visitor.waitForURL(url => url.searchParams.get("size") === size.toLowerCase());
+    await visitor.waitForFunction(previous => {
+      const text = document.querySelector('[data-testid="estimate-total"]')?.textContent?.trim();
+      return /^\$\d{1,3}(?:,\d{3})*$/.test(text ?? "") &&
+        Number(text.replace(/[$,]/g, "")) !== previous;
+    }, previousTotal);
+    assert.equal(await button.getAttribute("aria-pressed"), "true");
+    assert.equal(await visitor.locator('button[aria-pressed="true"]').filter({ hasText: /^(Small|Medium|Large)$/ }).count(), 1);
+    totals[size] = await readTotal();
+    previousTotal = totals[size];
+  }
+  assert.ok(totals.Small < mediumTotal && mediumTotal < totals.Large,
+    "Expected Small < Medium < Large preliminary totals: " + JSON.stringify(totals));
+  assert.deepEqual(blockedImports, [], "Public pages must not load employee chunks");
+  assert.deepEqual(pageErrors, [], "Public pages must hydrate without uncaught errors");
+  await visitor.close();
+  console.log("PASS signed-out production mobile menu and estimator hydration", totals);
+
   const page=await browser.newPage({extraHTTPHeaders:{authorization:"Bearer "+employeeToken}});
   await page.route("https://**/*", route=>route.fulfill({ status: 200, body: "", contentType: route.request().resourceType()==="stylesheet" ? "text/css" : "text/javascript" }));
   const failures=[];

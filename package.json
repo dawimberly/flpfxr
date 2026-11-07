@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/scan-public-pricing.mjs public && node scripts/with-app-env.mjs vite build && node scripts/protect-employee-assets.mjs && node scripts/check-server-output.mjs && npm run db:migrate",
+    "build": "node scripts/scan-public-pricing.mjs public && node scripts/with-app-env.mjs vite build && node scripts/package-pglite-runtime.mjs && node scripts/protect-employee-assets.mjs && node scripts/check-server-output.mjs && npm run db:migrate",
     "db:migrate": "node scripts/migrate.mjs",
-    "build:dev": "node scripts/scan-public-pricing.mjs public && node scripts/with-app-env.mjs vite build --mode development && node scripts/protect-employee-assets.mjs",
+    "build:dev": "node scripts/scan-public-pricing.mjs public && node scripts/with-app-env.mjs vite build --mode development && node scripts/package-pglite-runtime.mjs && node scripts/protect-employee-assets.mjs",
     "preview": "node scripts/with-app-env.mjs vite preview",
     "preview:restart": "node scripts/preview.mjs restart",
     "preview:stop": "node scripts/preview.mjs stop",
@@ -25,7 +25,7 @@
     "seo:sitemap": "node --experimental-strip-types scripts/generate-sitemap.ts",
     "prebuild": "npm run seo:sitemap",
     "prebuild:dev": "npm run seo:sitemap",
-    "test:app": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/auth/*.test.ts src/lib/app-data/*.test.ts src/components/*.test.ts && node --test scripts/public-security.test.mjs scripts/public-pricing-encoding.test.mjs"
+    "test:app": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/auth/*.test.ts src/lib/app-data/*.test.ts src/components/*.test.ts && node --test scripts/public-security.test.mjs scripts/public-pricing-encoding.test.mjs scripts/private-employee-assets-plugin.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
