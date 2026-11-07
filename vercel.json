@@ -62,6 +62,16 @@
       ],
       "destination": "https://theflipfixer.com/:path*",
       "statusCode": 301
+    },
+    {
+      "source": "/kitchen/planner",
+      "destination": "/estimate?service=kitchen",
+      "statusCode": 301
+    },
+    {
+      "source": "/bathroom/planner",
+      "destination": "/estimate?service=bathroom",
+      "statusCode": 301
     }
   ]
 }
